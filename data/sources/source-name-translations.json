@@ -3583,6 +3583,36 @@
         "ja": "Nita Das",
         "ko": "Nita Das"
       }
+    },
+    "watchlist-360": {
+      "sourceName": "Paul Rishell & Annie Raines",
+      "sourceNameEn": "Paul Rishell & Annie Raines",
+      "names": {
+        "zh-Hant": "Paul Rishell & Annie Raines",
+        "en": "Paul Rishell & Annie Raines",
+        "ja": "Paul Rishell & Annie Raines",
+        "ko": "Paul Rishell & Annie Raines"
+      }
+    },
+    "watchlist-361": {
+      "sourceName": "Yvonnick Prené",
+      "sourceNameEn": "Yvonnick Prené",
+      "names": {
+        "zh-Hant": "Yvonnick Prené",
+        "en": "Yvonnick Prené",
+        "ja": "Yvonnick Prené",
+        "ko": "Yvonnick Prené"
+      }
+    },
+    "watchlist-362": {
+      "sourceName": "Juzzie Smith",
+      "sourceNameEn": "Juzzie Smith",
+      "names": {
+        "zh-Hant": "Juzzie Smith",
+        "en": "Juzzie Smith",
+        "ja": "Juzzie Smith",
+        "ko": "Juzzie Smith"
+      }
     }
   }
 }
