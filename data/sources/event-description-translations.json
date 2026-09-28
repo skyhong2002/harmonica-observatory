@@ -11,7 +11,15 @@
         "en": "Organizer/performer: Taiwan Harmonica Music Festival (THMF). A lead-up event to the festival, led by Tsai Ming-hsien of Sirius Harmonica Ensemble. Participation is free, and tremolo harmonicas are provided.",
         "ja": "主催・出演：台湾ハーモニカ音楽祭（THMF）。音楽祭のプレイベントで、天狼星口琴樂團の蔡明憲が指導。参加無料、複音ハーモニカを提供。",
         "ko": "주최·출연: 대만 하모니카 음악제(THMF). 음악제 사전 행사로, 천랑성 하모니카 앙상블의 蔡明憲이 지도한다. 참가비는 무료이며 트레몰로 하모니카가 제공된다."
-      }
+      },
+      "sourceLocation": "竹東親愛愛樂音樂巷-音樂廳（新竹縣竹東鎮東林路194巷8號）",
+      "titles": {
+        "en": "Introduction to Harmonica Workshop"
+      },
+      "locations": {
+        "en": "親愛愛樂音樂巷 concert hall, Zhudong, Hsinchu County (No. 8, Lane 194, Donglin Road)"
+      },
+      "displayTranslationKind": "reference"
     },
     "88fb7911620b72be": {
       "title": "臺灣探戈樂團創團音樂會",
@@ -23,7 +31,15 @@
         "en": "Organizer/performer: Yora Chen. The inaugural concert of Taiwan Tango Orquesta, featuring harmonica performer 廖苡晴.",
         "ja": "主催・出演：陳瑤容（Yora Chen）。台湾タンゴ楽団（Taiwan Tango Orquesta）の創団コンサート。ハーモニカ奏者の廖苡晴が出演。",
         "ko": "주최·출연: 陳瑤容(Yora Chen). Taiwan Tango Orquesta의 창단 음악회로, 하모니카 연주자 廖苡晴이 출연한다."
-      }
+      },
+      "sourceLocation": "臺北生技園區 多功能廳",
+      "titles": {
+        "en": "Taiwan Tango Orquesta: Inaugural Concert"
+      },
+      "locations": {
+        "en": "Multipurpose Hall, Taipei Bioinnovation Park"
+      },
+      "displayTranslationKind": "reference"
     },
     "c6e46eaa80bfde1d": {
       "title": "南里沙のココだけの話｜伝えたい日本の名曲特集",
@@ -35,7 +51,15 @@
         "en": "Organizer/performer: Risa Minami. A YouTube livestream; the second half features a selection of Japanese classics to share with listeners.",
         "ja": "主催・出演：南里沙。YouTube生配信。後半は「伝えたい日本の名曲特集」。",
         "ko": "주최·출연: 미나미 리사. YouTube 생방송이며 후반부는 전하고 싶은 일본의 명곡 특집이다."
-      }
+      },
+      "sourceLocation": "YouTube Live",
+      "titles": {
+        "en": "Risa Minami: Just Between Us — Japanese Classics Special"
+      },
+      "locations": {
+        "en": "YouTube Live"
+      },
+      "displayTranslationKind": "reference"
     },
     "e615c6f1043467b0": {
       "title": "RJ&BME’s マンスリーライブ「公開リハーサル」",
@@ -47,7 +71,15 @@
         "en": "Organizers/performers: Risa Minami, 中尾唱, 喜多健博 and 小林亮. A monthly live show presented as an open rehearsal. Doors open at 19:00.",
         "ja": "主催・出演：南里沙、中尾唱、喜多健博、小林亮。公開リハーサル形式のマンスリーライブ。19:00開場。",
         "ko": "주최·출연: 미나미 리사, 中尾唱, 喜多健博, 小林亮. 공개 리허설 형식의 월례 라이브 공연으로, 19:00에 입장한다."
-      }
+      },
+      "sourceLocation": "西宮市 RJ&BME’s",
+      "titles": {
+        "en": "RJ&BME’s Monthly Live: Open Rehearsal"
+      },
+      "locations": {
+        "en": "RJ&BME’s, Nishinomiya"
+      },
+      "displayTranslationKind": "reference"
     },
     "6670d32764968444": {
       "title": "臺中一中口琴之狼校友音樂會《天琴聲等煙雨》",
@@ -59,7 +91,15 @@
         "en": "Organizer/performer: Taichung First Senior High School Harmonica Club. An alumni concert with free admission.",
         "ja": "主催・出演：台中一中ハーモニカ部。同窓生によるコンサート。入場無料。",
         "ko": "주최·출연: 타이중 제1고등학교 하모니카 동아리. 동문 음악회이며 입장은 무료이다."
-      }
+      },
+      "sourceLocation": "臺中 大墩文化中心 B1 演講廳",
+      "titles": {
+        "en": "Taichung First Senior High School Harmonica Club Alumni Concert: 天琴聲等煙雨"
+      },
+      "locations": {
+        "en": "B1 Lecture Hall, Dadun Cultural Center, Taichung"
+      },
+      "displayTranslationKind": "reference"
     },
     "9466c9e667f685f8": {
       "title": "The Power of Melody",
@@ -71,7 +111,15 @@
         "en": "Organizer/performer: Ariel Bart. A master workshop on composition and improvisation for harmonica and other melodic instruments.",
         "ja": "主催・出演：Ariel Bart。ハーモニカとその他の旋律楽器を対象とした、作曲・即興演奏のマスターワークショップ。",
         "ko": "주최·출연: Ariel Bart. 하모니카와 그 밖의 선율 악기를 위한 작곡·즉흥연주 마스터 워크숍."
-      }
+      },
+      "sourceLocation": "Berlin uferstudios",
+      "titles": {
+        "en": "The Power of Melody"
+      },
+      "locations": {
+        "en": "Uferstudios, Berlin"
+      },
+      "displayTranslationKind": "reference"
     },
     "009dec21c34c66e4": {
       "title": "南里沙 ティータイムコンサート",
@@ -83,7 +131,15 @@
         "en": "Organizer/performer: Risa Minami. Doors open at 13:00; concert starts at 13:30. Cake set: JPY 3,000. Limited to 30 seats; reservations required.",
         "ja": "主催・出演：南里沙。13:00開場、13:30開演。ケーキセット3,000円、30席限定、要予約。",
         "ko": "주최·출연: 미나미 리사. 13:00 입장, 13:30 공연 시작. 케이크 세트 3,000엔, 30석 한정이며 예약이 필요하다."
-      }
+      },
+      "sourceLocation": "泉佐野市 cafe 壽",
+      "titles": {
+        "en": "Risa Minami: Tea-Time Concert"
+      },
+      "locations": {
+        "en": "Cafe 壽, Izumisano"
+      },
+      "displayTranslationKind": "reference"
     },
     "2f6fdfccd706be18": {
       "title": "LIVE",
@@ -143,7 +199,15 @@
         "en": "Organizer/performer: Dr. Blue Harmonica Ensemble. Four consecutive evening concerts, September 25 (Friday)–28 (Monday). This entry is the September 26, 2026 performance. The announced time is 20:30–21:30; the candidate record’s 22:30 end time does not match the announcement.",
         "ja": "主催・出演：Dr. Blue口琴樂團。9月25日（金）～28日（月）の4夜連続公演。この記録は2026年9月26日の回。告知の演奏時間は20:30～21:30で、候補データの終了時刻22:30とは一致しない。",
         "ko": "주최·출연: Dr. Blue 하모니카 앙상블. 9월 25일 금요일부터 28일 월요일까지 나흘 연속 공연한다. 이 항목은 2026년 9월 26일 공연이다. 공지된 시간은 20:30~21:30이며, 후보 기록의 종료 시각 22:30은 공지와 다르다."
-      }
+      },
+      "sourceLocation": "臺中市 武陵富野渡假村 2F展演廳",
+      "titles": {
+        "en": "Dr. Blue Harmonica Concert at Wuling Hoya Resort"
+      },
+      "locations": {
+        "en": "2F Performance Hall, Wuling Hoya Resort, Taichung"
+      },
+      "displayTranslationKind": "reference"
     },
     "6f6e3ff17fd32139": {
       "title": "Dr. Blue 武陵富野渡假村口琴音樂會",
@@ -155,7 +219,15 @@
         "en": "Organizer/performer: Dr. Blue Harmonica Ensemble. Four consecutive evening concerts from September 25 to 28, 2026. This entry is the September 27 performance, 20:30–21:30. The announced end time is 21:30, differing from the candidate record’s 22:30.",
         "ja": "主催・出演：Dr. Blue口琴樂團。2026年9月25日～28日の4夜連続公演。この記録は9月27日20:30～21:30の回。告知の終了時刻は21:30で、候補データの22:30とは一致しない。",
         "ko": "주최·출연: Dr. Blue 하모니카 앙상블. 2026년 9월 25일부터 28일까지 나흘 연속 공연한다. 이 항목은 9월 27일 20:30~21:30 공연이다. 공지된 종료 시각은 21:30으로, 후보 기록의 22:30과 다르다."
-      }
+      },
+      "sourceLocation": "臺中市 武陵富野渡假村 2F展演廳",
+      "titles": {
+        "en": "Dr. Blue Harmonica Concert at Wuling Hoya Resort"
+      },
+      "locations": {
+        "en": "2F Performance Hall, Wuling Hoya Resort, Taichung"
+      },
+      "displayTranslationKind": "reference"
     },
     "3cc9a2ac09a819b3": {
       "title": "Dr. Blue 武陵富野渡假村口琴音樂會",
@@ -167,7 +239,15 @@
         "en": "Organizer/performer: Dr. Blue Harmonica Ensemble. Four consecutive evening concerts, September 25 (Friday)–28 (Monday). This entry is the September 28, 2026 performance. The announced time is 20:30–21:30; the candidate record’s 22:30 end time does not match the announcement.",
         "ja": "主催・出演：Dr. Blue口琴樂團。9月25日（金）～28日（月）の4夜連続公演。この記録は2026年9月28日の回。告知時間は20:30～21:30で、候補データの終了時刻22:30とは一致しない。",
         "ko": "주최·출연: Dr. Blue 하모니카 앙상블. 9월 25일 금요일부터 28일 월요일까지 나흘 연속 공연한다. 이 항목은 2026년 9월 28일 공연이다. 공지된 시간은 20:30~21:30으로, 후보 기록의 종료 시각 22:30과 다르다."
-      }
+      },
+      "sourceLocation": "臺中市 武陵富野渡假村 2F展演廳",
+      "titles": {
+        "en": "Dr. Blue Harmonica Concert at Wuling Hoya Resort"
+      },
+      "locations": {
+        "en": "2F Performance Hall, Wuling Hoya Resort, Taichung"
+      },
+      "displayTranslationKind": "reference"
     },
     "392fa995f897a50c": {
       "title": "CY Leo 何卓彦 & Band 《Two Worlds in One 二合为一》 Asia Tour Singapore Stop",
@@ -179,7 +259,15 @@
         "en": "Organizer/performer: Harmonica Aficionados Society (Singapore). CY Leo and his band perform a live harmonica concert in Singapore as part of their Asia tour. The post also mentions a separate October 4 concert, 琴缘51; this entry refers to the October 3 performance.",
         "ja": "主催・出演：口琴愛好者協会（シンガポール）。CY Leoとバンドによるアジアツアーのシンガポール公演。投稿には10月4日の別公演「琴缘51」も記載されているが、この記録は10月3日の公演を指す。",
         "ko": "주최·출연: 하모니카 애호가 협회(싱가포르). CY Leo와 밴드가 아시아 투어의 일환으로 싱가포르에서 하모니카 라이브 음악회를 연다. 게시물에는 10월 4일의 별도 공연 《琴缘51》도 언급되어 있지만, 이 항목은 10월 3일 공연에 해당한다."
-      }
+      },
+      "sourceLocation": "Singapore 新加坡",
+      "titles": {
+        "en": "CY Leo & Band: Two Worlds in One — Asia Tour, Singapore"
+      },
+      "locations": {
+        "en": "Singapore"
+      },
+      "displayTranslationKind": "reference"
     },
     "27c7beee2756d514": {
       "title": "上富田文化会館開館30周年記念事業 山下伶 クロマチックハーモニカ・コンサート",
@@ -191,7 +279,15 @@
         "en": "Organizer/performer: Rei Yamashita. A chromatic harmonica concert marking the 30th anniversary of Kamitonda Cultural Hall. October 12 (Monday, a public holiday).",
         "ja": "主催・出演：山下伶。上富田文化会館開館30周年記念事業として開催されるクロマチックハーモニカ・コンサート。10月12日（月・祝）。",
         "ko": "주최·출연: 야마시타 레이(Rei Yamashita). 가미톤다 문화회관 개관 30주년 기념 크로매틱 하모니카 공연. 10월 12일 월요일(공휴일)에 열린다."
-      }
+      },
+      "sourceLocation": "和歌山県上富田町 上富田文化会館 文化ホール",
+      "titles": {
+        "en": "Rei Yamashita Chromatic Harmonica Concert — Kamitonda Cultural Hall 30th Anniversary"
+      },
+      "locations": {
+        "en": "Cultural Hall, Kamitonda Cultural Center, Kamitonda, Wakayama"
+      },
+      "displayTranslationKind": "reference"
     },
     "3c48ac6304fd35e6": {
       "title": "秋風に音色をのせて ～南里沙・渡辺具義 デュエットLIVE～",
@@ -215,7 +311,15 @@
         "en": "Organizer/performer: Taichung Chinese Harmonica Association. October 31, 2026 (Saturday), 19:30. Tickets: NT$400 / 500 / 700 / 1,000. Performers include the Taichung Youth Harmonica Orchestra and the association’s elite and member ensembles, with harmonica soloists 張志勝, an accountant, and 李欣穎.",
         "ja": "主催・出演：台中市中華ハーモニカ協会。2026年10月31日（土）19:30。料金400／500／700／1,000元。台中市青少年ハーモニカ管弦楽団、同協会の精鋭団・会員団が出演。会計士でもある張志勝と李欣穎をハーモニカ独奏者として招く。",
         "ko": "주최·출연: 타이중시 중화 하모니카 협회. 2026년 10월 31일 토요일 19:30, 티켓 가격 NT$400/500/700/1,000. 타이중시 청소년 하모니카 오케스트라와 협회 정예단·회원단이 출연하며, 회계사이자 하모니카 연주자인 張志勝과 李欣穎을 독주자로 초청한다."
-      }
+      },
+      "sourceLocation": "臺中市中山堂",
+      "titles": {
+        "en": "Rhapsody and Glory: A Tribute to Symphonic Poems"
+      },
+      "locations": {
+        "en": "Taichung Zhongshan Hall"
+      },
+      "displayTranslationKind": "reference"
     },
     "1886bf43b49bf7c6": {
       "title": "第16回複音ハーモニカコンクール「本選ライブ」",
@@ -227,7 +331,15 @@
         "en": "Organizer/performer: Japan Harmonica Festival. November 21, 2026 (Saturday); doors open at 12:30 and the show starts at 13:00. The announcement says tickets go on sale September 1, 2026. Venue: Hiratsuka Hall at Square Ebara, Shinagawa, Tokyo.",
         "ja": "主催・出演：日本ハーモニカまつり。2026年11月21日（土）、12:30開場、13:00開演。告知によると2026年9月1日発売開始。会場は東京都品川区のスクエア荏原ひらつかホール。",
         "ko": "주최·출연: 일본 하모니카 축제. 2026년 11월 21일 토요일, 12:30 입장, 13:00 공연 시작. 공지에 따르면 2026년 9월 1일부터 티켓을 판매한다. 장소는 도쿄도 시나가와구 스퀘어 에바라 히라쓰카 홀이다."
-      }
+      },
+      "sourceLocation": "東京都品川区 スクエア荏原ひらつかホール",
+      "titles": {
+        "en": "16th Tremolo Harmonica Competition: Live Final"
+      },
+      "locations": {
+        "en": "Hiratsuka Hall, Square Ebara, Shinagawa, Tokyo"
+      },
+      "displayTranslationKind": "reference"
     },
     "98cb2a4f086a3092": {
       "title": "【衛武營小時光】茱蒂口琴樂團《跟著口琴去旅行》",
@@ -239,7 +351,15 @@
         "en": "Organizer/performer: Judy’s Harmonica Ensemble. Tickets: NTD 300 and 600. Approximately 60 minutes, with no intermission; recommended for ages 7 and up. OPENTIX: https://www.opentix.life/event/2043960193015562241",
         "ja": "主催・出演：茱蒂口琴樂團。料金300／600台湾ドル。約60分、休憩なし。7歳以上の鑑賞を推奨。OPENTIX：https://www.opentix.life/event/2043960193015562241",
         "ko": "주최·출연: Judy’s Harmonica Ensemble. 티켓 가격 NTD 300/600. 약 60분, 중간 휴식 없음. 7세 이상 관람 권장. OPENTIX: https://www.opentix.life/event/2043960193015562241"
-      }
+      },
+      "sourceLocation": "衛武營國家藝術文化中心表演廳（高雄市鳳山區三多一路1號）",
+      "titles": {
+        "en": "Weiwuying Showtime: Judy’s Harmonica Ensemble — Travel with the Harmonica"
+      },
+      "locations": {
+        "en": "Recital Hall, National Kaohsiung Center for the Arts (Weiwuying), No. 1, Sanduo 1st Road, Fengshan, Kaohsiung"
+      },
+      "displayTranslationKind": "reference"
     },
     "7635e87fc41c374c": {
       "title": "Christmas Concert 山下伶 Chromatic Harmonica",
@@ -251,7 +371,15 @@
         "en": "Organizer/performer: Rei Yamashita. Featuring Rei Yamashita (chromatic harmonica), Hiroki Morioka (piano), Jiro Okada (bass) and Kenta Okamoto (percussion). December 13, 2026, 15:00. All seats reserved, JPY 3,800. Preschool children are not admitted.",
         "ja": "主催・出演：山下伶。出演は山下伶（クロマチックハーモニカ）、森丘ヒロキ（ピアノ）、岡田治郎（ベース）、岡本健太（パーカッション）。2026年12月13日15:00開演、全席指定3,800円。未就学児入場不可。",
         "ko": "주최·출연: 야마시타 레이. 출연진은 야마시타 레이(크로매틱 하모니카), 모리오카 히로키(피아노), 오카다 지로(베이스), 오카모토 겐타(타악기). 2026년 12월 13일 15:00 시작, 전석 지정석 3,800엔. 미취학 아동은 입장할 수 없다."
-      }
+      },
+      "sourceLocation": "橫濱市 鶴見區民文化センター サルビアホール 4階ホール",
+      "titles": {
+        "en": "Rei Yamashita: Chromatic Harmonica Christmas Concert"
+      },
+      "locations": {
+        "en": "4F Hall, Tsurumi Cultural Center Salvia Hall, Yokohama"
+      },
+      "displayTranslationKind": "reference"
     }
   }
 }

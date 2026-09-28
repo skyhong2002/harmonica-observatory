@@ -241,6 +241,8 @@ export function textMatch(row, query) {
     ...Object.values(row.names || {}),
     ...(row.aliases || []),
     row.title,
+    ...Object.values(row.titles || {}),
+    ...Object.values(row.locations || {}),
     row.text,
     row.summary,
     ...Object.values(row.summaries || {}),

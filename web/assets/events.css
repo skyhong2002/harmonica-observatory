@@ -8,6 +8,9 @@
 .rich-event-time, .rich-event-location { display: flex; gap: 7px; align-items: flex-start; margin: 5px 0; font-size: .84rem; line-height: 1.55; }
 .rich-event-time svg, .rich-event-location svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 3px; color: var(--muted); }
 .rich-event-zone { margin: 6px 0 0; font-size: .73rem; color: var(--muted); }
+.event-original { margin: 0 0 10px; font-size: .78rem; line-height: 1.55; overflow-wrap: anywhere; }
+.event-original summary { color: var(--muted); cursor: pointer; }
+.event-original p { margin: 5px 0; }
 .event-media { margin: 0; padding: 0 14px; }
 .event-media-link { display: block; }
 .event-media-link .external { display: none; }

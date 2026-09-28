@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import http.client
 import json
 import os
 import re
@@ -15,6 +16,8 @@ import time
 import urllib.parse
 from pathlib import Path
 from typing import Any
+
+from youtube_atom import fetch_entries
 
 
 PROJECT_ROOT = Path(os.environ.get("HARMONICA_OBSERVE_HOME", Path(__file__).resolve().parents[1])).expanduser()
@@ -343,6 +346,26 @@ def fetch_source(
     now: dt.datetime,
 ) -> list[dict[str, Any]]:
     limit = min(max(int(source.get("limit") or 5), 1), 10)
+    if source.get("channel_id"):
+        try:
+            entries = fetch_entries(str(source["channel_id"]), timeout=min(timeout_secs, 15), limit=limit)
+        except (OSError, ValueError, http.client.HTTPException):
+            # A verified channel can still have an unavailable feed; retain the
+            # existing public-video extractor as the fallback.
+            pass
+        else:
+            rows = []
+            for info in entries:
+                key = f"{source.get('id')}:{info['id']}"
+                if key in inbox_keys:
+                    continue
+                inbox_keys.add(key)
+                if too_old(parse_date(info), max_age_days, now):
+                    continue
+                row = normalize_video(source, info)
+                row["raw_source"] = "youtube-atom"
+                rows.append(row)
+            return rows
     url = channel_url(str(source["url"]))
     flat_output = run_ytdlp(
         base_cmd,

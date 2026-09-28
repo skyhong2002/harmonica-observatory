@@ -16,6 +16,7 @@ from typing import Any
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG = PROJECT_ROOT / "data" / "feeds" / "social_sources.json"
 UPDATE_URL_OVERRIDES = PROJECT_ROOT / "data" / "sources" / "source-update-url-overrides.json"
+REVIEWED_PROFILES = PROJECT_ROOT / "data" / "sources" / "source-profile-overrides.json"
 DEFAULT_RSSHUB_BASE = "https://rss.observe.tw"
 GENERATED_BY = "scripts/build_social_sources.py"
 LOCAL_RSSHUB_BASES = {"http://127.0.0.1:1200", "http://localhost:1200"}
@@ -221,7 +222,16 @@ def parse_youtube_source(row: dict[str, str]) -> dict[str, Any] | None:
         key_part = parts[0]
 
     canonical = canonical_url(raw_url)
+    profiles = load_json(REVIEWED_PROFILES, {}).get("sources", {})
+    reviewed = profiles.get("watchlist-" + clean(row.get("public_id")), {})
+    channel_id = str(reviewed.get("youtubeChannelId") or "")
+    verified_feed = {}
+    if (re.fullmatch(r"UC[A-Za-z0-9_-]{22}", channel_id)
+            and canonical_url(str(reviewed.get("youtubeUrl") or "")) == canonical
+            and reviewed.get("name") == clean(row.get("name"))):
+        verified_feed = {"channel_id": channel_id}
     return {
+        **verified_feed,
         "enabled": True,
         "id": "yt_" + safe_slug(key_part, url_hash(canonical)),
         "include_without_keywords": True,

@@ -1502,7 +1502,7 @@ def render_static_source_index_card(entry: dict[str, Any]) -> str:
         </div>
         <div class="entry-context"><span>{category}</span>{location_html}</div>
         <p class="entry-summary">{summary}</p>
-        <div class="entry-links"><a href="/source/{slug}/">詳細資料</a>{links_html}</div>
+        <div class="entry-links">{links_html}</div>
       </article>
 """
 
@@ -1542,7 +1542,8 @@ def format_source_item_list_json_ld(
 
 def format_static_directory_cards(entries: list[dict[str, Any]]) -> str:
     cards = "".join(render_static_source_index_card(entry) for entry in entries)
-    cards = "\n".join(line.rstrip() for line in cards.splitlines())
+    # Keep every crawlable entry while avoiding repeated layout whitespace.
+    cards = re.sub(r">\s+<", "><", cards).strip()
     return f"""
             <!-- DIRECTORY_STATIC_START -->
 {cards}

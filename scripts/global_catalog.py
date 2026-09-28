@@ -12,6 +12,7 @@ import re
 import time
 from collections import Counter
 from datetime import datetime, timezone
+from event_localization import display_translations
 from pathlib import Path
 from urllib.parse import urlsplit, parse_qs
 
@@ -33,7 +34,7 @@ COUNTRY_CODES = {
     '俄羅斯': 'RU', '瑞典': 'SE', '丹麥': 'DK', '印尼': 'ID', '瑞士': 'CH',
     '墨西哥': 'MX', '紐西蘭': 'NZ', '挪威': 'NO', '荷蘭': 'NL', '捷克': 'CZ',
     '菲律賓': 'PH', '澳洲': 'AU', '義大利': 'IT', '印度': 'IN', '泰國': 'TH',
-    '越南': 'VN', '加拿大': 'CA', '奧地利': 'AT', '比利時': 'BE', '葡萄牙': 'PT',
+    '越南': 'VN', '南非': 'ZA', '加拿大': 'CA', '奧地利': 'AT', '比利時': 'BE', '葡萄牙': 'PT',
     '國際': 'WORLD', '国际': 'WORLD', 'International': 'WORLD',
     '線上': 'ONLINE', 'Online': 'ONLINE',
 }
@@ -298,6 +299,9 @@ def build_catalog(api_root: Path | str = API_ROOT, *, now: datetime | None = Non
         if original_language:
             descriptions[original_language] = event['description']
         event.update(descriptions=descriptions, descriptionLanguage=original_language)
+        event.update(display_translations(event, translated))
+        if event['titles'] or event['locations']:
+            event['displayTranslationKind'] = 'reference'
     scores = []
     for row in _rows(snapshots['scores.json'], 'scores'):
         scores.append({

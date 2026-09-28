@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from source_slugs import make_slug
+from curated_source_profiles import load_profiles, apply_profile
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -666,6 +667,9 @@ def canonical_link_key(url: str) -> str:
         for part in parsed.path.split("/")
         if part.strip("/")
     )
+    if host in {"facebook.com", "m.facebook.com"} and path == "profile.php":
+        profile_id = urllib.parse.parse_qs(parsed.query).get("id", [""])[0]
+        return f"facebook.com/profile.php?id={profile_id}" if profile_id.isdigit() else ""
     if any(
         domain in host
         for domain in ("facebook.com", "instagram.com", "youtube.com", "x.com", "twitter.com", "threads.net", "tiktok.com")
@@ -1365,12 +1369,14 @@ def build_entries() -> list[dict[str, object]]:
     latest = latest_updates_by_key()
     avatars = avatar_profiles_by_key()
     tag_cache = source_tag_cache()
+    reviewed_profiles = load_profiles()
     monitor_sources = monitor_sources_by_key()
     for entry in merged_entries:
         entry["slug"] = make_slug(entry)
         apply_latest_update(entry, latest)
         apply_avatar(entry, avatars)
         apply_source_tags(entry, tag_cache)
+        apply_profile(entry, reviewed_profiles)
         apply_monitor_sources(entry, monitor_sources)
 
     sorted_entries = sorted(

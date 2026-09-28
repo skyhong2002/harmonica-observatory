@@ -113,6 +113,20 @@ class RenderShellTests(unittest.TestCase):
         self.assertIn('rel="noreferrer">Curitiba &lt;Centro&gt;</a>', document)
         self.assertNotIn('<Centro>', document)
 
+    def test_new_source_countries_render_localized_in_all_four_languages(self):
+        catalog = self.catalog()
+        source = catalog['sources'][0]
+        countries = {'CA': ('加拿大', 'Canada', 'カナダ', '캐나다'),
+                     'IN': ('印度', 'India', 'インド', '인도'),
+                     'IT': ('義大利', 'Italy', 'イタリア', '이탈리아'),
+                     'ZA': ('南非', 'South Africa', '南アフリカ', '남아프리카 공화국')}
+        for code, names in countries.items():
+            source.update(countryCode=code, country=names[0])
+            for locale, name in zip(render_shell.LOCALES, names):
+                with self.subTest(code=code, locale=locale):
+                    document = render_shell.render_document(TEMPLATE, source['url'], catalog, ORIGIN, locale)
+                    self.assertIn('<p>' + name + '</p>', document)
+
     def test_unknown_and_non_geographic_countries_are_not_assigned_taiwan(self):
         catalog = self.catalog()
         source = catalog['sources'][0]

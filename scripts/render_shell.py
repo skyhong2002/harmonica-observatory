@@ -7,7 +7,7 @@ from __future__ import annotations
 import html
 import json
 import re
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit, urlunsplit
 
 LOCALES = ('zh-Hant', 'en', 'ja', 'ko')
 WORDS = {
@@ -36,6 +36,7 @@ COUNTRY_NAMES = {
     'AR': ('阿根廷', 'Argentina', 'アルゼンチン', '아르헨티나'),
     'AU': ('澳洲', 'Australia', 'オーストラリア', '오스트레일리아'),
     'BR': ('巴西', 'Brazil', 'ブラジル', '브라질'),
+    'CA': ('加拿大', 'Canada', 'カナダ', '캐나다'),
     'CH': ('瑞士', 'Switzerland', 'スイス', '스위스'),
     'CN': ('中國', 'China', '中国', '중국'),
     'CZ': ('捷克', 'Czechia', 'チェコ', '체코'),
@@ -47,6 +48,8 @@ COUNTRY_NAMES = {
     'HK': ('香港', 'Hong Kong', '香港', '홍콩'),
     'ID': ('印尼', 'Indonesia', 'インドネシア', '인도네시아'),
     'IL': ('以色列', 'Israel', 'イスラエル', '이스라엘'),
+    'IN': ('印度', 'India', 'インド', '인도'),
+    'IT': ('義大利', 'Italy', 'イタリア', '이탈리아'),
     'JP': ('日本', 'Japan', '日本', '일본'),
     'KR': ('韓國', 'South Korea', '韓国', '대한민국'),
     'MX': ('墨西哥', 'Mexico', 'メキシコ', '멕시코'),
@@ -61,6 +64,7 @@ COUNTRY_NAMES = {
     'SG': ('新加坡', 'Singapore', 'シンガポール', '싱가포르'),
     'TW': ('臺灣', 'Taiwan', '台湾', '대만'),
     'US': ('美國', 'United States', 'アメリカ合衆国', '미국'),
+    'ZA': ('南非', 'South Africa', '南アフリカ', '남아프리카 공화국'),
     'WORLD': ('國際', 'International', '国際', '국제'),
     'ONLINE': ('線上', 'Online', 'オンライン', '온라인'),
     'UNKNOWN': ('尚未標示', 'Not specified', '未指定', '미지정'),
@@ -85,6 +89,23 @@ def source_name(source: dict, locale: str) -> str:
     names = source.get('names') if isinstance(source.get('names'), dict) else {}
     return str(names.get(locale) or (source.get('nameEn') if locale == 'en' else '')
                or source.get('name') or source.get('id') or WORDS[locale]['source'])
+
+
+def source_share_image(source: dict, origin: str) -> str:
+    """Use only an existing catalog avatar in the public local avatar directory."""
+    avatar = source.get('avatar')
+    if not isinstance(avatar, str) or not re.fullmatch(
+        r'/assets/source-avatars/[A-Za-z0-9_-]+\.(?:avif|gif|jpe?g|png|webp)', avatar
+    ):
+        return ''
+    try:
+        parsed = urlsplit(origin)
+        if (parsed.scheme not in {'https', 'http'} or not parsed.hostname
+                or parsed.username is not None or parsed.password is not None):
+            return ''
+        return urlunsplit((parsed.scheme, parsed.netloc, avatar, '', ''))
+    except ValueError:
+        return ''
 
 
 def source_country(source: dict, locale: str) -> str:
@@ -140,6 +161,11 @@ def render_document(template: str, path: str, catalog: dict, origin: str, locale
     head += '<meta property="og:title" content="' + e(title) + '">\n'
     head += '<meta property="og:description" content="' + e(description) + '">\n'
     head += '<meta property="og:url" content="' + e(canonical) + '">\n'
+    if source and path.startswith(('/source/', '/post/source/')) and path.rstrip('/') not in {'/source', '/post/source'}:
+        share_image = source_share_image(source, origin)
+        if share_image:
+            head += '<meta property="og:image" content="' + e(share_image) + '">\n'
+            head += '<meta property="og:image:alt" content="' + e(source_name(source, locale)) + '">\n'
     document = document.replace('</head>', head + '</head>', 1)
     nav = ' · '.join('<a href="/' + slug + '/?lang=' + locale + '">' + e(words[slug]) + '</a>'
                      for slug in ('events', 'post', 'source', 'scores', 'feeds', 'contribute'))
