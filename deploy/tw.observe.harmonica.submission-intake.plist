@@ -27,12 +27,6 @@
       <string>/Users/skyhong/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
       <key>PYTHONWARNINGS</key>
       <string>ignore</string>
-      <key>HARMONICA_INTAKE_AI_COMMAND</key>
-      <string>/Users/skyhong/.local/bin/bamboo</string>
-      <key>HARMONICA_INTAKE_AI_PROVIDER</key>
-      <string>custom:ai-kot-gg</string>
-      <key>HARMONICA_INTAKE_AI_MODEL</key>
-      <string>gpt-6.1-sol</string>
     </dict>
 
     <key>RunAtLoad</key>

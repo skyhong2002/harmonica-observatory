@@ -197,24 +197,18 @@ class DedupeAndProposalTests(unittest.TestCase):
         self.assertIn("missing_source_country", reviewed["risk_flags"])
         self.assertFalse(automatic)
 
-    @mock.patch.dict(os.environ, {"HARMONICA_INTAKE_AI_COMMAND": ""})
     @mock.patch("submission_intake.llm_backend.codex_chat")
-    @mock.patch("submission_intake.subprocess.run")
-    def test_ai_review_defaults_to_existing_codex_entitlement(self, run, codex):
+    def test_ai_review_defaults_to_existing_codex_entitlement(self, codex):
         codex.return_value = json.dumps({"choices": [{"message": {"content": json.dumps(proposal("reject"))}}]})
         result = intake.run_ai_review("response", {}, [], [])
         self.assertEqual(result["decision"], "reject")
         codex.assert_called_once()
-        run.assert_not_called()
         self.assertIn("worldwide", codex.call_args.args[0]["messages"][0]["content"])
 
-    @mock.patch.dict(os.environ, {"HARMONICA_INTAKE_AI_COMMAND": ""})
     @mock.patch("submission_intake.llm_backend.codex_chat", side_effect=RuntimeError("quota exhausted"))
-    @mock.patch("submission_intake.subprocess.run")
-    def test_codex_quota_failure_has_no_paid_fallback(self, run, codex):
+    def test_codex_quota_failure_has_no_paid_fallback(self, codex):
         with self.assertRaisesRegex(intake.IntakeError, "retained for review"):
             intake.run_ai_review("response", {}, [], [])
-        run.assert_not_called()
 
     def test_normalize_proposal_does_not_treat_string_false_as_true(self):
         raw = proposal("add_event")
@@ -226,24 +220,6 @@ class DedupeAndProposalTests(unittest.TestCase):
             "venue": "新竹",
         }
         self.assertFalse(intake.normalize_proposal(raw)["event"]["all_day"])
-
-    @mock.patch("submission_intake.subprocess.run")
-    def test_ai_review_locks_non_codex_provider_in_safe_mode(self, run):
-        result = proposal("reject")
-        run.return_value = mock.Mock(
-            returncode=0,
-            stdout=json.dumps(result, ensure_ascii=False),
-            stderr="",
-        )
-        intake.run_ai_review("response", {}, [], [], command="bamboo")
-        command = run.call_args.args[0]
-        self.assertIn("--safe-mode", command)
-        self.assertEqual(
-            command[command.index("--provider") + 1], intake.DEFAULT_AI_PROVIDER
-        )
-        self.assertEqual(command[command.index("--model") + 1], intake.DEFAULT_AI_MODEL)
-        self.assertEqual(command[command.index("--model") + 1], "gpt-6.1-sol")
-        self.assertNotIn("openai-codex", command)
 
 
 class ApplySourceTests(unittest.TestCase):

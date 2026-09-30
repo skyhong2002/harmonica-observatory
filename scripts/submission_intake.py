@@ -8,11 +8,9 @@ import datetime as dt
 import difflib
 import ipaddress
 import json
-import os
 import re
 import socket
 import sqlite3
-import subprocess
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -29,8 +27,6 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 FORM_ID = "1yU36b4wOEH2nUXNicFEdWTWYjAUjdTnNEE9Q45lQCP8"
 DEFAULT_TOKEN_FILE = Path.home() / ".hermes/profiles/bamboo/harmonica-observe-google-token.json"
 DEFAULT_STATE_DB = PROJECT_ROOT / "state" / "submission-intake.sqlite"
-DEFAULT_AI_PROVIDER = "custom:ai-kot-gg"
-DEFAULT_AI_MODEL = llm_backend.DEFAULT_CODEX_MODEL
 SOURCE_CSV = Path("data/sources/harmonica-source-watchlist-public.csv")
 SUBMITTED_EVENTS_CSV = Path("data/sources/harmonica-submitted-events.csv")
 TAIPEI = ZoneInfo("Asia/Taipei")
@@ -653,43 +649,16 @@ def run_ai_review(
     evidence: list[UrlEvidence],
     candidates: list[dict[str, Any]],
     *,
-    command: str = "",
-    provider: str = DEFAULT_AI_PROVIDER,
-    model: str = DEFAULT_AI_MODEL,
     timeout: int = 180,
 ) -> dict[str, Any]:
-    binary = command or os.environ.get("HARMONICA_INTAKE_AI_COMMAND", "").strip()
-    if not binary:
-        try:
-            envelope = json.loads(llm_backend.codex_chat({
-                "messages": [{"role": "user", "content": ai_prompt(response_id, answers, evidence, candidates)}]
-            }, timeout=timeout))
-            output = envelope["choices"][0]["message"]["content"]
-        except (ValueError, KeyError, IndexError, RuntimeError, TimeoutError) as exc:
-            raise IntakeError("Codex intake review unavailable; submission retained for review") from exc
-        return normalize_proposal(parse_json_object(output))
-    process = subprocess.run(
-        [
-            binary,
-            "--safe-mode",
-            "--ignore-rules",
-            "--provider",
-            provider,
-            "--model",
-            model,
-            "-z",
-            ai_prompt(response_id, answers, evidence, candidates),
-        ],
-        cwd=PROJECT_ROOT,
-        text=True,
-        capture_output=True,
-        timeout=timeout,
-    )
-    if process.returncode:
-        raise IntakeError(
-            f"AI review failed ({process.returncode}): {clean_text(process.stderr or process.stdout, 1000)}"
-        )
-    return normalize_proposal(parse_json_object(process.stdout))
+    try:
+        envelope = json.loads(llm_backend.codex_chat({
+            "messages": [{"role": "user", "content": ai_prompt(response_id, answers, evidence, candidates)}]
+        }, timeout=timeout))
+        output = envelope["choices"][0]["message"]["content"]
+    except (ValueError, KeyError, IndexError, RuntimeError, TimeoutError) as exc:
+        raise IntakeError("Codex intake review unavailable; submission retained for review") from exc
+    return normalize_proposal(parse_json_object(output))
 
 
 def normalize_proposal(value: dict[str, Any]) -> dict[str, Any]:

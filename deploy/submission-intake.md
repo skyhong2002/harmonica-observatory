@@ -12,9 +12,9 @@ to a Google Sheet.
    fetched with bounded redirects and response sizes.
 3. Existing source names and canonical URLs are compared deterministically for
    duplicate candidates.
-4. Bamboo reviews only the untrusted JSON payload in `--safe-mode`, explicitly
-   locked to `custom:ai-kot-gg / gpt-6.1-sol`. The profile fallback chain,
-   including Codex, is not loaded.
+4. Codex reviews only the untrusted JSON payload through the same read-only,
+   no-tools `llm_backend.codex_chat` path (and `HARMONICA_CODEX_MODEL`) as the
+   pipeline classifier, sharing its hourly limit. There is no paid-API fallback.
 5. Deterministic Python applies the proposed source or event change in a clean
    worktree, validates generated data, and opens a labeled pull request.
 6. A high-confidence add or update with no risk flags is squash-merged and the

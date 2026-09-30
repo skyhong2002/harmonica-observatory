@@ -18,8 +18,6 @@ from pathlib import Path
 from typing import Any
 
 from submission_intake import (
-    DEFAULT_AI_MODEL,
-    DEFAULT_AI_PROVIDER,
     DEFAULT_STATE_DB,
     DEFAULT_TOKEN_FILE,
     DESIRED_RESULT,
@@ -387,9 +385,6 @@ def process_submission(
     store: IntakeStore,
     row: Any,
     *,
-    ai_command: str,
-    ai_provider: str,
-    ai_model: str,
     no_auto_merge: bool,
     no_publish: bool,
 ) -> None:
@@ -413,9 +408,6 @@ def process_submission(
         answers,
         evidence_objects,
         candidates,
-        command=ai_command,
-        provider=ai_provider,
-        model=ai_model,
     )
     proposal, auto_merge = enforce_proposal(proposal, answers, evidence_objects, candidates)
     store.update(
@@ -483,15 +475,6 @@ def main() -> int:
     parser.add_argument("--lock-file", type=Path, default=DEFAULT_LOCK)
     parser.add_argument("--response-id", default="")
     parser.add_argument("--max-submissions", type=int, default=5)
-    parser.add_argument("--ai-command", default="")
-    parser.add_argument(
-        "--ai-provider",
-        default=os.environ.get("HARMONICA_INTAKE_AI_PROVIDER", DEFAULT_AI_PROVIDER),
-    )
-    parser.add_argument(
-        "--ai-model",
-        default=os.environ.get("HARMONICA_INTAKE_AI_MODEL", DEFAULT_AI_MODEL),
-    )
     parser.add_argument("--no-auto-merge", action="store_true")
     parser.add_argument("--no-publish", action="store_true")
     parser.add_argument("--ingest-only", action="store_true")
@@ -535,9 +518,6 @@ def main() -> int:
                     process_submission(
                         store,
                         row,
-                        ai_command=args.ai_command,
-                        ai_provider=args.ai_provider,
-                        ai_model=args.ai_model,
                         no_auto_merge=args.no_auto_merge,
                         no_publish=args.no_publish,
                     )
