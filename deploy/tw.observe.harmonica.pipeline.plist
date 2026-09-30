@@ -16,7 +16,7 @@
     <key>EnvironmentVariables</key>
     <dict>
       <key>HARMONICA_CODEX_MODEL</key>
-      <string>gpt-6-sol</string>
+      <string>gpt-6.1-sol</string>
       <key>HARMONICA_LLM_MODEL</key>
       <string>gpt-6-luna</string>
       <key>HARMONICA_OBSERVE_HOME</key>

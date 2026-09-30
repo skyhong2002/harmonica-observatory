@@ -21,10 +21,10 @@ class CodexBackendTests(unittest.TestCase):
     def test_default_models_are_explicit_gpt6_and_allow_operator_overrides(self):
         with mock.patch.dict(os.environ, {}, clear=True):
             self.assertEqual(llm_backend.provider(), 'codex')
-            self.assertEqual(llm_backend.model_name(), 'gpt-6-sol')
+            self.assertEqual(llm_backend.model_name(), 'gpt-6.1-sol')
             self.assertEqual(watchdog.DEFAULT_LLM_MODEL, 'gpt-6-luna')
         for selected, variable, fallback in (
-            ('codex', 'HARMONICA_CODEX_MODEL', 'gpt-6-sol'),
+            ('codex', 'HARMONICA_CODEX_MODEL', 'gpt-6.1-sol'),
             ('openai', 'HARMONICA_LLM_MODEL', 'gpt-6-luna'),
         ):
             for configured, expected in (('', fallback), ('   ', fallback), ('gpt-6-astra', 'gpt-6-astra')):
@@ -34,7 +34,7 @@ class CodexBackendTests(unittest.TestCase):
                     self.assertEqual(llm_backend.model_name(), expected)
 
     def test_codex_command_pins_default_or_configured_model_and_reports_it(self):
-        for configured, expected in (('', 'gpt-6-sol'), ('gpt-6-astra', 'gpt-6-astra')):
+        for configured, expected in (('', 'gpt-6.1-sol'), ('gpt-6-astra', 'gpt-6-astra')):
             with self.subTest(configured=configured), tempfile.TemporaryDirectory() as directory:
                 environment = {'HARMONICA_STATE_DIR': directory, 'HARMONICA_CODEX_MODEL': configured}
                 def run(args, **kwargs):
@@ -197,7 +197,7 @@ class ClassifierProvenanceTests(unittest.TestCase):
 
 class ChatRequestCompatibilityTests(unittest.TestCase):
     def test_gpt6_sampling_compatibility_preserves_reasoning_and_input(self):
-        for model in ('gpt-6-astra', 'gpt-6-sol', 'gpt-6-luna'):
+        for model in ('gpt-6-astra', 'gpt-6.1-sol', 'gpt-6-luna'):
             for effort in (None, 'low', 'medium', 'high', 'none'):
                 with self.subTest(model=model, effort=effort):
                     body = {'model': model, 'messages': [], 'temperature': 0, 'top_p': 1,

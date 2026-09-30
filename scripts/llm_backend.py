@@ -15,7 +15,7 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_CODEX_MODEL = 'gpt-6-sol'
+DEFAULT_CODEX_MODEL = 'gpt-6.1-sol'
 DEFAULT_API_MODEL = 'gpt-6-luna'
 
 
@@ -39,7 +39,7 @@ def compatible_chat_body(body: dict) -> dict:
     shared by the no-tool post, directory and calendar API classifiers.
     """
     result = dict(body)
-    if str(result.get('model', '')).startswith('gpt-6-') and result.get('reasoning_effort') != 'none':
+    if str(result.get('model', '')).startswith(('gpt-6-', 'gpt-6.')) and result.get('reasoning_effort') != 'none':
         for name in ('temperature', 'top_p', 'top_logprobs', 'logprobs'):
             result.pop(name, None)
     return result

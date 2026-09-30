@@ -18,7 +18,7 @@
     <key>EnvironmentVariables</key>
     <dict>
       <key>HARMONICA_CODEX_MODEL</key>
-      <string>gpt-6-sol</string>
+      <string>gpt-6.1-sol</string>
       <key>HARMONICA_LLM_MODEL</key>
       <string>gpt-6-luna</string>
       <key>HOME</key>
@@ -32,7 +32,7 @@
       <key>HARMONICA_INTAKE_AI_PROVIDER</key>
       <string>custom:ai-kot-gg</string>
       <key>HARMONICA_INTAKE_AI_MODEL</key>
-      <string>gpt-6-sol</string>
+      <string>gpt-6.1-sol</string>
     </dict>
 
     <key>RunAtLoad</key>

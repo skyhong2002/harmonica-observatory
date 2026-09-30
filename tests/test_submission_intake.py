@@ -242,7 +242,7 @@ class DedupeAndProposalTests(unittest.TestCase):
             command[command.index("--provider") + 1], intake.DEFAULT_AI_PROVIDER
         )
         self.assertEqual(command[command.index("--model") + 1], intake.DEFAULT_AI_MODEL)
-        self.assertEqual(command[command.index("--model") + 1], "gpt-6-sol")
+        self.assertEqual(command[command.index("--model") + 1], "gpt-6.1-sol")
         self.assertNotIn("openai-codex", command)
 
 

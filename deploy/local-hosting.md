@@ -59,9 +59,9 @@ launchctl kickstart -k gui/$(id -u)/tw.observe.harmonica.web
 預設 `HARMONICA_LLM_PROVIDER=codex`：利用本機 `codex login` 已保存的 ChatGPT 登入，在維護者的抓取／整理流程中執行只讀結構化分類。沒有公開 inference endpoint；訪客只讀快取資料與隨程式附帶的四語文字。
 
 - `HARMONICA_CODEX_BIN`：CLI 執行檔，可省略。
-- `HARMONICA_CODEX_MODEL=gpt-6-sol`：明確傳入 Codex CLI；未設定時程式也使用此值，不再依賴 CLI 的隱含模型。
+- `HARMONICA_CODEX_MODEL=gpt-6.1-sol`：明確傳入 Codex CLI；未設定時程式也使用此值，不再依賴 CLI 的隱含模型。
 - `HARMONICA_LLM_MODEL=gpt-6-luna`：僅供明確啟用的舊 API 模式使用。
-- `HARMONICA_INTAKE_AI_MODEL=gpt-6-sol`：明確指定其他收件審核命令時使用。
+- `HARMONICA_INTAKE_AI_MODEL=gpt-6.1-sol`：明確指定其他收件審核命令時使用。
 - `HARMONICA_CODEX_MAX_CALLS_PER_HOUR=12`：所有抓取程序共用的上限。
 - `HARMONICA_CODEX_TIMEOUT=180`：每次最長秒數。
 - `HARMONICA_LLM_PROVIDER=disabled`：完全停用新推論。

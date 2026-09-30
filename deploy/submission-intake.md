@@ -13,7 +13,7 @@ to a Google Sheet.
 3. Existing source names and canonical URLs are compared deterministically for
    duplicate candidates.
 4. Bamboo reviews only the untrusted JSON payload in `--safe-mode`, explicitly
-   locked to `custom:ai-kot-gg / gpt-6-sol`. The profile fallback chain,
+   locked to `custom:ai-kot-gg / gpt-6.1-sol`. The profile fallback chain,
    including Codex, is not loaded.
 5. Deterministic Python applies the proposed source or event change in a clean
    worktree, validates generated data, and opens a labeled pull request.
