@@ -162,3 +162,14 @@ html .legacy-site-header .brand-name { white-space:normal; overflow-wrap:anywher
 @media(max-width:640px) {
   .legacy-site-header .site-nav { grid-template-columns:repeat(auto-fit,minmax(min(100%,max(calc((100% - 8px)/3),4rem)),1fr)); }
 }
+
+/* Keep the account entry visible beside the brand, including on phones. */
+.legacy-site-header .site-nav { margin-left:auto; }
+.legacy-site-header .nav-account { flex:0 0 auto; }
+.legacy-site-header .nav-account-button { min-height:44px; padding:8px 12px; color:var(--color-text-brand); border:1px solid var(--color-border-subtle); font-size:.85rem; white-space:nowrap; }
+@media(max-width:640px) {
+  .legacy-site-header .brand { order:1; flex:1 1 150px; }
+  .legacy-site-header .nav-account { order:2; margin-left:auto; }
+  .legacy-site-header .site-nav { order:3; margin-left:0; }
+  .legacy-site-header .nav-account-button { padding-inline:9px; font-size:.78rem; }
+}

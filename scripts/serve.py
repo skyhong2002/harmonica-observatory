@@ -24,11 +24,13 @@ import time
 from urllib.parse import unquote, urlsplit, parse_qs
 
 import community
+import google_login
 
 ROOT = Path(__file__).resolve().parents[1]
 SHELL_ROUTES = {'/', '/events/', '/post/', '/source/', '/scores/', '/scores/sources/',
                 '/feeds/', '/status/', '/contribute/', '/submit/', '/about/', '/privacy/'}
 COOKIE_NAME = 'harmonica_owner'
+FLOW_COOKIE = 'harmonica_google_flow'
 MAX_BODY = 12 * 1024
 _CATALOG_LOCK = threading.Lock()
 _CATALOG_CACHE = {}
@@ -121,7 +123,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header('Content-Encoding', encoding)
             self.send_header('Vary', 'Accept-Encoding')
         if cookie:
-            self.send_header('Set-Cookie', cookie)
+            for value in ([cookie] if isinstance(cookie, str) else cookie):
+                self.send_header('Set-Cookie', value)
         self.end_headers()
 
     def _json(self, value, status=200, *, cookie=None):
@@ -155,13 +158,30 @@ class Handler(BaseHTTPRequestHandler):
         raise community.CommunityError('invalid_host', 'Unrecognized host.', 421)
 
     def _session(self, *, create=False):
+        return community.session(self._cookie(COOKIE_NAME), create=create)
+
+    def _cookie(self, name):
         cookie = SimpleCookie()
         try:
             cookie.load(self.headers.get('Cookie', ''))
-            token = cookie[COOKIE_NAME].value if COOKIE_NAME in cookie else None
+            return cookie[name].value if name in cookie else None
         except Exception:
-            token = None
-        return community.session(token, create=create)
+            return None
+
+    def _set_cookie(self, name, token, age, origin):
+        same_site = 'Lax' if name == FLOW_COOKIE else 'Strict'
+        return (f'{name}={token}; Path=/; HttpOnly; SameSite={same_site}; Max-Age={age}'
+                + ('; Secure' if origin.startswith('https:') else ''))
+
+    def _redirect(self, location, cookies):
+        self.send_response(303)
+        self.send_header('Location', location)
+        self.send_header('Content-Length', '0')
+        self.send_header('Cache-Control', 'no-store')
+        self.send_header('Referrer-Policy', 'no-referrer')
+        for cookie in cookies:
+            self.send_header('Set-Cookie', cookie)
+        self.end_headers()
 
     def _body(self):
         if self.headers.get('Transfer-Encoding'):
@@ -255,6 +275,37 @@ class Handler(BaseHTTPRequestHandler):
             return self._error('not_found', 'Not found.', 404)
         if path in {item.rstrip('/') for item in SHELL_ROUTES if item != '/'}:
             path += '/'
+        if path == google_login.CALLBACK and self.command == 'GET':
+            if not secure:
+                raise community.CommunityError('https_required', 'Login requires HTTPS.', 403)
+            params = parse_qs(urlsplit(self.path).query)
+            clear = self._set_cookie(FLOW_COOKIE, '', 0, origin)
+            try:
+                if any(len(values) != 1 for values in params.values()):
+                    raise community.CommunityError('invalid_oauth_state', 'Restart Google login.', 400)
+                flow = google_login.consume(params.get('state', [''])[0], self._cookie(FLOW_COOKIE), origin)
+            except community.CommunityError:
+                return self._redirect('/contribute/?auth_error=failed', [clear])
+            if 'error' in params:
+                return self._redirect(flow['return_to'] + ('&' if '?' in flow['return_to'] else '?') + 'auth_error=cancelled', [clear])
+            code = params.get('code', [''])[0]
+            try:
+                if not code or len(code) > 8192:
+                    raise community.CommunityError('google_login_failed', 'Missing code.', 400)
+                claims = google_login.exchange(code, flow)
+                token = google_login.sign_in(flow, claims)
+            except community.CommunityError:
+                return self._redirect(flow['return_to'] + ('&' if '?' in flow['return_to'] else '?') + 'auth_error=failed', [clear])
+            return self._redirect(flow['return_to'], [clear, self._set_cookie(COOKIE_NAME, token, google_login.LOGIN_AGE, origin)])
+        if self.command == 'POST' and path in ('/auth/google/start', '/auth/logout'):
+            value = self._mutating_session(origin, secure)
+            if path == '/auth/logout':
+                google_login.logout(value)
+                return self._json({'ok': True}, cookie=[self._set_cookie(COOKIE_NAME, '', 0, origin), self._set_cookie(FLOW_COOKIE, '', 0, origin)])
+            if not _rate('login:' + value['hash'], 10, 300) or not _rate('login-ip:' + self.client_address[0], 120, 300):
+                raise community.CommunityError('rate_limited', 'Try again shortly.', 429)
+            url, binding = google_login.begin(value, origin, self._body().get('returnTo'))
+            return self._json({'url': url}, cookie=self._set_cookie(FLOW_COOKIE, binding, google_login.FLOW_AGE, origin))
         if self.command in ('GET', 'HEAD'):
             aliases = {'/directory': '/source/', '/score-sources': '/scores/sources/'}
             if path.rstrip('/') in aliases:
@@ -301,7 +352,9 @@ class Handler(BaseHTTPRequestHandler):
                     cookie = f'{COOKIE_NAME}={new}; Path=/; HttpOnly; SameSite=Strict; Max-Age={community.SESSION_AGE}'
                     if origin.startswith('https:'):
                         cookie += '; Secure'
-                return self._json({'csrfToken': value['csrf'], 'identity': 'browser',
+                account = google_login.account(value['owner'])
+                return self._json({'csrfToken': value['csrf'], 'identity': 'google' if account else 'browser',
+                                   'account': account, 'googleLoginEnabled': google_login.enabled(),
                                    'contributions': community.owner_contributions(value['owner']),
                                    'submissions': community.owner_submissions(value['owner'])}, cookie=cookie)
             if path.startswith('/api/v1/'):

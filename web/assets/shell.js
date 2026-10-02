@@ -55,7 +55,14 @@ function navLink(url, key, current, extra = '') {
   const label = key === 'discover' ? text('home') : t(key);
   return `<a href="${url}" class="nav-item ${extra}" title="${esc(label)}" ${active(url, current) ? 'aria-current="page"' : ''}>${glyph(navIcons[key])}<span class="nav-label">${label}</span></a>`;
 }
-export function navigation(current = location.pathname, routes = {}) {
+export function accountNavigation(session = null) {
+  const label = session?.account ? t('accountTitle') : t('googleLoginShort');
+  const content = session?.googleLoginEnabled && !session.account
+    ? `<button type="button" class="button nav-account-button" data-google-auth="login" aria-label="${t('googleSignIn')}">${label}</button>`
+    : `<a class="button nav-account-button" href="/contribute/?lang=${encodeURIComponent(getLocale())}#google-account">${label}</a>`;
+  return `<div data-account-nav class="nav-account">${content}</div>`;
+}
+export function navigation(current = location.pathname, routes = {}, session = null) {
   const primary = [['/', 'discover'], ['/post/', 'posts'], ['/events/', 'events'], ['/source/', 'sources'], ['/scores/', 'scores']];
   const resources = [['/contribute/', 'contribute'], ['/submit/', 'submit'], ['/feeds/', 'feeds'], ['/scores/sources/', 'scoreSources']];
   const info = [['/status/', 'status'], ['/about/', 'about'], ['/privacy/', 'privacy']];
@@ -76,7 +83,7 @@ export function navigation(current = location.pathname, routes = {}) {
           <footer class="nav-info-links">${info.map(entry=>menuLink(entry,false)).join('')}</footer>
         </div>
       </details>
-    </nav></header>`;
+    </nav>${accountNavigation(session)}</header>`;
 }
 export function footer() {
   return `<footer class="site-footer"><div class="footer-links">${[['/about/', 'about'], ['/privacy/', 'privacy'], ['/status/', 'status'], ['/feeds/', 'feeds'], ['/submit/', 'submit'], ['/scores/sources/', 'scoreSources']].map(([url, key]) => link(url, t(key))).join('')}</div><div class="footer-bottom"><span>© ${new Date().getFullYear()} ${esc(t('brand'))}</span>${link('https://github.com/skyhong2002/chumei', t('credit'))}${link('/api/v1/catalog', t('dataLink'))}</div></footer>`;

@@ -312,3 +312,10 @@ dialog { border:1px solid var(--color-border-subtle); border-radius:var(--radius
   html:lang(ja) .brand-name,html:lang(ko) .brand-name { font-size:1.1rem; }
 }
 @media (max-width:359px) { html:lang(en) .brand-name { font-size:.88rem; } }
+
+/* Google account controls on contribution and submission pages. */
+.account-panel { margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; }
+.account-panel > div { flex: 1 1 260px; min-width: 0; overflow-wrap: anywhere; }
+.account-panel h2 { margin-top: 0; }
+.account-panel #login-message { flex-basis: 100%; margin: 0; }
+.account-panel #login-message:empty { display: none; }

@@ -86,3 +86,25 @@ test('search navigation waits for the river before focusing its visible mobile i
   assert.equal(new URL(location.href).searchParams.get('lang'),'en');
   dom.window.close();
 });
+
+test('Google login is visible outside More on every page and switches to account management', async()=>{
+  const dom=new JSDOM('<body></body>',{url:'https://harmonica.observe.tw/?lang=zh-Hant'});
+  const {navigation}=await import('../assets/shell.js');
+  const {setLocale}=await import('../assets/i18n.js');
+  for (const locale of ['en','zh-Hant','ja','ko']) {
+    setLocale(locale);
+    for (const path of ['/','/post/','/contribute/']) {
+      dom.window.document.body.innerHTML=navigation(path,{}, {googleLoginEnabled:true,account:null});
+      const button=dom.window.document.querySelector('[data-account-nav] [data-google-auth="login"]');
+      assert.ok(button);
+      assert.equal(button.closest('.nav-more'),null);
+      assert.equal(button.closest('.site-header')!==null,true);
+      assert.match(button.textContent,/Google/);
+    }
+    dom.window.document.body.innerHTML=navigation('/',{}, {googleLoginEnabled:true,account:{name:'Private name',email:'private@example.org'}});
+    const link=dom.window.document.querySelector('[data-account-nav] a');
+    assert.equal(link.getAttribute('href'),'/contribute/?lang='+locale+'#google-account');
+    assert.doesNotMatch(link.outerHTML,/Private name|private@example/);
+  }
+  dom.window.close();
+});

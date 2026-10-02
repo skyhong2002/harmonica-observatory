@@ -89,6 +89,13 @@ def connect():
           id TEXT PRIMARY KEY, owner TEXT NOT NULL, url TEXT NOT NULL, note TEXT NOT NULL,
           country TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending', created REAL NOT NULL);
         CREATE INDEX IF NOT EXISTS submissions_owner ON submissions(owner,created);
+        CREATE TABLE IF NOT EXISTS google_accounts (
+          subject TEXT PRIMARY KEY, owner TEXT NOT NULL UNIQUE,
+          email TEXT NOT NULL, name TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS oauth_flows (
+          state_hash TEXT PRIMARY KEY, binding_hash TEXT NOT NULL,
+          session_hash TEXT NOT NULL, nonce TEXT NOT NULL, verifier TEXT NOT NULL,
+          redirect_uri TEXT NOT NULL, return_to TEXT NOT NULL, expires REAL NOT NULL);
         ''')
     try:
         with conn:

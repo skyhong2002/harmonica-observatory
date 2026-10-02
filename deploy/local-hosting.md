@@ -74,7 +74,7 @@ launchctl kickstart -k gui/$(id -u)/tw.observe.harmonica.web
 
 Apify token 以 Fernet 加密放在 `state/community/community.sqlite3`，密鑰 `state/community/encryption.key`，目錄 0700、檔案 0600。SQLite／密鑰都需備份；遺失密鑰即無法再解密。任何 public API 不含 token 或 Apify 個人身份。
 
-目前使用此瀏覽器的 HttpOnly cookie 識別貢獻者，不是跨裝置 OAuth 帳號。使用者可在原瀏覽器撤回授權；清除 cookie 後，可到 Apify 撤銷原 token。撤回不會取消已開始的 actor，也不會抹掉必要的支出記錄。
+使用 HttpOnly cookie 維持工作階段；可在貢獻／投稿頁以 Google 登入，把此瀏覽器尚未綁定的紀錄移轉到帳號，之後可跨裝置管理。未綁定者仍須使用原瀏覽器；清除 cookie 後，可到 Apify 撤銷原 token。Google 設定、callback 與驗證方式見 [Google 登入](google-login.md)。撤回不會取消已開始的 actor，也不會抹掉必要的支出記錄。
 
 公開資料回報保存在本機審核佇列，送出頁面會標明待審核：
 
