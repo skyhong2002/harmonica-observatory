@@ -18,7 +18,6 @@ to a Google Sheet.
    budget and single in-flight slot. The gateway key is read from the Keychain
    item `harmonica-ai-gateway` / `harmonica` because this worker does not load
    `.env`. The requested alias and resolved model are stored in `proposal_json.llm`.
-   `HARMONICA_LLM_PROVIDER=codex` switches back to the read-only Codex CLI.
 5. Deterministic Python applies the proposed source or event change in a clean
    worktree, validates generated data, and opens a labeled pull request.
 6. A high-confidence add or update with no risk flags is squash-merged and the

@@ -211,14 +211,6 @@ class DedupeAndProposalTests(unittest.TestCase):
         self.assertIn("worldwide", body["messages"][0]["content"])
         self.assertEqual(result["llm"], {"provider": "gateway", "requested_model": "sky-quality", "model": "resolved-upstream"})
 
-    @mock.patch("submission_intake.llm_backend.codex_chat")
-    def test_ai_review_keeps_codex_fallback(self, codex):
-        codex.return_value = json.dumps({"choices": [{"message": {"content": json.dumps(proposal("reject"))}}]})
-        with mock.patch.dict(os.environ, {"HARMONICA_LLM_PROVIDER": "codex"}, clear=True):
-            result = intake.run_ai_review("response", {}, [], [])
-        codex.assert_called_once()
-        self.assertEqual(result["llm"]["provider"], "codex")
-
     @mock.patch("submission_intake.llm_backend.chat", side_effect=RuntimeError("hourly limit"))
     def test_inference_failure_retains_submission(self, chat):
         with self.assertRaisesRegex(intake.IntakeError, "retained for review"):

@@ -67,14 +67,14 @@ scripts/global_catalog.py  既存データを共通のグローバル公開モ�
 scripts/serve.py           ローカルHTTPルート、公開API、同一オリジン・CSRF検証
 scripts/community.py       Apifyトークンの暗号化、予算、ブラウザー識別、報告
 scripts/apify_pool.py      収集処理間の予算共有、アトミックな予約、アカウント切り替え
-scripts/llm_backend.py     AIゲートウェイ／Codexによる構造化推論と呼び出し上限
+scripts/llm_backend.py     AIゲートウェイによる構造化推論と呼び出し上限
 data/sources/              Git管理対象の公開CSVと安定したpublic_id
 site/                      生成したJSON、RSS、ICS、旧URLのページ、画像キャッシュ
 state/                     非公開のSQLite、鍵、分類キャッシュ（Git管理対象外）
 data/feeds/                ローカルの収集受信箱と投稿候補（Git管理対象外）
 ```
 
-HTTP リクエストはスナップショットの読み取りのみを行います。表示言語を切り替えても Codex や Apify は呼び出されません。収集処理とウェブサービスは分離しており、外部サービスに一時的な障害があっても、既存のデータは閲覧できます。
+HTTP リクエストはスナップショットの読み取りのみを行います。表示言語を切り替えても AI ゲートウェイや Apify は呼び出されません。収集処理とウェブサービスは分離しており、外部サービスに一時的な障害があっても、既存のデータは閲覧できます。
 
 ストーリーズの収集は Chumei の方式を参考に、活動中の情報源を優先し、間隔を調整したバッチで行います。各バッチはひとつの Apify アカウントの金額・取得件数の枠に基づいて計画し、予算制限とアトミックな予約を維持します。収集後は `scripts/publish_story_cache.py` が対象を絞った処理とオフラインでの RSS/JSON 公開を即座に行い、プロフィール、YouTube、Facebook、投稿処理全体の完了を待ちません。[Apify の収集・予算仕様](deploy/apify-pool.md)を参照してください。
 
@@ -100,7 +100,7 @@ Facebook の投稿、Instagram の投稿とストーリーズは、ハーモニ�
 # actor を実行せず、利用枠の情報を更新
 .venv/bin/python scripts/apify_pool.py --refresh
 
-# 収集とビルドを実行（設定済みの Apify/Codex 利用枠を消費する場合があります）
+# 収集とビルドを実行（設定済みの Apify/AI ゲートウェイ利用枠を消費する場合があります）
 .venv/bin/python scripts/run_pipeline.py
 ```
 
@@ -113,9 +113,8 @@ Facebook の投稿、Instagram の投稿とストーリーズは、ハーモニ�
 - 4言語のUIは固定ロケールファイルを使い、閲覧者の操作によるAI翻訳費用は発生しません。
 - 全処理で同時実行1件と1時間あたりの上限（`HARMONICA_LLM_MAX_CALLS_PER_HOUR`、既定120）を共有し、上限に達した場合はキャッシュを保持します。
 - `HARMONICA_LLM_PROVIDER=disabled` で新しい推論を完全に無効化できます。
-- `HARMONICA_LLM_PROVIDER=codex` は予備手段です。管理者のローカル `codex login` CLI を読み取り専用・ツール無効・1時間12回で使います。
 
-閲覧者にゲートウェイのキー、Codex の認証情報、任意の推論エンドポイントは提供しません。
+閲覧者にゲートウェイのキーや任意の推論エンドポイントは提供しません。
 
 ## 公開API
 

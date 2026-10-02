@@ -48,7 +48,7 @@
 
 主要路由：`/`、`/post/`、`/events/`、`/source/`、`/source/:slug/`、`/post/source/:slug/`、`/scores/`、`/scores/sources/`、`/feeds/`、`/status/`、`/contribute/`、`/submit/`、`/about/`、`/privacy/`。
 
-## API／Apify／Codex 邊界
+## API／Apify／AI 閘道邊界
 
 - 公開讀取：`GET /api/v1/health`、`catalog`、`sources`、`posts`、`events`、`scores`、`community`。清單支援 q/country/limit/offset。
 - `GET /api/v1/session` 回傳 csrfToken 與此瀏覽器的 records；寫入需要同源 Origin、cookie 和 X-CSRF-Token。
@@ -59,8 +59,8 @@
 - `scripts/apify_pool.py` 已完成同 provider identity 去重、owner+community 共池、原子預留、累計授權／月額／日分配／run cap，未知結果保留預留避免重試超支。主帳號預設月上限 US$4，不要擅自增加。
 - Facebook／Instagram／Stories 用 Apify。YouTube／RSS／網站既有公開管道仍保留，不能假稱所有 provider 都已轉成 Apify。Instagram public fallback 預設關閉。
 - 貢獻頁總容量應用 `crawlSchedule.pool`（包含站方），不是只讀社群貢獻數而誤顯示 0。檢查時真實值曾是 1 帳號、US$3.34；這是變動資料，不可寫死。頻率是估算，不可承諾即時。
-- `scripts/llm_backend.py` 預設用本機已登入的 Codex CLI／原 ChatGPT 額度整理資料，已實際推論驗證。唯讀隔離、停用工具、共用每小時12次 cap；沒有公開任意推論 API。失敗保留快取，不自動付費 API fallback。
-- 只有明確設定 HARMONICA_LLM_PROVIDER=openai 才使用舊 API 模式。不要複製登入憑證、在 logs/截圖/聊天顯示真實 token 或登入資料。
+- `scripts/llm_backend.py` 只走本機 AI 閘道（`HARMONICA_LLM_PROVIDER=gateway`，別名 `sky-fast`／`sky-quality`，見 [本機服務](local-hosting.md#ai-閘道推論)）；所有程序共用單一請求槽與每小時上限，沒有公開任意推論 API。失敗保留快取。Codex CLI 備援已於 2026-10-03 移除。
+- 只有明確設定 HARMONICA_LLM_PROVIDER=openai 才使用其他 OpenAI 相容端點。不要複製登入憑證、在 logs/截圖/聊天顯示真實 token 或登入資料。
 
 ## 真實部署狀態，不要重建成另一台服務
 
@@ -68,7 +68,7 @@
 - Caddy `/usr/local/etc/caddy/Caddyfile` 的 Harmonica block 已改為 `reverse_proxy 127.0.0.1:8330`；其他網站逐項確認未改。
 - DNS 已查得 A `140.113.240.11`，無 AAAA；Mac 在 NAT 後面。本輪沒有修改 DNS。
 - 舊 HTTPS 憑證過期已修復。新 Let's Encrypt 憑證到 2026-12-21，已用正常 hostname/system trust 驗證，不是略過 TLS。
-- `tw.observe.harmonica.pipeline`、`tw.observe.harmonica.social-fast` 都已恢復載入，每1800秒；用 venv、Codex，移除 publish-pages。此輪安装的 RunAtLoad=false 避免立即付費抓取，正常間隔仍運作。
+- `tw.observe.harmonica.pipeline`、`tw.observe.harmonica.social-fast` 都已恢復載入，每1800秒；用 venv、AI 閘道，移除 publish-pages。此輪安装的 RunAtLoad=false 避免立即付費抓取，正常間隔仍運作。
 - social-fast 原本有 September18 遺留 mkdir lock，導致一直 skip；已清除確認無程序的 stale lock，並移除 source+installed plist 外層 mkdir wrapper，沿用 run_pipeline 自帶 PID/stale-aware lock。不要把舊 wrapper 放回來。
 - 靜態 UI 檔直接服務；Python 變更後用 `launchctl kickstart -k gui/$(id -u)/tw.observe.harmonica.web`。
 - 不要重新發布 GitHub Pages，不要改其他站 Caddy。真實部署驗收必須訪問 https://harmonica.observe.tw，不能只有localhost200。

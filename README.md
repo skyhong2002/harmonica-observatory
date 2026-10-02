@@ -67,14 +67,14 @@ scripts/global_catalog.py  Normalize existing data into a global public model
 scripts/serve.py           Local HTTP routes, public API, same-origin and CSRF checks
 scripts/community.py       Encrypted Apify tokens, budgets, browser identity and reports
 scripts/apify_pool.py      Shared collection budgets, atomic reservations and account rotation
-scripts/llm_backend.py     AI gateway / Codex structured inference and invocation limits
+scripts/llm_backend.py     AI gateway structured inference and invocation limits
 data/sources/              Tracked public CSV files with stable public_id identifiers
 site/                      Generated JSON, RSS, ICS, legacy pages and cached images
 state/                     Private SQLite, keys and classification caches (not in Git)
 data/feeds/                Local collection inbox and candidate posts (not in Git)
 ```
 
-HTTP requests read snapshots only. Changing the interface language does not invoke Codex or Apify. Collection and web serving run separately, so existing data remains available during temporary third-party failures.
+HTTP requests read snapshots only. Changing the interface language does not invoke the AI gateway or Apify. Collection and web serving run separately, so existing data remains available during temporary third-party failures.
 
 Story collection prioritizes active sources and uses paced batches, following the approach in Chumei. Each batch is planned against one Apify account's spending and result capacity, preserving budget limits and atomic reservations. After collection, `scripts/publish_story_cache.py` immediately performs targeted processing and offline RSS/JSON publication, without waiting for profile, YouTube, Facebook or the full post-processing cycle. See the [Apify collection and budget contract](deploy/apify-pool.md).
 
@@ -100,7 +100,7 @@ Facebook posts, Instagram posts and stories share Harmonica Observatory's own Ap
 # Refresh capacity without running an actor
 .venv/bin/python scripts/apify_pool.py --refresh
 
-# Run collection and builds (may consume configured Apify/Codex capacity)
+# Run collection and builds (may consume configured Apify/AI gateway capacity)
 .venv/bin/python scripts/run_pipeline.py
 ```
 
@@ -113,9 +113,8 @@ The default is `HARMONICA_LLM_PROVIDER=gateway`: maintainer jobs (classification
 - The four-language UI uses static locale files, with no visitor-triggered AI translation costs.
 - All jobs share one in-flight request and an hourly budget (`HARMONICA_LLM_MAX_CALLS_PER_HOUR`, default 120); when it is exhausted, cached results are retained.
 - `HARMONICA_LLM_PROVIDER=disabled` disables new inference entirely.
-- `HARMONICA_LLM_PROVIDER=codex` is the fallback: the maintainer's local `codex login` CLI, read-only with tools disabled and 12 invocations per hour.
 
-Visitors cannot reach gateway keys, Codex credentials or an arbitrary inference endpoint.
+Visitors cannot reach gateway keys or an arbitrary inference endpoint.
 
 ## Public API
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Rebuild a local installation from public CSVs and already collected snapshots.
 
-No network fetches, paid actors, Codex inference, external calendar writes or Git pushes run here.
+No network fetches, paid actors, LLM inference, external calendar writes or Git pushes run here.
 Use run_pipeline.py for scheduled ingestion; serve.py serves this same dataset.
 """
 from __future__ import annotations

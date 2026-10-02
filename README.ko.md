@@ -67,14 +67,14 @@ scripts/global_catalog.py  기존 데이터를 일관된 글로벌 공개 모델
 scripts/serve.py           로컬 HTTP 라우트, 공개 API, 동일 출처 및 CSRF 검사
 scripts/community.py       Apify 토큰 암호화, 예산, 브라우저 식별, 제보
 scripts/apify_pool.py      수집 프로세스 간 예산 공유, 원자적 예약, 계정 순환
-scripts/llm_backend.py     AI 게이트웨이/Codex 구조화 추론 및 호출 제한
+scripts/llm_backend.py     AI 게이트웨이 구조화 추론 및 호출 제한
 data/sources/              안정적인 public_id를 사용하는 Git 관리 대상 공개 CSV
 site/                      생성된 JSON, RSS, ICS, 이전 URL 페이지, 이미지 캐시
 state/                     비공개 SQLite, 키, 분류 캐시(Git 제외)
 data/feeds/                로컬 수집 수신함 및 게시물 후보(Git 제외)
 ```
 
-HTTP 요청은 스냅샷만 읽습니다. 인터페이스 언어를 바꿔도 Codex나 Apify를 호출하지 않습니다. 수집 프로세스와 웹 서비스가 분리되어 있어 외부 서비스에 일시적인 장애가 발생해도 기존 데이터를 볼 수 있습니다.
+HTTP 요청은 스냅샷만 읽습니다. 인터페이스 언어를 바꿔도 AI 게이트웨이나 Apify를 호출하지 않습니다. 수집 프로세스와 웹 서비스가 분리되어 있어 외부 서비스에 일시적인 장애가 발생해도 기존 데이터를 볼 수 있습니다.
 
 스토리 수집은 Chumei의 방식을 참고하여 활동 중인 출처를 우선하고, 간격을 조절한 배치로 진행합니다. 각 배치는 하나의 Apify 계정의 지출 및 결과 용량을 기준으로 계획하며, 기존 예산 제한과 원자적 예약을 유지합니다. 수집 후 `scripts/publish_story_cache.py`가 필요한 데이터만 처리하고 오프라인 RSS/JSON을 즉시 발행합니다. 프로필, YouTube, Facebook 또는 전체 게시물 처리 주기의 완료를 기다리지 않습니다. [Apify 수집 및 예산 규약](deploy/apify-pool.md)을 참고하세요.
 
@@ -100,7 +100,7 @@ Facebook 게시물, Instagram 게시물과 스토리는 하모니카 관측소 �
 # actor를 실행하지 않고 이용 한도 정보 갱신
 .venv/bin/python scripts/apify_pool.py --refresh
 
-# 수집 및 빌드 실행(설정된 Apify/Codex 이용 한도를 사용할 수 있음)
+# 수집 및 빌드 실행(설정된 Apify/AI 게이트웨이 이용 한도를 사용할 수 있음)
 .venv/bin/python scripts/run_pipeline.py
 ```
 
@@ -113,9 +113,8 @@ Facebook 게시물, Instagram 게시물과 스토리는 하모니카 관측소 �
 - 4개 언어 UI는 정적 로케일 파일을 사용하므로 방문자 동작에 따른 AI 번역 비용이 없습니다.
 - 모든 작업이 동시 요청 1건과 시간당 한도(`HARMONICA_LLM_MAX_CALLS_PER_HOUR`, 기본 120)를 공유하며, 한도에 도달하면 캐시를 유지합니다.
 - `HARMONICA_LLM_PROVIDER=disabled`로 새 추론을 완전히 비활성화할 수 있습니다.
-- `HARMONICA_LLM_PROVIDER=codex`는 예비 수단입니다. 관리자의 로컬 `codex login` CLI를 읽기 전용, 도구 비활성화, 시간당 12회로 사용합니다.
 
-방문자에게 게이트웨이 키, Codex 인증 정보, 임의 추론 엔드포인트를 제공하지 않습니다.
+방문자에게 게이트웨이 키나 임의 추론 엔드포인트를 제공하지 않습니다.
 
 ## 공개 API
 

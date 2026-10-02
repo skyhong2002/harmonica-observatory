@@ -5,7 +5,7 @@ Standalone calls use run_pipeline's native lock. --pipeline-lock-held is only fo
 an orchestrator already holding that lock (the same convention as the collector).
 The helper reads existing enabled apify_stories sources, imports only their cache
 through the watchdog with LLM tagging disabled, then rebuilds RSS/JSON offline.
-It does not run an actor, profile fetch, Codex, or external calendar write.
+It does not run an actor, profile fetch, LLM inference, or external calendar write.
 """
 from __future__ import annotations
 

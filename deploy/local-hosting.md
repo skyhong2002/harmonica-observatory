@@ -14,7 +14,7 @@ python3 -m venv .venv
 
 開啟 <http://localhost:8330/>。語言可使用 `?lang=zh-Hant`、`en`、`ja`、`ko`。國家條件與語言無關。
 
-`build_local.py` 只重建本機已有的 CSV／抓取快照，不啟動 Apify actor、不跑 Codex、不寫 Google Calendar、不 push。全新 clone 尚無歷史貼文／抓取圖片屬正常；來源目錄與指定曲可由追蹤的 CSV 建出。既有安裝的 `state/`、`data/feeds/` 與 `site/assets/` 是 runtime 資料，遷移時需另行備份。
+`build_local.py` 只重建本機已有的 CSV／抓取快照，不啟動 Apify actor、不呼叫 AI 閘道、不寫 Google Calendar、不 push。全新 clone 尚無歷史貼文／抓取圖片屬正常；來源目錄與指定曲可由追蹤的 CSV 建出。既有安裝的 `state/`、`data/feeds/` 與 `site/assets/` 是 runtime 資料，遷移時需另行備份。
 
 ## macOS 常駐
 
@@ -67,10 +67,6 @@ launchctl kickstart -k gui/$(id -u)/tw.observe.harmonica.web
 - 回應的 `model` 是閘道解析後的實際模型；分類快取記錄 `llm_requested_model`（別名）與 `llm_model`（實際模型），投稿審核記錄於 `proposal_json.llm`。既有快取沿用原紀錄，不重新分類。
 - `HARMONICA_LLM_PROVIDER=disabled`：完全停用新推論。
 
-### Codex 備援
-
-`HARMONICA_LLM_PROVIDER=codex` 改用本機 `codex login` 保存的 ChatGPT 登入，以只讀、停用工具的 `codex exec` 執行。`HARMONICA_CODEX_MODEL` 未設定時使用 CLI 預設模型；`HARMONICA_CODEX_MAX_CALLS_PER_HOUR=12`、`HARMONICA_CODEX_TIMEOUT=180`、`HARMONICA_CODEX_BIN` 可調整，帳本在 `state/codex/usage.json`。登入失效、額度耗盡、鎖被占用或逾時會保留現有資料，不會自動切換其他供應者。
-
 ## 貢獻與資料回報
 
 Apify token 以 Fernet 加密放在 `state/community/community.sqlite3`，密鑰 `state/community/encryption.key`，目錄 0700、檔案 0600。SQLite／密鑰都需備份；遺失密鑰即無法再解密。任何 public API 不含 token 或 Apify 個人身份。
@@ -94,6 +90,6 @@ Apify token 以 Fernet 加密放在 `state/community/community.sqlite3`，密鑰
 - `scripts/serve.py`：路由、公開 API、CSRF／同源驗證及檔案白名單。
 - `scripts/community.py`：瀏覽器身份、加密 token、貢獻預算及回報。
 - `scripts/apify_pool.py`：額度刷新、原子預留、平台分配與頻率估算。
-- `scripts/llm_backend.py`：維護者的 AI 閘道／Codex 批次資料整理。
+- `scripts/llm_backend.py`：維護者的 AI 閘道批次資料整理。
 
 `GET /api/v1/catalog` 是完整快照；`GET /api/v1/sources`、`posts`、`events`、`scores` 支援 `q`、`country`、`limit`（最高 200）、`offset`。讀取不需要登入。社群寫入需 session CSRF token 及同源 Origin。
