@@ -1,0 +1,31 @@
+{
+  "_fixture": {
+    "captured_at": "2026-09-23T18:19:39.582Z",
+    "sanitized": true,
+    "description": "Actual successful stories envelope. Biography and opaque CDN values removed; no publication or expiry fields existed."
+  },
+  "data": {
+    "code": 200,
+    "status": "success",
+    "serverType": "stories",
+    "username": "nycu_harmonica",
+    "user": {
+      "username": "nycu_harmonica",
+      "id": 22467465724,
+      "is_private": false,
+      "reels": [
+        {
+          "display_url": "",
+          "display_url_filename": "817679258_18128538430745725_7530115080848791117_n.webp",
+          "edge_media_preview_like": 0,
+          "id": "UOq1Cwa",
+          "is_video": false,
+          "thumbnail_src": "",
+          "video_url": "",
+          "video_url_filename": "photo_LxQwq1t.jpg",
+          "video_view_count": 0
+        }
+      ]
+    }
+  }
+}

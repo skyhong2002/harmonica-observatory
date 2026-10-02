@@ -1,0 +1,393 @@
+{
+  "checkedDate": "2026-09-24",
+  "timezone": "Asia/Taipei",
+  "accountQueryIntervalSeconds": 175,
+  "automaticRetries": 0,
+  "browserSamples": [
+    {
+      "account": "nycu_harmonica",
+      "navigationAt": "2026-09-23T18:19:35.765Z",
+      "resultAt": "2026-09-23T18:19:39.582Z",
+      "status": "stories",
+      "storyCount": 1,
+      "mediaLoaded": 1,
+      "storyIds": [
+        "UOq1Cwa"
+      ],
+      "publishedAt": null,
+      "sourceExpiresAt": null,
+      "elapsedSeconds": 3.817
+    },
+    {
+      "account": "aidensoon",
+      "code": 200,
+      "elapsedSeconds": 3.4035,
+      "isPrivate": false,
+      "reels": [],
+      "resultAt": "2026-09-23T18:22:35.166Z",
+      "serverType": "stories",
+      "startedAt": 1790187751762.5,
+      "status": "success",
+      "storyCount": 0,
+      "userFields": [
+        "biography",
+        "business_category_name",
+        "category_name",
+        "external_url",
+        "full_name",
+        "id",
+        "profile_pic_url",
+        "profile_pic_url_hd",
+        "username",
+        "edge_follow",
+        "edge_followed_by",
+        "edges_count",
+        "is_verified",
+        "is_private",
+        "edges",
+        "reels"
+      ],
+      "username": "aidensoon",
+      "media": {
+        "at": "2026-09-23T18:22:40.718Z",
+        "images": [],
+        "panels": [
+          {
+            "class": "profile__tabs-item profile__tabs-item-active",
+            "text": "Stories"
+          },
+          {
+            "class": "profile__tabs-no-content profile__stories-no-content",
+            "text": "No new stories"
+          }
+        ],
+        "requests": [
+          {
+            "durationMs": 189,
+            "path": "/connect/",
+            "status": 200
+          },
+          {
+            "durationMs": 184,
+            "path": "/socket.io/",
+            "status": 200
+          },
+          {
+            "durationMs": 187,
+            "path": "/socket.io/",
+            "status": 200
+          },
+          {
+            "durationMs": 194,
+            "path": "/socket.io/",
+            "status": 200
+          },
+          {
+            "durationMs": 841,
+            "path": "/socket.io/",
+            "status": 200
+          },
+          {
+            "durationMs": 190,
+            "path": "/socket.io/",
+            "status": 200
+          }
+        ]
+      }
+    },
+    {
+      "account": "taiwanharmonica",
+      "code": 200,
+      "elapsedSeconds": 5.5735,
+      "isPrivate": false,
+      "reels": [],
+      "resultAt": "2026-09-23T18:25:34.292Z",
+      "serverType": "stories",
+      "startedAt": 1790187928718.5,
+      "status": "success",
+      "storyCount": 0,
+      "userFields": [
+        "biography",
+        "business_category_name",
+        "category_name",
+        "external_url",
+        "full_name",
+        "id",
+        "profile_pic_url",
+        "profile_pic_url_hd",
+        "username",
+        "edge_follow",
+        "edge_followed_by",
+        "edges_count",
+        "is_verified",
+        "is_private",
+        "edges",
+        "reels"
+      ],
+      "username": "taiwanharmonica",
+      "media": {
+        "at": "2026-09-23T18:25:39.717Z",
+        "images": [],
+        "panels": [
+          {
+            "class": "profile__tabs-item profile__tabs-item-active",
+            "text": "Stories"
+          },
+          {
+            "class": "profile__tabs-no-content profile__stories-no-content",
+            "text": "No new stories"
+          }
+        ],
+        "requests": [
+          {
+            "durationMs": 185,
+            "path": "/connect/",
+            "status": 200
+          },
+          {
+            "durationMs": 187,
+            "path": "/socket.io/",
+            "status": 200
+          },
+          {
+            "durationMs": 184,
+            "path": "/socket.io/",
+            "status": 200
+          },
+          {
+            "durationMs": 186,
+            "path": "/socket.io/",
+            "status": 200
+          },
+          {
+            "durationMs": 839,
+            "path": "/socket.io/",
+            "status": 200
+          },
+          {
+            "durationMs": 187,
+            "path": "/socket.io/",
+            "status": 200
+          }
+        ]
+      }
+    },
+    {
+      "account": "siriusharmonicaensemble",
+      "code": 200,
+      "elapsedSeconds": 11.5455,
+      "isPrivate": false,
+      "reels": [
+        {
+          "fields": [
+            "display_url",
+            "display_url_filename",
+            "id",
+            "is_video",
+            "thumbnail_src",
+            "taken_at",
+            "video_url",
+            "video_url_filename"
+          ],
+          "hasImage": true,
+          "hasVideo": true,
+          "id": "3992702751863962825",
+          "isVideo": true,
+          "publishedAt": "2026-09-23T18:14:39+00:00"
+        }
+      ],
+      "resultAt": "2026-09-23T18:28:37.328Z",
+      "serverType": "stories",
+      "startedAt": 1790188105782.5,
+      "status": "success",
+      "storyCount": 1,
+      "userFields": [
+        "biography",
+        "business_category_name",
+        "category_name",
+        "external_url",
+        "full_name",
+        "id",
+        "profile_pic_url",
+        "profile_pic_url_hd",
+        "username",
+        "edge_follow",
+        "edge_followed_by",
+        "edges_count",
+        "is_verified",
+        "is_private",
+        "edges",
+        "reels"
+      ],
+      "username": "siriusharmonicaensemble",
+      "media": {
+        "at": "2026-09-23T18:28:42.734Z",
+        "images": [
+          {
+            "complete": true,
+            "hasSource": true,
+            "height": 1136,
+            "width": 640
+          }
+        ],
+        "panels": [
+          {
+            "class": "profile__tabs-item profile__tabs-item-active",
+            "text": "Stories"
+          },
+          {
+            "class": "profile__tabs-media-outer",
+            "text": ""
+          }
+        ],
+        "requests": [
+          {
+            "durationMs": 185,
+            "path": "/connect/",
+            "status": 200
+          },
+          {
+            "durationMs": 184,
+            "path": "/socket.io/",
+            "status": 200
+          },
+          {
+            "durationMs": 187,
+            "path": "/socket.io/",
+            "status": 200
+          },
+          {
+            "durationMs": 186,
+            "path": "/socket.io/",
+            "status": 200
+          },
+          {
+            "durationMs": 830,
+            "path": "/socket.io/",
+            "status": 200
+          },
+          {
+            "durationMs": 187,
+            "path": "/socket.io/",
+            "status": 200
+          }
+        ]
+      },
+      "serverCode": 12
+    },
+    {
+      "account": "ntubluesound",
+      "code": 436,
+      "elapsedSeconds": 1.070199951171875,
+      "reels": [],
+      "resultAt": "2026-09-23T18:31:23.844Z",
+      "serverType": "stories",
+      "startedAt": 1790188282773.8,
+      "status": "error",
+      "storyCount": null,
+      "userFields": [],
+      "username": "ntubluesound",
+      "media": {
+        "at": "2026-09-23T18:31:29.782Z",
+        "images": [],
+        "panels": [
+          {
+            "class": "profile__tabs-item profile__tabs-item-active",
+            "text": "Stories"
+          },
+          {
+            "class": "profile__tabs-media-outer",
+            "text": ""
+          }
+        ],
+        "requests": [
+          {
+            "durationMs": 182,
+            "path": "/connect/",
+            "status": 200
+          },
+          {
+            "durationMs": 186,
+            "path": "/socket.io/",
+            "status": 200
+          },
+          {
+            "durationMs": 181,
+            "path": "/socket.io/",
+            "status": 200
+          },
+          {
+            "durationMs": 187,
+            "path": "/socket.io/",
+            "status": 200
+          },
+          {
+            "durationMs": 257,
+            "path": "/socket.io/",
+            "status": 200
+          },
+          {
+            "durationMs": 187,
+            "path": "/socket.io/",
+            "status": 200
+          },
+          {
+            "durationMs": 1153,
+            "path": "/socket.io/",
+            "status": 200
+          }
+        ]
+      }
+    }
+  ],
+  "ntubluesoundFinal": {
+    "blocked": [],
+    "events": [
+      {
+        "at": "2026-09-23T18:31:23.844Z",
+        "code": 436,
+        "serverType": "stories",
+        "status": "error"
+      }
+    ]
+  },
+  "standaloneRecheck": {
+    "account": "siriusharmonicaensemble",
+    "at": "2026-09-23T18:34:20.621699+00:00",
+    "seconds": 2.766,
+    "serverCode": 14,
+    "storyCount": 1,
+    "id": "3992702751863962825",
+    "publishedAt": "2026-09-23T18:14:39+00:00",
+    "sourceExpiresAt": null,
+    "productionCacheWritten": false
+  },
+  "media": {
+    "nycu": {
+      "bytes": 339780,
+      "type": "image/webp",
+      "width": 1440,
+      "height": 2560,
+      "sha256": "a5f20beed454011dbfe3c59cf1360ee936f868a2402bd50bf38c681f1b6a88fe",
+      "downloadSeconds": 2.267,
+      "cliDownloadSeconds": 2.363
+    },
+    "siriusTemporaryCache": {
+      "bytes": 95922,
+      "type": "image/webp",
+      "width": 640,
+      "height": 1136,
+      "sha256": "ac5e1986cbb73b65c35423b1a02204d2f096b14aec5be1e79364c214a4fd287a",
+      "importSeconds": 1.392,
+      "firstImported": 1,
+      "secondImported": 0,
+      "duplicateCount": 1
+    }
+  },
+  "limitations": [
+    "No independent Instagram ground truth for empty responses or completeness",
+    "No original expiry supplied in either data-bearing account",
+    "Backend 0 returned opaque IDs and no dates; backends 12 and 14 supplied numeric ID and taken_at",
+    "No long-term or 179-account load testing; no production deployment"
+  ]
+}

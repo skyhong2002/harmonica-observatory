@@ -270,6 +270,9 @@ def main() -> int:
                 # unrelated collectors or the full watchdog can delay the feed.
                 run([PYTHON, "scripts/publish_story_cache.py", "--pipeline-lock-held"],
                     optional=True, step="publish cached instagram stories", status_hook=mark_step)
+                if os.environ.get("HARMONICA_ISV_ENABLED") == "1":
+                    run([PYTHON, "scripts/insta_stories_viewer.py", "--scheduled", "--pipeline-lock-held"],
+                        optional=True, step="fetch and publish instagram story backup", status_hook=mark_step)
                 run([PYTHON, "scripts/instagram_public_fetcher.py", "--kind", "profile", "--pipeline-lock-held"],
                     optional=True, step="fetch instagram public", status_hook=mark_step)
             if not args.skip_youtube:
