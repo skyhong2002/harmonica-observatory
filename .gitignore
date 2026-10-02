@@ -41,3 +41,6 @@ site/events/
 site/contribute/
 site/about/
 site/privacy/
+
+# Local env backups may contain credentials.
+.env.bak*
