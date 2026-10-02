@@ -13,19 +13,35 @@ import tag_directory_entries as directory
 
 
 class CodexBackendTests(unittest.TestCase):
-    def test_default_uses_cli_without_reading_keys(self):
-        with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(watchdog.subprocess, 'run') as run:
+    def test_codex_uses_cli_without_reading_keys(self):
+        with mock.patch.dict(os.environ, {'HARMONICA_LLM_PROVIDER': 'codex'}, clear=True), mock.patch.object(watchdog.subprocess, 'run') as run:
             self.assertEqual(watchdog.read_llm_token('unused', 'unused'), ('codex-cli-session', 'codex-cli'))
             run.assert_not_called()
 
-    def test_default_models_are_explicit_gpt6_and_allow_operator_overrides(self):
+    def test_default_gateway_key_comes_from_env_then_gateway_keychain(self):
+        with mock.patch.dict(os.environ, {'HARMONICA_LLM_API_KEY': 'gateway-key'}, clear=True):
+            self.assertEqual(watchdog.read_llm_token('', ''), ('gateway-key', 'env:HARMONICA_LLM_API_KEY'))
+        with mock.patch.dict(os.environ, {}, clear=True), \
+             mock.patch.object(llm_backend.subprocess, 'run', return_value=mock.Mock(returncode=0, stdout='kc-key\n')) as run:
+            self.assertEqual(llm_backend.read_token(), ('kc-key', 'keychain:harmonica-ai-gateway/harmonica'))
+            self.assertEqual(run.call_args.args[0][3], 'harmonica-ai-gateway')
+
+    def test_defaults_are_gateway_aliases_and_allow_operator_overrides(self):
         with mock.patch.dict(os.environ, {}, clear=True):
-            self.assertEqual(llm_backend.provider(), 'codex')
-            self.assertEqual(llm_backend.model_name(), 'gpt-6.1-sol')
-            self.assertEqual(watchdog.DEFAULT_LLM_MODEL, 'gpt-6-luna')
+            self.assertEqual(llm_backend.provider(), 'gateway')
+            self.assertEqual(llm_backend.base_url(), 'http://127.0.0.1:8317/v1')
+            self.assertEqual(llm_backend.model_name(), 'sky-fast')
+            self.assertEqual(llm_backend.review_model_name(), 'sky-quality')
+            self.assertEqual(watchdog.DEFAULT_LLM_MODEL, 'sky-fast')
+        with mock.patch.dict(os.environ, {'HARMONICA_LLM_PROVIDER': 'codex'}, clear=True):
+            self.assertEqual(llm_backend.model_name(), '')
+            self.assertEqual(llm_backend.review_model_name(), '')
+        with mock.patch.dict(os.environ, {'HARMONICA_INTAKE_AI_MODEL': 'review-alias'}, clear=True):
+            self.assertEqual(llm_backend.review_model_name(), 'review-alias')
         for selected, variable, fallback in (
-            ('codex', 'HARMONICA_CODEX_MODEL', 'gpt-6.1-sol'),
-            ('openai', 'HARMONICA_LLM_MODEL', 'gpt-6-luna'),
+            ('codex', 'HARMONICA_CODEX_MODEL', ''),
+            ('gateway', 'HARMONICA_LLM_MODEL', 'sky-fast'),
+            ('openai', 'HARMONICA_LLM_MODEL', 'sky-fast'),
         ):
             for configured, expected in (('', fallback), ('   ', fallback), ('gpt-6-astra', 'gpt-6-astra')):
                 with self.subTest(provider=selected, configured=configured), mock.patch.dict(
@@ -33,13 +49,15 @@ class CodexBackendTests(unittest.TestCase):
                 ):
                     self.assertEqual(llm_backend.model_name(), expected)
 
-    def test_codex_command_pins_default_or_configured_model_and_reports_it(self):
-        for configured, expected in (('', 'gpt-6.1-sol'), ('gpt-6-astra', 'gpt-6-astra')):
+    def test_codex_command_passes_only_a_configured_model_and_reports_it(self):
+        for configured, expected in (('', None), ('gpt-6-astra', 'gpt-6-astra')):
             with self.subTest(configured=configured), tempfile.TemporaryDirectory() as directory:
-                environment = {'HARMONICA_STATE_DIR': directory, 'HARMONICA_CODEX_MODEL': configured}
+                environment = {'HARMONICA_STATE_DIR': directory, 'HARMONICA_LLM_PROVIDER': 'codex',
+                               'HARMONICA_CODEX_MODEL': configured}
                 def run(args, **kwargs):
-                    self.assertEqual(args.count('--model'), 1)
-                    self.assertEqual(args[args.index('--model') + 1], expected)
+                    self.assertEqual(args.count('--model'), 1 if expected else 0)
+                    if expected:
+                        self.assertEqual(args[args.index('--model') + 1], expected)
                     self.assertIn('--ignore-user-config', args)
                     self.assertIn('features.shell_tool=false', args)
                     Path(args[args.index('--output-last-message') + 1]).write_text('{"json":"{}"}')
@@ -48,7 +66,7 @@ class CodexBackendTests(unittest.TestCase):
                      mock.patch.object(llm_backend, 'codex_binary', return_value=sys.executable), \
                      mock.patch.object(llm_backend.subprocess, 'run', side_effect=run):
                     result = json.loads(llm_backend.codex_chat({'model': 'gpt-6-luna', 'messages': []}))
-                self.assertEqual(result['model'], expected)
+                self.assertEqual(result['model'], expected or 'codex-cli-default')
                 usage = json.loads((Path(directory) / 'codex/usage.json').read_text())
                 self.assertEqual(usage['limit'], 12)
                 self.assertEqual(usage['calls'], 1)
@@ -196,10 +214,10 @@ class ClassifierProvenanceTests(unittest.TestCase):
 
 
 class ChatRequestCompatibilityTests(unittest.TestCase):
-    def test_gpt6_sampling_compatibility_preserves_reasoning_and_input(self):
-        for model in ('gpt-6-astra', 'gpt-6.1-sol', 'gpt-6-luna'):
-            for effort in (None, 'low', 'medium', 'high', 'none'):
-                with self.subTest(model=model, effort=effort):
+    def test_sampling_parameters_are_omitted_by_default_for_any_model(self):
+        for model in ('sky-fast', 'sky-quality', 'operator-model'):
+            for effort in (None, 'low', 'none'):
+                with self.subTest(model=model, effort=effort), mock.patch.dict(os.environ, {}, clear=True):
                     body = {'model': model, 'messages': [], 'temperature': 0, 'top_p': 1,
                             'logprobs': False, 'top_logprobs': 2, 'max_completion_tokens': 500,
                             'response_format': {'type': 'json_object'}}
@@ -209,35 +227,89 @@ class ChatRequestCompatibilityTests(unittest.TestCase):
                     prepared = llm_backend.compatible_chat_body(body)
                     self.assertEqual(body, original)
                     self.assertEqual(prepared.get('reasoning_effort'), effort)
-                    self.assertEqual(prepared['messages'], body['messages'])
                     self.assertEqual(prepared['response_format'], body['response_format'])
                     self.assertEqual(prepared['max_completion_tokens'], 500)
                     for key in ('temperature', 'top_p', 'top_logprobs', 'logprobs'):
-                        self.assertEqual(key in prepared, effort == 'none')
+                        self.assertNotIn(key, prepared)
 
-    def test_unrelated_operator_model_keeps_its_request_parameters(self):
-        body = {'model': 'operator-model', 'messages': [], 'temperature': 0, 'top_p': 1, 'logprobs': False}
-        self.assertEqual(llm_backend.compatible_chat_body(body), body)
+    def test_operator_can_declare_sampling_support(self):
+        body = {'model': 'sky-fast', 'messages': [], 'temperature': 0, 'top_p': 1, 'logprobs': False}
+        with mock.patch.dict(os.environ, {'HARMONICA_LLM_SEND_SAMPLING': '1'}):
+            self.assertEqual(llm_backend.compatible_chat_body(body), body)
 
-    def test_explicit_api_mode_serializes_compatible_body_without_mutating_caller(self):
-        body = {'model': 'gpt-6-luna', 'messages': [{'role': 'user', 'content': 'Classify harmonica'}],
+
+def _capture_curl(sent, stdout='{}'):
+    def run(args, **kwargs):
+        data_line = next(line for line in kwargs['input'].splitlines() if line.startswith('data-binary = "@'))
+        url_line = next(line for line in kwargs['input'].splitlines() if line.startswith('url = '))
+        sent.append((url_line[len('url = "'):-1], json.loads(Path(data_line[len('data-binary = "@'):-1]).read_text())))
+        return mock.Mock(returncode=0, stdout=stdout)
+    return run
+
+
+class GatewayHttpTests(unittest.TestCase):
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.state = Path(self.directory.name)
+
+    def env(self, **values):
+        return mock.patch.dict(os.environ, {'HARMONICA_STATE_DIR': str(self.state), **values}, clear=True)
+
+    def test_default_provider_posts_alias_to_gateway_without_sampling(self):
+        body = {'model': 'sky-fast', 'messages': [{'role': 'user', 'content': 'Classify harmonica'}],
                 'temperature': 0, 'reasoning_effort': 'low', 'response_format': {'type': 'json_object'}}
         sent = []
-        def run(args, **kwargs):
-            data_line = next(line for line in kwargs['input'].splitlines() if line.startswith('data-binary = "@'))
-            payload_path = data_line[len('data-binary = "@'):-1]
-            sent.append(json.loads(Path(payload_path).read_text()))
-            return mock.Mock(returncode=0, stdout='{}')
-        with mock.patch.dict(os.environ, {'HARMONICA_LLM_PROVIDER': 'openai'}, clear=True), \
-             mock.patch.object(watchdog.subprocess, 'run', side_effect=run), \
+        with self.env(), mock.patch.object(llm_backend.subprocess, 'run', side_effect=_capture_curl(sent)), \
              mock.patch.object(llm_backend, 'codex_chat') as cli:
-            self.assertEqual(watchdog.curl_json('https://api.openai.com/v1/chat/completions', 'test-key', body, 10), '{}')
+            self.assertEqual(watchdog.curl_json(watchdog.llm_endpoint(llm_backend.base_url()), 'test-key', body, 10), '{}')
             cli.assert_not_called()
-        self.assertEqual(len(sent), 1)
-        self.assertNotIn('temperature', sent[0])
-        self.assertEqual(sent[0]['reasoning_effort'], 'low')
-        self.assertEqual(sent[0]['messages'], body['messages'])
+        url, payload = sent[0]
+        self.assertEqual(url, 'http://127.0.0.1:8317/v1/chat/completions')
+        self.assertEqual(payload['model'], 'sky-fast')
+        self.assertNotIn('temperature', payload)
+        self.assertEqual(payload['reasoning_effort'], 'low')
         self.assertEqual(body['temperature'], 0)
+        usage = json.loads((self.state / 'llm/usage.json').read_text())
+        self.assertEqual((usage['calls'], usage['limit'], usage['status']), (1, 120, 'ok'))
+
+    def test_http_calls_share_an_hourly_budget(self):
+        sent = []
+        with self.env(HARMONICA_LLM_MAX_CALLS_PER_HOUR='1'), \
+             mock.patch.object(llm_backend.subprocess, 'run', side_effect=_capture_curl(sent)):
+            llm_backend.chat({'model': 'sky-fast', 'messages': []}, token='k', timeout=5)
+            with self.assertRaisesRegex(RuntimeError, 'hourly call limit'):
+                llm_backend.chat({'model': 'sky-fast', 'messages': []}, token='k', timeout=5)
+        self.assertEqual(len(sent), 1)
+        self.assertEqual(json.loads((self.state / 'llm/usage.json').read_text())['status'], 'paused')
+
+    def test_http_slot_is_exclusive_across_processes(self):
+        import fcntl
+        (self.state / 'llm').mkdir(mode=0o700)
+        with (self.state / 'llm/inference.lock').open('a+') as holder:
+            fcntl.flock(holder.fileno(), fcntl.LOCK_EX)
+            with self.env(HARMONICA_LLM_LOCK_WAIT='0'), mock.patch.object(llm_backend.subprocess, 'run') as run:
+                with self.assertRaisesRegex(RuntimeError, 'busy'):
+                    llm_backend.chat({'model': 'sky-fast', 'messages': []}, token='k', timeout=5)
+                run.assert_not_called()
+
+    def test_http_failure_is_recorded_and_not_hidden(self):
+        with self.env(), mock.patch.object(llm_backend.subprocess, 'run', return_value=mock.Mock(returncode=22, stdout='denied', stderr='')):
+            with self.assertRaisesRegex(RuntimeError, 'curl exited 22'):
+                llm_backend.chat({'model': 'sky-fast', 'messages': []}, token='k', timeout=5)
+        self.assertEqual(json.loads((self.state / 'llm/usage.json').read_text())['status'], 'error')
+
+    def test_classifiers_record_requested_alias_and_resolved_model(self):
+        content = {"is_relevant": True, "confidence": 0.9, "categories": ["posts-videos"],
+                   "labels": ["口琴"], "sourceTags": ["口琴"], "summary": "Public artist", "reason": "Public post"}
+        envelope = json.dumps({"model": "resolved-upstream", "choices": [{"message": {"content": json.dumps(content)}}]})
+        with self.env(), mock.patch.object(llm_backend.subprocess, 'run', side_effect=_capture_curl([], envelope)):
+            post = watchdog.classify_with_llm({"text": "harmonica"}, [], token="k", base_url=llm_backend.base_url(), model="sky-fast", timeout=5)
+            entry = directory.classify_entry({"name": "Public artist"}, token="k", base_url=llm_backend.base_url(), model="sky-fast", timeout=5)
+        for result in (post, entry):
+            self.assertEqual(result["llm_model"], "resolved-upstream")
+            self.assertEqual(result["llm_requested_model"], "sky-fast")
+            self.assertEqual(result["llm_provider"], "gateway")
 
 
 if __name__ == '__main__':

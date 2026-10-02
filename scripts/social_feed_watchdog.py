@@ -150,10 +150,9 @@ THREADS_RELAY_DEFAULT_VARIABLES = THREADS_RELAY_TRUE_VARIABLES | {
     "__relay_internal__pv__BarcelonaShouldFulfillLightboxQueryrelayprovider",
     "__relay_internal__pv__BarcelonaShouldShowFediverseM075Featuresrelayprovider",
 }
-OPENAI_BASE_URL = "https://api.openai.com/v1"
-DEFAULT_LLM_MODEL = llm_backend.DEFAULT_API_MODEL
-DEFAULT_LLM_KEYCHAIN_SERVICE = "harmonica-openai"
-DEFAULT_LLM_KEYCHAIN_ACCOUNT = "harmonica"
+DEFAULT_LLM_MODEL = llm_backend.CLASSIFIER_MODEL
+DEFAULT_LLM_KEYCHAIN_SERVICE = llm_backend.DEFAULT_KEYCHAIN_SERVICE
+DEFAULT_LLM_KEYCHAIN_ACCOUNT = llm_backend.DEFAULT_KEYCHAIN_ACCOUNT
 LLM_CATEGORIES = {"events", "posts-videos", "student-clubs", "opportunities"}
 LLM_LABELS = set(public_tags.PUBLIC_TAGS)
 TRUTHY = {"1", "true", "yes", "y", "on"}
@@ -2093,46 +2092,11 @@ def merge_tags(primary: list[Any], fallback: list[Any], *, limit: int = 8) -> li
 
 
 def read_llm_token(service: str, account: str) -> tuple[str, str]:
-    import llm_backend
-    if llm_backend.provider() == "disabled":
-        return "", "disabled"
-    if llm_backend.provider() == "codex":
-        return "codex-cli-session", "codex-cli"
-    for key in ("HARMONICA_LLM_API_KEY", "HARMONICA_OPENAI_API_KEY", "OPENAI_API_KEY"):
-        value = os.environ.get(key)
-        if value:
-            return value.strip(), f"env:{key}"
-
-    candidates = [
-        (service, account),
-        (service, DEFAULT_LLM_KEYCHAIN_ACCOUNT),
-        (DEFAULT_LLM_KEYCHAIN_SERVICE, DEFAULT_LLM_KEYCHAIN_ACCOUNT),
-    ]
-    seen_pairs: set[tuple[str, str]] = set()
-    for keychain_service, keychain_account in candidates:
-        if not keychain_service or not keychain_account or (keychain_service, keychain_account) in seen_pairs:
-            continue
-        seen_pairs.add((keychain_service, keychain_account))
-        try:
-            result = subprocess.run(
-                ["security", "find-generic-password", "-s", keychain_service, "-a", keychain_account, "-w"],
-                capture_output=True,
-                text=True,
-                timeout=10,
-                check=False,
-            )
-        except (OSError, subprocess.SubprocessError):
-            continue
-        if result.returncode == 0 and result.stdout.strip():
-            return result.stdout.strip(), f"keychain:{keychain_service}/{keychain_account}"
-    return "", ""
+    return llm_backend.read_token(service, account)
 
 
 def llm_endpoint(base_url: str) -> str:
-    base = (base_url or OPENAI_BASE_URL).rstrip("/")
-    if base.endswith("/chat/completions"):
-        return base
-    return f"{base}/chat/completions"
+    return llm_backend.chat_endpoint(base_url)
 
 
 class RequestDeadline:
@@ -2206,58 +2170,7 @@ def chat_response_text(response: dict[str, Any]) -> str:
 
 
 def curl_json(url: str, token: str, body: dict[str, Any], timeout: int) -> str:
-    import llm_backend
-    selected_provider = llm_backend.provider()
-    if selected_provider == "disabled":
-        raise RuntimeError("LLM inference is disabled")
-    if selected_provider == "codex":
-        return llm_backend.codex_chat(body, timeout)
-    if token == "codex-cli-session":
-        raise RuntimeError("Explicit OpenAI API mode requires an API key")
-    body = llm_backend.compatible_chat_body(body)
-    body_path = ""
-    try:
-        with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False) as handle:
-            json.dump(body, handle, ensure_ascii=False)
-            body_path = handle.name
-
-        config = "\n".join(
-            [
-                f'url = "{url}"',
-                'request = "POST"',
-                f"max-time = {max(1, int(timeout or 1))}",
-                "silent",
-                "show-error",
-                "fail-with-body",
-                f'header = "Authorization: Bearer {token}"',
-                'header = "Content-Type: application/json"',
-                'header = "Accept: application/json"',
-                'header = "User-Agent: HarmonicaObserveLLMTagger/1.0"',
-                f'data-binary = "@{body_path}"',
-                "",
-            ]
-        )
-        result = subprocess.run(
-            ["curl", "--config", "-"],
-            input=config,
-            capture_output=True,
-            text=True,
-            timeout=max(2, int(timeout or 1) + 5),
-            check=False,
-        )
-    except subprocess.TimeoutExpired as exc:
-        raise TimeoutError(f"LLM curl timed out after {timeout}s") from exc
-    finally:
-        if body_path:
-            try:
-                Path(body_path).unlink()
-            except OSError:
-                pass
-
-    if result.returncode != 0:
-        detail = (result.stdout or result.stderr or "").strip()[:500]
-        raise RuntimeError(f"LLM curl exited {result.returncode}: {detail}")
-    return result.stdout
+    return llm_backend.chat(body, token=token, url=url, timeout=timeout)
 
 
 def llm_prompt(post: dict[str, Any], keyword_matches: list[str]) -> list[dict[str, str]]:
@@ -2331,6 +2244,7 @@ def classify_with_llm(
     return {
         **normalized,
         "llm_model": llm_backend.resolved_model(response_json, model),
+        "llm_requested_model": model,
         "llm_provider": llm_backend.provider(),
         "llm_tagged_at": dt.datetime.now(dt.timezone.utc).isoformat(),
     }
@@ -2495,8 +2409,8 @@ def main() -> int:
     parser.add_argument("--llm-tags", dest="llm_tags", action="store_true", default=env_truthy("HARMONICA_ENABLE_LLM_TAGS", True))
     parser.add_argument("--no-llm-tags", dest="llm_tags", action="store_false")
     parser.add_argument("--llm-cache", type=Path, default=DEFAULT_LLM_CACHE)
-    parser.add_argument("--llm-base-url", default=os.environ.get("HARMONICA_LLM_BASE_URL", OPENAI_BASE_URL))
-    parser.add_argument("--llm-model", default=__import__("llm_backend").model_name())
+    parser.add_argument("--llm-base-url", default=llm_backend.base_url())
+    parser.add_argument("--llm-model", default=llm_backend.model_name())
     parser.add_argument("--llm-timeout", type=int, default=int(os.environ.get("HARMONICA_LLM_TIMEOUT", "45")))
     parser.add_argument(
         "--llm-confidence-threshold",

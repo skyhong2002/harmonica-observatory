@@ -197,16 +197,30 @@ class DedupeAndProposalTests(unittest.TestCase):
         self.assertIn("missing_source_country", reviewed["risk_flags"])
         self.assertFalse(automatic)
 
-    @mock.patch("submission_intake.llm_backend.codex_chat")
-    def test_ai_review_defaults_to_existing_codex_entitlement(self, codex):
-        codex.return_value = json.dumps({"choices": [{"message": {"content": json.dumps(proposal("reject"))}}]})
-        result = intake.run_ai_review("response", {}, [], [])
+    @mock.patch("submission_intake.llm_backend.read_token", return_value=("gateway-key", "env"))
+    @mock.patch("submission_intake.llm_backend.http_chat")
+    def test_ai_review_uses_quality_alias_through_gateway(self, http_chat, _token):
+        http_chat.return_value = json.dumps({"model": "resolved-upstream",
+                                             "choices": [{"message": {"content": json.dumps(proposal("reject"))}}]})
+        with mock.patch.dict(os.environ, {}, clear=True):
+            result = intake.run_ai_review("response", {}, [], [])
         self.assertEqual(result["decision"], "reject")
-        codex.assert_called_once()
-        self.assertIn("worldwide", codex.call_args.args[0]["messages"][0]["content"])
+        http_chat.assert_called_once()
+        url, token, body, _ = http_chat.call_args.args
+        self.assertEqual((url, token, body["model"]), ("http://127.0.0.1:8317/v1/chat/completions", "gateway-key", "sky-quality"))
+        self.assertIn("worldwide", body["messages"][0]["content"])
+        self.assertEqual(result["llm"], {"provider": "gateway", "requested_model": "sky-quality", "model": "resolved-upstream"})
 
-    @mock.patch("submission_intake.llm_backend.codex_chat", side_effect=RuntimeError("quota exhausted"))
-    def test_codex_quota_failure_has_no_paid_fallback(self, codex):
+    @mock.patch("submission_intake.llm_backend.codex_chat")
+    def test_ai_review_keeps_codex_fallback(self, codex):
+        codex.return_value = json.dumps({"choices": [{"message": {"content": json.dumps(proposal("reject"))}}]})
+        with mock.patch.dict(os.environ, {"HARMONICA_LLM_PROVIDER": "codex"}, clear=True):
+            result = intake.run_ai_review("response", {}, [], [])
+        codex.assert_called_once()
+        self.assertEqual(result["llm"]["provider"], "codex")
+
+    @mock.patch("submission_intake.llm_backend.chat", side_effect=RuntimeError("hourly limit"))
+    def test_inference_failure_retains_submission(self, chat):
         with self.assertRaisesRegex(intake.IntakeError, "retained for review"):
             intake.run_ai_review("response", {}, [], [])
 

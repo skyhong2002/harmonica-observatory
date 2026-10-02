@@ -651,14 +651,25 @@ def run_ai_review(
     *,
     timeout: int = 180,
 ) -> dict[str, Any]:
+    model = llm_backend.review_model_name()
     try:
-        envelope = json.loads(llm_backend.codex_chat({
-            "messages": [{"role": "user", "content": ai_prompt(response_id, answers, evidence, candidates)}]
-        }, timeout=timeout))
+        token, _ = llm_backend.read_token()
+        envelope = json.loads(llm_backend.chat({
+            "model": model,
+            "messages": [{"role": "user", "content": ai_prompt(response_id, answers, evidence, candidates)}],
+            "response_format": {"type": "json_object"},
+            "stream": False,
+        }, token=token, timeout=timeout))
         output = envelope["choices"][0]["message"]["content"]
     except (ValueError, KeyError, IndexError, RuntimeError, TimeoutError) as exc:
-        raise IntakeError("Codex intake review unavailable; submission retained for review") from exc
-    return normalize_proposal(parse_json_object(output))
+        raise IntakeError("AI intake review unavailable; submission retained for review") from exc
+    proposal = normalize_proposal(parse_json_object(output))
+    proposal["llm"] = {
+        "provider": llm_backend.provider(),
+        "requested_model": model,
+        "model": llm_backend.resolved_model(envelope, model),
+    }
+    return proposal
 
 
 def normalize_proposal(value: dict[str, Any]) -> dict[str, Any]:

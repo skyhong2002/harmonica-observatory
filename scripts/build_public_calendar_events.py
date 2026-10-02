@@ -916,7 +916,8 @@ def review_candidate_with_llm(
     normalized = normalize_llm_calendar_review(parsed)
     items = cache.setdefault("items", {})
     if isinstance(items, dict):
-        items[fingerprint] = normalized
+        items[fingerprint] = {**normalized, "llmModel": llm_backend.resolved_model(response, model),
+                              "llmRequestedModel": model}
         cache["version"] = 1
         cache["updated_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
     stats["requests"] = stats.get("requests", 0) + 1
@@ -1283,8 +1284,8 @@ def extract_events(
     *,
     overrides: dict[str, dict[str, Any]] | None = None,
     llm_token: str = "",
-    llm_base_url: str = watchdog.OPENAI_BASE_URL,
-    llm_model: str = watchdog.DEFAULT_LLM_MODEL,
+    llm_base_url: str = llm_backend.DEFAULT_GATEWAY_BASE_URL,
+    llm_model: str = llm_backend.CLASSIFIER_MODEL,
     llm_timeout: int = 45,
     llm_cache: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
@@ -1609,8 +1610,8 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--no-llm", action="store_true")
     parser.add_argument("--llm-cache", type=Path, default=DEFAULT_LLM_CACHE)
-    parser.add_argument("--llm-base-url", default=os.environ.get("HARMONICA_LLM_BASE_URL", watchdog.OPENAI_BASE_URL))
-    parser.add_argument("--llm-model", default=__import__("llm_backend").model_name())
+    parser.add_argument("--llm-base-url", default=llm_backend.base_url())
+    parser.add_argument("--llm-model", default=llm_backend.model_name())
     parser.add_argument("--llm-timeout", type=int, default=int(os.environ.get("HARMONICA_LLM_TIMEOUT", "45")))
     parser.add_argument("--llm-keychain-service", default=os.environ.get("HARMONICA_LLM_KEYCHAIN_SERVICE", watchdog.DEFAULT_LLM_KEYCHAIN_SERVICE))
     parser.add_argument("--llm-keychain-account", default=os.environ.get("HARMONICA_LLM_KEYCHAIN_ACCOUNT", watchdog.DEFAULT_LLM_KEYCHAIN_ACCOUNT))

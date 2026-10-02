@@ -27,7 +27,7 @@ class CommunityModerationTests(unittest.TestCase):
         self.temp.cleanup()
 
     def test_export_is_idempotent_preserves_geography_and_never_processes(self):
-        with patch('urllib.request.urlopen', side_effect=AssertionError('network forbidden')), patch('submission_intake.llm_backend.codex_chat', side_effect=AssertionError('inference forbidden')):
+        with patch('urllib.request.urlopen', side_effect=AssertionError('network forbidden')), patch('submission_intake.llm_backend.chat', side_effect=AssertionError('inference forbidden')):
             first = moderation.export_submission(self.item['id'], 'Tokyo ensemble', 'event', intake_path=self.database)
             second = moderation.export_submission(self.item['id'], 'Tokyo ensemble', 'event', intake_path=self.database)
         self.assertTrue(first['inserted'])

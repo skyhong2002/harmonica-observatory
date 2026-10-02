@@ -107,7 +107,7 @@ def main() -> int:
     parser.add_argument("--candidates", type=Path, default=DEFAULT_CANDIDATES)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--llm-cache", type=Path, default=DEFAULT_LLM_CACHE)
-    parser.add_argument("--llm-base-url", default=os.environ.get("HARMONICA_LLM_BASE_URL", watchdog.OPENAI_BASE_URL))
+    parser.add_argument("--llm-base-url", default=llm_backend.base_url())
     parser.add_argument("--llm-model", default=llm_backend.model_name())
     parser.add_argument("--llm-timeout", type=int, default=int(os.environ.get("HARMONICA_LLM_TIMEOUT", "45")))
     parser.add_argument(
@@ -134,7 +134,7 @@ def main() -> int:
 
     token, token_source = watchdog.read_llm_token(args.llm_keychain_service, args.llm_keychain_account)
     if not token:
-        raise SystemExit("LLM provider is disabled." if llm_backend.provider() == "disabled" else "Missing OpenAI API key. Set HARMONICA_LLM_API_KEY in .env or store one in Keychain.")
+        raise SystemExit("LLM provider is disabled." if llm_backend.provider() == "disabled" else "Missing LLM gateway key. Set HARMONICA_LLM_API_KEY or store it in Keychain (harmonica-ai-gateway/harmonica).")
 
     config = watchdog.load_json(args.config, {"keywords": []})
     keywords = config.get("keywords") or []
