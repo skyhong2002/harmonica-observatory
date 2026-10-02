@@ -5,6 +5,7 @@ Adapters read the existing generated snapshots. No network, credentials or paid
 inference happens on a visitor request. Language never filters geographic scope.
 """
 from __future__ import annotations
+from story_lifecycle import display_expiry
 
 import hashlib
 import json
@@ -236,7 +237,8 @@ def build_catalog(api_root: Path | str = API_ROOT, *, now: datetime | None = Non
         if _synthetic_source_row(row):
             continue
         is_story = bool(row.get('story')) or row.get('media_type') == 'instagram_story'
-        expiry = _timestamp(row.get('story_expires_at'))
+        display_until = display_expiry(row) if is_story else None
+        expiry = display_until.timestamp() if display_until else None
         story_state = ('unknown' if expiry is None else 'active' if expiry > observed_at else 'expired') if is_story else None
         source = source_map.get(str(row.get('directory_entry_id') or '')) or monitor_map.get(str(row.get('source_id') or ''), {})
         webpage = row.get('media_type') == 'webpage_update' or row.get('platform') == 'website'
@@ -254,7 +256,8 @@ def build_catalog(api_root: Path | str = API_ROOT, *, now: datetime | None = Non
             'image': public_url(row.get('image_url')), 'avatar': public_url(row.get('source_avatar_url') or row.get('avatar_url')),
             'images': _media_urls(row.get('images')), 'videos': _media_urls(row.get('videos')),
             'videoUrl': public_url(row.get('video_url')) or next(iter(_media_urls(row.get('videos'))), ''),
-            'isStory': is_story, 'expiresAt': row.get('story_expires_at'), 'storyState': story_state,
+            'isStory': is_story, 'expiresAt': display_until.isoformat() if display_until else None, 'storyState': story_state,
+            'sourceExpiresAt': row.get('story_expires_at') if is_story else None,
             'sourceAvailable': bool(public_url(row.get('link') or row.get('url'))) and (not is_story or story_state == 'active'),
             'tags': [str(t) for t in _list(row.get('categories'))],
         })

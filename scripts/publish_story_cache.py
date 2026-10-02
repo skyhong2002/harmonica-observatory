@@ -19,6 +19,7 @@ import sys
 import tempfile
 
 from run_pipeline import PROJECT_ROOT, acquire_lock, release_lock, write_json_atomic
+from story_lifecycle import display_expiry
 
 
 def read_json(path: Path, default=None):
@@ -27,14 +28,6 @@ def read_json(path: Path, default=None):
         return value if isinstance(value, dict) else (default or {})
     except (OSError, ValueError):
         return default or {}
-
-
-def future(value, now: dt.datetime) -> bool:
-    try:
-        expiry = dt.datetime.fromisoformat(str(value).replace('Z', '+00:00'))
-        return expiry.tzinfo is not None and expiry > now
-    except (TypeError, ValueError):
-        return False
 
 
 def candidate_keys(path: Path) -> set[str]:
@@ -67,7 +60,7 @@ def publish_cached_stories(root: Path = PROJECT_ROOT, *, now: dt.datetime | None
         sid = str(source.get('id') or '')
         source_pending = {str(post['key']) for post in cache.get(sid, {}).get('posts', [])
                           if isinstance(post, dict) and post.get('key') and str(post['key']) not in published
-                          and future(post.get('story_expires_at'), now)}
+                          and (expiry := display_expiry(post)) and expiry > now}
         if sid and source_pending:
             selected.append(sid)
             pending.update(source_pending)

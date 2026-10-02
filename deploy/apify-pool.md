@@ -10,7 +10,7 @@ It never reads the Chumei or Bamboo project's credentials, database or state.
 | --- | --- | --- |
 | Facebook public posts | `apify/facebook-posts-scraper` | None |
 | Instagram public profiles/posts | `apify/instagram-profile-scraper` | Logged-out Instagram only when `HARMONICA_INSTAGRAM_PUBLIC_FALLBACK=1` |
-| Instagram stories | `intropix/instagram-stories-scraper` | None |
+| Instagram stories | `intropix/instagram-stories-scraper` | Opt-in InstaStoriesViewer pilot; see rollout below |
 | Threads / RSS sources | Existing RSSHub/RSS adapters | Existing configured public fallbacks |
 | YouTube | Existing public YouTube adapter | Existing configured behavior |
 
@@ -171,21 +171,22 @@ is displayed as a preview frame with a link to the original Instagram story.
 
 ## Live homepage updates (2026-09-23, #27)
 
-The homepage now reads the existing public catalog once per visible minute,
-on returning to the foreground or navigating back home, and via “Refresh
-stories”. This only reads already-collected data; it never launches an actor or
-changes the independent provider budgets. Story cards are reconciled without
+The homepage reads the existing public catalog once per visible minute and
+on returning to the foreground or navigating back home. Per the latest user
+instruction, the manual refresh button has been removed. These reads never
+launch an actor or change provider budgets. Story cards are reconciled without
 replacing retained media, the calendar, feed, focused inputs, or form drafts.
-Failed refreshes preserve the last available cards; original expiry still
-removes ended stories. The displayed “Last retrieved” time comes from active
-stories' `observedAt`, not the catalog rebuild timestamp.
+Failed refreshes preserve the last available cards until their display deadline.
+The displayed “Last retrieved” time comes from stories' `observedAt`.
 
-The Chumei reference caches story media locally, as this project already does.
-Its current `STORY_DISPLAY_HOURS=48` extends the presentation window from the
-publication time. Harmonica retains the provider's actual expiry instead;
-Chumei's larger visible count must not be read as proof of more currently active
-24-hour stories. No Chumei session, data store, school filters, or budget settings
-are shared.
+Harmonica now matches Chumei's **48-hour display window from publication**.
+`scripts/story_lifecycle.py` provides the shared deadline for cached media
+retention, watchdog import, cache publication and the public catalog. Catalog
+`expiresAt` is the display deadline; `sourceExpiresAt` retains the provider's
+original expiry. Cards say “Shown until” / “展示至” so the display window does
+not imply the original Instagram link remains live. Unknown publication dates
+are excluded. Reloading, polling and recollection do not extend the deadline.
+No Chumei session, data store, school filters, or budget settings are shared.
 
 
 ## Collector scheduling and immediate publication (2026-09-23, #28)
@@ -232,3 +233,11 @@ run cap even for denied/initially-zero outcomes. Unknown results never restore
 budget. Owner US$4/month, daily shares and contributor cumulative authorization
 are unchanged. The observed current one-account pool cannot guarantee daily
 coverage of all 179 configured story sources.
+
+## Optional Instagram story backup pilot
+
+`HARMONICA_ISV_ENABLED=1` enables the bounded InstaStoriesViewer step after the
+primary story cache publisher. The versioned default is off. The current local
+four-account trial, shared pacing, publication proof and rollback commands are in
+[the 2026-09-24 rollout](insta-stories-viewer-rollout-2026-09-24.md).
+This adapter uses no Apify capacity and preserves the existing paid-provider path.

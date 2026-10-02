@@ -22,7 +22,7 @@ class PublishStoryCacheTests(unittest.TestCase):
         self.now = dt.datetime(2026, 9, 23, tzinfo=dt.timezone.utc)
         self.source = {'id': 'ig_story_test', 'username': 'test', 'enabled': True, 'provider': 'apify_stories', 'type': 'rsshub_instagram_story'}
         self.post = {'key': 'ig_story_test:123', 'source_id': self.source['id'], 'story': True,
-                     'story_expires_at': '2099-09-24T00:00:00Z', 'include_without_keywords': True,
+                     'posted_at': '2026-09-22T00:00:00Z', 'story_expires_at': '2026-09-23T00:00:00Z', 'include_without_keywords': True,
                      'image_url': '/assets/feed-images/story.webp'}
         self.write('data/feeds/social_sources.json', {'sources': [self.source]})
         self.write('state/instagram_public.json', {'sources': {self.source['id']: {'posts': [self.post]}}})
@@ -79,7 +79,7 @@ class PublishStoryCacheTests(unittest.TestCase):
         self.write('data/feeds/social_sources.json', {'sources': [self.source,
             {**self.source, 'id': 'disabled', 'enabled': False}, {**self.source, 'id': 'profile', 'provider': 'instagram_public'}]})
         self.write('state/instagram_public.json', {'sources': {
-            self.source['id']: {'posts': [{**self.post, 'story_expires_at': '2000-01-01T00:00:00Z'}, {**self.post, 'key': 'naive', 'story_expires_at': '2099-01-01'}]},
+            self.source['id']: {'posts': [{**self.post, 'posted_at': '2000-01-01T00:00:00Z'}, {**self.post, 'key': 'naive', 'posted_at': '2099-01-01'}]},
             'disabled': {'posts': [self.post]}, 'profile': {'posts': [self.post]}}})
         result = publisher.publish_cached_stories(self.root, now=self.now, runner=self.fake_runner)
         self.assertEqual(result['status'], 'unchanged')

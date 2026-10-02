@@ -24,8 +24,3 @@
 .ob-story-original:focus-visible { outline:2px solid white; outline-offset:3px; }
 .ob-story-empty { margin:0; padding:18px 0; color:var(--color-text-muted); font-size:.9rem; }
 @media (prefers-reduced-motion:reduce) { .ob-story-strip { scroll-behavior:auto; } }
-.ob-story-refresh { display:flex; align-items:center; flex-wrap:wrap; gap:8px 14px; margin-bottom:14px; }
-.ob-story-refresh-button { min-height:38px; padding:7px 13px; font-size:.84rem; }
-.ob-story-refresh-button[aria-disabled="true"] { cursor:wait; opacity:.7; }
-.ob-story-refresh-status { font-size:.82rem; color:var(--color-text-muted); }
-.ob-story-refresh-status[data-state="failed"] { color:var(--color-danger-text); }

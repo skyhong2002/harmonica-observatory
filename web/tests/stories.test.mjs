@@ -19,7 +19,7 @@ test('stories use only currently verifiable active records and preserve safe ori
     { ...story, id: 'removed', sourceAvailable: false },
   ] };
   assert.deepEqual(activeStories(data).map(s => s.id), ['live']);
-  for (const [locale, expiry] of [['en', 'Expires'], ['zh-Hant', '有效至'], ['ja', '公開期限'], ['ko', '만료']]) {
+  for (const [locale, expiry] of [['en', 'Shown until'], ['zh-Hant', '展示至'], ['ja', '表示期限'], ['ko', '표시 기한']]) {
     setLocale(locale);
     const dom = new JSDOM(storiesView(data));
     const root = dom.window.document;
@@ -86,26 +86,26 @@ function refreshingStoryDom(data = catalog) {
 }
 const settle = () => new Promise(resolve => setTimeout(resolve, 0));
 
-test('manual refresh patches only stories while preserving live media, focus, scroll, calendar and river nodes', async () => {
+test('automatic refresh patches only stories while preserving live media, focus, scroll, calendar and river nodes', async () => {
   setLocale('en'); const data = { ...catalog, stories: [{ ...story, videoUrl: 'https://example.org/video.mp4' }] };
   const { dom, root, doc } = refreshingStoryDom(data), pending = [];
   const oldCard = root.querySelector('.ob-story-card'), video = root.querySelector('video'); video.currentTime = 12;
-  const calendar = root.querySelector('#calendar'), river = root.querySelector('#river'), button = root.querySelector('[data-refresh-stories]');
+  const calendar = root.querySelector('#calendar'), river = root.querySelector('#river'), draft = root.querySelector('#draft');
   const strip = root.querySelector('.ob-story-strip'); strip.scrollLeft = 87;
   const cleanup = bindStories(root, { catalog: data, refreshCatalog: ({signal}) => new Promise(resolve => pending.push({resolve, signal})) });
-  button.focus(); button.click(); button.click(); assert.equal(pending.length, 1); assert.equal(button.getAttribute('aria-disabled'), 'true');
+  draft.focus(); doc.dispatchEvent(new dom.window.Event('visibilitychange')); doc.dispatchEvent(new dom.window.Event('visibilitychange')); assert.equal(pending.length, 1); assert.equal(root.querySelector('[data-refresh-stories]'), null);
   pending[0].resolve({ ...data, stories: [{ ...story, id: 'new' }, ...data.stories] }); await settle();
   assert.equal(root.querySelectorAll('.ob-story-card').length, 2); assert.equal(root.querySelector('[data-story-id="live"]'), oldCard); assert.equal(root.querySelector('video'), video); assert.equal(video.currentTime, 12);
-  assert.equal(root.querySelector('#calendar'), calendar); assert.equal(root.querySelector('#river'), river); assert.equal(doc.activeElement, button); assert.equal(strip.scrollLeft, 87); assert.equal(data.stories.length, 2);
-  assert.equal(root.querySelector('[data-story-refresh-status]').dataset.state, 'refreshed'); cleanup(); dom.window.close();
+  assert.equal(root.querySelector('#calendar'), calendar); assert.equal(root.querySelector('#river'), river); assert.equal(doc.activeElement, draft); assert.equal(strip.scrollLeft, 87); assert.equal(data.stories.length, 2);
+  cleanup(); dom.window.close();
 });
 
-test('refresh failures and invalid responses keep existing stories and expose four-language retry status', async () => {
+test('automatic refresh failures and invalid responses keep existing stories in four locales', async () => {
   for (const locale of ['en', 'zh-Hant', 'ja', 'ko']) {
     setLocale(locale); const data = { ...catalog, stories: [story] }, { dom, root } = refreshingStoryDom(data);
     const card = root.querySelector('.ob-story-card'); let count = 0;
     const cleanup = bindStories(root, { catalog: data, refreshCatalog: async () => { if (++count === 1) throw new Error('offline'); return {}; } });
-    for (let i = 0; i < 2; i++) { root.querySelector('[data-refresh-stories]').click(); await settle(); assert.equal(root.querySelector('.ob-story-card'), card); assert.equal(data.stories.length, 1); assert.equal(root.querySelector('[data-story-refresh-status]').dataset.state, 'failed'); assert.ok(root.querySelector('[data-story-refresh-status]').textContent.length > 5); }
+    for (let i = 0; i < 2; i++) { root.ownerDocument.dispatchEvent(new dom.window.Event('visibilitychange')); await settle(); assert.equal(root.querySelector('.ob-story-card'), card); assert.equal(data.stories.length, 1); assert.equal(root.querySelector('[data-refresh-stories]'), null); }
     cleanup(); dom.window.close();
   }
 });
@@ -149,17 +149,17 @@ test('rapid hidden-visible transitions abort old reads and queue exactly one fre
 test('refreshing out a focused removed story moves focus to the strip while valid stories remain', async () => {
   setLocale('en'); const data = { ...catalog, stories: [story] }, { dom, root, doc } = refreshingStoryDom(data);
   const cleanup = bindStories(root, { catalog: data, refreshCatalog: async () => ({ ...catalog, stories: [] }) });
-  root.querySelector('.ob-story-original').focus(); root.querySelector('[data-refresh-stories]').click(); await settle();
+  root.querySelector('.ob-story-original').focus(); root.ownerDocument.dispatchEvent(new dom.window.Event('visibilitychange')); await settle();
   assert.equal(root.querySelectorAll('.ob-story-card').length, 0); assert.ok(root.querySelector('.ob-story-empty')); assert.equal(doc.activeElement, root.querySelector('.ob-story-strip')); cleanup(); dom.window.close();
 });
 
-test('hung requests time out visibly and permit retry; their late responses cannot replace newer stories', async () => {
+test('hung automatic requests time out and permit retry; their late responses cannot replace newer stories', async () => {
   setLocale('en'); const data = { ...catalog, stories: [story] }, { dom, root } = refreshingStoryDom(data); const pending = [];
   const cleanup = bindStories(root, { catalog: data, refreshTimeout: 25, refreshCatalog: ({signal}) => new Promise(resolve => pending.push({signal, resolve})) });
-  const button = root.querySelector('[data-refresh-stories]'); button.click(); await new Promise(resolve => setTimeout(resolve, 40));
-  assert.equal(pending[0].signal.aborted, true); assert.equal(root.querySelector('[data-story-refresh-status]').dataset.state, 'failed'); assert.equal(button.getAttribute('aria-disabled'), 'false');
-  button.click(); assert.equal(pending.length, 2); pending[1].resolve({ ...catalog, stories: [story, { ...story, id: 'newer' }] }); await settle();
-  pending[0].resolve({ ...catalog, stories: [] }); await settle(); assert.equal(data.stories.length, 2); assert.equal(root.querySelector('[data-story-refresh-status]').dataset.state, 'refreshed'); cleanup(); dom.window.close();
+  root.ownerDocument.dispatchEvent(new dom.window.Event('visibilitychange')); await new Promise(resolve => setTimeout(resolve, 40));
+  assert.equal(pending[0].signal.aborted, true); assert.equal(root.querySelector('[data-refresh-stories]'), null);
+  root.ownerDocument.dispatchEvent(new dom.window.Event('visibilitychange')); assert.equal(pending.length, 2); pending[1].resolve({ ...catalog, stories: [story, { ...story, id: 'newer' }] }); await settle();
+  pending[0].resolve({ ...catalog, stories: [] }); await settle(); assert.equal(data.stories.length, 2); cleanup(); dom.window.close();
 });
 
 test('retrieval timestamp uses active story observation evidence and clears when the final story expires', async () => {

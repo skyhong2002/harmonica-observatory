@@ -2,6 +2,7 @@
 """Watch public harmonica social feeds and write standalone candidate rows."""
 
 from __future__ import annotations
+from story_lifecycle import display_expiry
 
 import argparse
 import datetime as dt
@@ -1026,7 +1027,7 @@ def cached_instagram_posts(source: dict[str, Any]) -> list[dict[str, Any]]:
     posts = state.get("sources", {}).get(source["id"], {}).get("posts", [])
     now = dt.datetime.now(dt.timezone.utc)
     return [p for p in posts if not is_story_source(source) or
-            ((expiry := parse_datetime(p.get("story_expires_at"))) is not None and expiry > now)]
+            ((expiry := display_expiry(p)) is not None and expiry > now)]
 
 
 def is_instaloader_auth_error(error: str) -> bool:

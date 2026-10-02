@@ -123,6 +123,19 @@ class InstagramPublicTests(unittest.TestCase):
             rss.assert_not_called()
         self.assertEqual(watchdog.source_delay_secs(self.source, None, None), 0)
 
+    def test_cached_previews_survive_provider_expiry_until_48_hours(self):
+        now = dt.datetime.now(dt.timezone.utc).timestamp()
+        recent = {'key': 'recent', 'posted_at': collector.iso(now - 30 * 3600),
+                  'story_expires_at': collector.iso(now - 6 * 3600)}
+        old = {'key': 'old', 'posted_at': collector.iso(now - 49 * 3600),
+               'story_expires_at': collector.iso(now - 25 * 3600)}
+        state = {'sources': {self.source['id']: {'posts': [recent, old]}}}
+        collector.record_source(state, self.source, [], now, backend='apify_stories')
+        self.assertEqual(state['sources'][self.source['id']]['posts'], [recent])
+        with mock.patch.object(watchdog, 'load_json', return_value=state), mock.patch.object(watchdog, 'fetch_rss') as rss:
+            self.assertEqual(watchdog.cached_instagram_posts(self.source), [recent])
+            rss.assert_not_called()
+
     def test_status_never_labels_unchecked_sources_healthy(self):
         now = dt.datetime.fromtimestamp(self.now, dt.timezone.utc)
         result = status.public_instagram_component({"story": {"status": "ok"}}, [self.source], now)

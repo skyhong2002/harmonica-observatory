@@ -26,6 +26,7 @@ from pathlib import Path
 from apify_facebook_fetcher import load_json, save_json
 import apify_pool
 from source_priority import affinity_of, event_affinity
+from story_lifecycle import display_expiry
 from run_pipeline import PROJECT_ROOT, load_dotenv, acquire_lock, release_lock
 
 STATE = PROJECT_ROOT / "state/instagram_public.json"
@@ -165,8 +166,9 @@ def record_source(state, source, posts, now, *, error="", backend=""):
         # Stories expire after 24 hours; a weekly successful-empty cadence can
         # miss every later story. Budget allocation still determines actual runs.
         interval = 12
-        # Keep already-cached, unexpired Stories when the actor result cap truncates.
-        merged = {p["key"]: p for p in entry.get("posts", []) if timestamp(p.get("story_expires_at")) > now}
+        # Retain cached previews for their full display lifetime, even after IG expiry.
+        merged = {p["key"]: p for p in entry.get("posts", [])
+                  if (expiry := display_expiry(p)) and expiry.timestamp() > now}
         merged.update({p["key"]: p for p in posts})
         posts = list(merged.values())
     entry.update(last_success_at=iso(now), next_due_at=now + interval * 3600,

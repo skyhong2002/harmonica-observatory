@@ -244,23 +244,29 @@ class CatalogTests(unittest.TestCase):
             self.assertEqual([row['id'] for row in result['posts']], ['real'])
             self.assertEqual(result['stats']['posts'], 1)
 
-    def test_expired_stories_remain_archived_and_only_verified_current_story_is_active(self):
+    def test_stories_display_for_48_hours_from_publication_preserving_provider_expiry(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory)
-            rows = [{'id': name, 'story': True, 'story_expires_at': expiry, 'link': 'https://example.org/story'}
-                    for name, expiry in [('past', '2026-09-22T00:00:00Z'), ('now', '2026-09-23T00:00:00Z'),
-                                         ('future', '2026-09-24T00:00:00Z'), ('unknown', None),
-                                         ('naive', '2026-09-24T00:00:00')]]
+            rows = [{'id': name, 'story': True, 'posted_at': published,
+                     'story_expires_at': '2026-09-22T12:00:00Z', 'link': 'https://example.org/story'}
+                    for name, published in [('past', '2026-09-20T00:00:00Z'),
+                                            ('boundary', '2026-09-21T00:00:00Z'),
+                                            ('cached', '2026-09-21T12:00:00Z'),
+                                            ('recent', '2026-09-22T18:00:00Z'),
+                                            ('unknown', None), ('naive', '2026-09-22T00:00:00')]]
             (path / 'latest.json').write_text(json.dumps({'updates': rows}))
             result = catalog.build_catalog(path, now=datetime(2026, 9, 23, tzinfo=timezone.utc))
-            self.assertEqual(len(result['posts']), 5)
-            self.assertEqual([row['id'] for row in result['stories']], ['future'])
+            self.assertEqual(len(result['posts']), 6)
+            self.assertEqual([row['id'] for row in result['stories']], ['recent', 'cached'])
             by_id = {r['id']: r for r in result['posts']}
-            self.assertEqual(by_id['past']['storyState'], 'expired')
+            self.assertEqual(by_id['cached']['expiresAt'], '2026-09-23T12:00:00+00:00')
+            self.assertEqual(by_id['cached']['sourceExpiresAt'], '2026-09-22T12:00:00Z')
+            self.assertEqual(by_id['boundary']['storyState'], 'expired')
             self.assertFalse(by_id['past']['sourceAvailable'])
             self.assertEqual(by_id['unknown']['storyState'], 'unknown')
             self.assertFalse(by_id['naive']['sourceAvailable'])
-            self.assertTrue(by_id['future']['sourceAvailable'])
+            later = catalog.build_catalog(path, now=datetime(2026, 9, 23, 12, tzinfo=timezone.utc))
+            self.assertEqual([row['id'] for row in later['stories']], ['recent'])
 
     def test_incomplete_valid_json_does_not_break_catalog(self):
         with tempfile.TemporaryDirectory() as directory:

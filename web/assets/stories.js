@@ -5,17 +5,13 @@ const words = {
   empty: ['No active stories have been retrieved yet', '尚未取得有效限動', '有効なストーリーはまだ取得できていません', '아직 유효한 스토리를 가져오지 못했습니다'],
   preview: ['Story preview', '限動預覽', 'ストーリープレビュー', '스토리 미리보기'],
   missing: ['Preview unavailable', '預覽目前無法載入', 'プレビューを読み込めません', '미리보기를 불러올 수 없습니다'],
-  expires: ['Expires', '有效至', '公開期限', '만료'],
-  refresh: ['Refresh stories', '更新限動', 'ストーリーを更新', '스토리 새로고침'],
-  refreshing: ['Updating…', '更新中…', '更新中…', '업데이트 중…'],
-  refreshed: ['Updated', '已更新', '更新しました', '업데이트 완료'],
-  failed: ['Update failed. Try again shortly.', '更新失敗，請稍後重試。', '更新できませんでした。しばらくして再試行してください。', '업데이트에 실패했습니다. 잠시 후 다시 시도하세요.'],
+  expires: ['Shown until', '展示至', '表示期限', '표시 기한'],
   observed: ['Last retrieved', '最近收錄', '最終取得', '최근 수집'],
   browse: ['Browse stories', '瀏覽限時動態', 'ストーリーを見る', '스토리 탐색'],
 };
 const word = key => words[key][locales.indexOf(getLocale())] || words[key][0];
 
-// Unknown or archived records belong in history, never in this live strip.
+// The catalog sets a 48-hour display deadline from the original publication time.
 export function activeStories(catalog, now = Date.now()) {
   return (catalog.stories || []).filter(story => story.sourceAvailable !== false &&
     !['expired', 'unknown', 'archived'].includes(story.storyState) &&
@@ -47,7 +43,7 @@ export function storyObservedMarkup(catalog) {
 }
 export function storiesView(catalog) {
   const stories = activeStories(catalog);
-  return `<section class="ob-stories" aria-label="${esc(t('stories'))}"><div class="ob-story-refresh"><button type="button" class="button button-outline ob-story-refresh-button" data-refresh-stories>${esc(word('refresh'))}</button><span class="ob-story-refresh-status" data-story-refresh-status role="status" aria-live="polite"></span></div><div class="ob-story-strip" tabindex="0" role="region" aria-label="${esc(word('browse'))}">${stories.length ? stories.map(story => storyCard(story, catalog.sources || [])).join('') : `<p class="ob-story-empty" role="status">${esc(word('empty'))}</p>`}</div></section>`;
+  return `<section class="ob-stories" aria-label="${esc(t('stories'))}"><div class="ob-story-strip" tabindex="0" role="region" aria-label="${esc(word('browse'))}">${stories.length ? stories.map(story => storyCard(story, catalog.sources || [])).join('') : `<p class="ob-story-empty" role="status">${esc(word('empty'))}</p>`}</div></section>`;
 }
 
 export function bindStories(root, { catalog, refreshCatalog, onRefresh, refreshOnMount = false, refreshInterval = 60000, refreshTimeout = 15000 } = {}) {
@@ -55,15 +51,6 @@ export function bindStories(root, { catalog, refreshCatalog, onRefresh, refreshO
   if (!catalog || !strips.length) return () => {};
   const owner = root.ownerDocument;
   let timer, refreshTimer, requestTimer, request, busy = false, disposed = false, refreshAgain = false;
-  const refreshButtons = [...root.querySelectorAll('[data-refresh-stories]')];
-  const statusNodes = [...root.querySelectorAll('[data-story-refresh-status]')];
-  const status = state => {
-    refreshButtons.forEach(button => {
-      button.setAttribute('aria-disabled', String(state === 'refreshing'));
-      button.textContent = word(state === 'refreshing' ? 'refreshing' : 'refresh');
-    });
-    statusNodes.forEach(node => { node.dataset.state = state; node.textContent = state ? word(state) : ''; });
-  };
   function expire() {
     clearTimeout(timer);
     let next = Infinity;
@@ -118,13 +105,12 @@ export function bindStories(root, { catalog, refreshCatalog, onRefresh, refreshO
   }
   async function refresh() {
     if (!refreshCatalog || disposed || busy || owner.visibilityState === 'hidden') return;
-    busy = true; request = new AbortController(); status('refreshing');
-    let timedOut = false;
+    busy = true; request = new AbortController();
     try {
       const next = await Promise.race([
         refreshCatalog({ signal: request.signal }),
         new Promise((_, reject) => {
-          requestTimer = setTimeout(() => { timedOut = true; request.abort(); reject(new Error('timeout')); }, refreshTimeout);
+          requestTimer = setTimeout(() => { request.abort(); reject(new Error('timeout')); }, refreshTimeout);
         }),
       ]);
       if (disposed || request.signal.aborted) return;
@@ -132,17 +118,14 @@ export function bindStories(root, { catalog, refreshCatalog, onRefresh, refreshO
       catalog.stories = next.stories;
       onRefresh?.(next);
       patch(next);
-      status('refreshed');
     } catch (error) {
-      if (!disposed && (timedOut || !request.signal.aborted)) status('failed');
-      else if (!disposed) status('');
+      // Keep existing previews until a later automatic retry succeeds.
     } finally {
       clearTimeout(requestTimer);
       busy = false;
       if (refreshAgain && !disposed && owner.visibilityState !== 'hidden') { refreshAgain = false; refresh(); }
     }
   }
-  function refreshClick(event) { if (event.target.closest('[data-refresh-stories]')) refresh(); }
   function visibility() {
     if (owner.visibilityState === 'hidden') request?.abort();
     else if (busy && request?.signal.aborted) refreshAgain = true;
@@ -165,7 +148,6 @@ export function bindStories(root, { catalog, refreshCatalog, onRefresh, refreshO
   }
   root.addEventListener('keydown', keydown);
   if (refreshCatalog) {
-    root.addEventListener('click', refreshClick);
     owner.addEventListener('visibilitychange', visibility);
     refreshTimer = setInterval(refresh, refreshInterval);
     if (refreshOnMount) refresh();
@@ -178,6 +160,6 @@ export function bindStories(root, { catalog, refreshCatalog, onRefresh, refreshO
   return () => {
     disposed = true; request?.abort(); clearTimeout(timer); clearTimeout(requestTimer); clearInterval(refreshTimer);
     root.removeEventListener('keydown', keydown); root.removeEventListener('error', mediaError, true);
-    root.removeEventListener('click', refreshClick); owner.removeEventListener('visibilitychange', visibility);
+    owner.removeEventListener('visibilitychange', visibility);
   };
 }
