@@ -67,7 +67,7 @@ scripts/global_catalog.py  將現有資料轉成一致的全球公開模型
 scripts/serve.py           本機 HTTP 路由、公開 API、同源與 CSRF 控制
 scripts/community.py       加密 Apify token、貢獻預算、瀏覽器身份與回報
 scripts/apify_pool.py      跨抓取程序的額度、原子預留與帳號輪替
-scripts/llm_backend.py     本機 Codex 結構化分類與呼叫上限
+scripts/llm_backend.py     AI 閘道／Codex 結構化推論與呼叫上限
 data/sources/              可追蹤的公開 CSV，穩定 public_id 為來源識別
 site/                      產生的 JSON、RSS、ICS、舊網址頁面及快取圖片
 state/                     私有 SQLite、密鑰、額度與分類快取（不進 Git）
@@ -106,16 +106,16 @@ Facebook、Instagram 貼文與限時動態共用 Harmonica 自己的 Apify 池�
 
 見 [Apify 額度池](deploy/apify-pool.md) 與 [Instagram 抓取細節](deploy/instagram-public-ingestion.md)。新本機部署不需 `--publish-pages`；[舊 Pages 流程](deploy/github-pages.md) 保留作回退參考。
 
-### 使用現有 Codex 額度
+### AI 閘道推論
 
-預設採 `HARMONICA_LLM_PROVIDER=codex`，使用維護者已登入的本機 CLI 整理資料。先於 Terminal 完成 `codex login`。採只讀、停用 shell／apps／網頁工具的結構化推論，預設所有程序共用每小時 12 次上限，結果沿用既有分類快取。
+預設採 `HARMONICA_LLM_PROVIDER=gateway`：維護者流程（分類、日曆審核、目錄標籤、表單投稿審核）以 OpenAI 相容格式呼叫本機 AI 閘道（`http://127.0.0.1:8317/v1`），只使用語意別名——分類用 `sky-fast`、投稿審核用 `sky-quality`。實際模型由閘道決定，回應中的實際模型會與請求別名一併記錄。金鑰取自 `HARMONICA_LLM_API_KEY` 或 Keychain 項目 `harmonica-ai-gateway`／`harmonica`。
 
 - 四語 UI 是固定語系檔，沒有訪客端 AI 翻譯費用。
+- 所有流程共用單一進行中請求與每小時上限（`HARMONICA_LLM_MAX_CALLS_PER_HOUR`，預設 120）；用盡時保留快取。
 - `HARMONICA_LLM_PROVIDER=disabled` 可完全停用新推論。
-- 額度或登入不可用時保留快取，不自動改用付費 API。
-- 只有明確指定 `HARMONICA_LLM_PROVIDER=openai` 才使用原 API key 與其獨立計費。
+- `HARMONICA_LLM_PROVIDER=codex` 為備援：使用維護者本機 `codex login` 的 CLI，只讀、停用工具，每小時 12 次。
 
-不會向訪客提供 Codex 登入憑證或任意推論入口。官方機制見 [Codex non-interactive mode](https://learn.chatgpt.com/docs/non-interactive-mode)。
+不會向訪客提供閘道金鑰、Codex 登入憑證或任意推論入口。
 
 ## 公開 API
 

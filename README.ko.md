@@ -67,7 +67,7 @@ scripts/global_catalog.py  기존 데이터를 일관된 글로벌 공개 모델
 scripts/serve.py           로컬 HTTP 라우트, 공개 API, 동일 출처 및 CSRF 검사
 scripts/community.py       Apify 토큰 암호화, 예산, 브라우저 식별, 제보
 scripts/apify_pool.py      수집 프로세스 간 예산 공유, 원자적 예약, 계정 순환
-scripts/llm_backend.py     로컬 Codex 구조화 분류 및 호출 제한
+scripts/llm_backend.py     AI 게이트웨이/Codex 구조화 추론 및 호출 제한
 data/sources/              안정적인 public_id를 사용하는 Git 관리 대상 공개 CSV
 site/                      생성된 JSON, RSS, ICS, 이전 URL 페이지, 이미지 캐시
 state/                     비공개 SQLite, 키, 분류 캐시(Git 제외)
@@ -106,16 +106,16 @@ Facebook 게시물, Instagram 게시물과 스토리는 하모니카 관측소 �
 
 [Apify 풀](deploy/apify-pool.md)과 [Instagram 수집 세부 사항](deploy/instagram-public-ingestion.md)을 참고하세요. 로컬 배포에는 `--publish-pages`가 필요하지 않습니다. [이전 Pages 절차](deploy/github-pages.md)는 대체 배포를 위한 참고 자료로 유지합니다.
 
-### 기존 Codex 이용 한도 사용
+### AI 게이트웨이 추론
 
-기본값인 `HARMONICA_LLM_PROVIDER=codex`는 관리자가 인증한 로컬 CLI로 데이터를 정리합니다. 먼저 터미널에서 `codex login`을 실행하세요. 구조화 추론은 읽기 전용이며 shell, apps, 웹 도구는 비활성화됩니다. 기본적으로 모든 프로세스가 시간당 12회 호출 한도를 공유하며, 분류 결과는 캐시에 보관합니다.
+기본값은 `HARMONICA_LLM_PROVIDER=gateway`입니다. 관리자 작업(분류, 캘린더 검토, 디렉터리 태그, 양식 제출 검토)은 로컬 AI 게이트웨이(`http://127.0.0.1:8317/v1`)에 OpenAI 호환 형식으로 의미 기반 별칭만 지정해 요청합니다. 분류는 `sky-fast`, 제출 검토는 `sky-quality`입니다. 실제 모델은 게이트웨이가 정하며, 응답에 표시된 실제 모델을 요청한 별칭과 함께 기록합니다. 키는 `HARMONICA_LLM_API_KEY` 또는 Keychain 항목 `harmonica-ai-gateway` / `harmonica`에서 읽습니다.
 
 - 4개 언어 UI는 정적 로케일 파일을 사용하므로 방문자 동작에 따른 AI 번역 비용이 없습니다.
+- 모든 작업이 동시 요청 1건과 시간당 한도(`HARMONICA_LLM_MAX_CALLS_PER_HOUR`, 기본 120)를 공유하며, 한도에 도달하면 캐시를 유지합니다.
 - `HARMONICA_LLM_PROVIDER=disabled`로 새 추론을 완전히 비활성화할 수 있습니다.
-- 이용 한도나 인증을 사용할 수 없으면 캐시를 유지하며 유료 API로 자동 전환하지 않습니다.
-- `HARMONICA_LLM_PROVIDER=openai`를 명시적으로 지정한 경우에만 기존 API 키와 별도 과금을 사용합니다.
+- `HARMONICA_LLM_PROVIDER=codex`는 예비 수단입니다. 관리자의 로컬 `codex login` CLI를 읽기 전용, 도구 비활성화, 시간당 12회로 사용합니다.
 
-방문자에게 Codex 인증 정보나 임의 추론 엔드포인트를 제공하지 않습니다. 공식 동작 방식은 [Codex non-interactive mode](https://learn.chatgpt.com/docs/non-interactive-mode)를 참고하세요.
+방문자에게 게이트웨이 키, Codex 인증 정보, 임의 추론 엔드포인트를 제공하지 않습니다.
 
 ## 공개 API
 

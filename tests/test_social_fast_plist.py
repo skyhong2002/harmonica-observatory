@@ -35,8 +35,17 @@ class SocialFastPlistTests(unittest.TestCase):
         plist = plistlib.loads(PLIST_PATH.read_bytes())
         self.assertIs(plist['RunAtLoad'], False)
         self.assertFalse(plist.get('KeepAlive'))
-        self.assertEqual(plist['EnvironmentVariables']['HARMONICA_LLM_PROVIDER'], 'codex')
+        self.assertEqual(plist['EnvironmentVariables']['HARMONICA_LLM_PROVIDER'], 'gateway')
         self.assertEqual(plist['StartInterval'], 1800)
+
+    def test_inference_jobs_use_gateway_aliases_not_concrete_models(self):
+        for name in ("pipeline", "social-fast", "submission-intake"):
+            with self.subTest(job=name):
+                plist = plistlib.loads((ROOT / "deploy" / f"tw.observe.harmonica.{name}.plist").read_bytes())
+                environment = plist["EnvironmentVariables"]
+                self.assertEqual(environment["HARMONICA_LLM_PROVIDER"], "gateway")
+                for key in ("HARMONICA_CODEX_MODEL", "HARMONICA_LLM_MODEL", "HARMONICA_INTAKE_AI_MODEL"):
+                    self.assertNotIn(key, environment)
 
 
 if __name__ == "__main__":

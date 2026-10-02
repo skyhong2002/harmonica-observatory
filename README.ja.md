@@ -67,7 +67,7 @@ scripts/global_catalog.py  既存データを共通のグローバル公開モ�
 scripts/serve.py           ローカルHTTPルート、公開API、同一オリジン・CSRF検証
 scripts/community.py       Apifyトークンの暗号化、予算、ブラウザー識別、報告
 scripts/apify_pool.py      収集処理間の予算共有、アトミックな予約、アカウント切り替え
-scripts/llm_backend.py     ローカルCodexによる構造化分類と呼び出し上限
+scripts/llm_backend.py     AIゲートウェイ／Codexによる構造化推論と呼び出し上限
 data/sources/              Git管理対象の公開CSVと安定したpublic_id
 site/                      生成したJSON、RSS、ICS、旧URLのページ、画像キャッシュ
 state/                     非公開のSQLite、鍵、分類キャッシュ（Git管理対象外）
@@ -106,16 +106,16 @@ Facebook の投稿、Instagram の投稿とストーリーズは、ハーモニ�
 
 [Apify プール](deploy/apify-pool.md)と[Instagram 収集の詳細](deploy/instagram-public-ingestion.md)を参照してください。ローカルでのデプロイには `--publish-pages` は不要です。[旧 Pages の手順](deploy/github-pages.md)はフォールバック用の参考資料として残しています。
 
-### 既存の Codex 利用枠を使う
+### AI ゲートウェイ推論
 
-既定値の `HARMONICA_LLM_PROVIDER=codex` では、管理者が認証済みのローカルCLIを使ってデータを整理します。先にターミナルで `codex login` を実行してください。構造化推論は読み取り専用で、shell、apps、ウェブツールは無効です。既定では全プロセスで1時間あたり12回の呼び出し上限を共有し、分類結果をキャッシュします。
+既定値は `HARMONICA_LLM_PROVIDER=gateway` です。管理者の処理（分類、カレンダー審査、ディレクトリタグ、フォーム投稿審査）は、ローカル AI ゲートウェイ（`http://127.0.0.1:8317/v1`）へ OpenAI 互換形式で、意味的なエイリアスだけを指定して送ります。分類は `sky-fast`、投稿審査は `sky-quality` です。具体的なモデルはゲートウェイが決め、応答が示す実際のモデルを要求したエイリアスと一緒に記録します。キーは `HARMONICA_LLM_API_KEY` または Keychain 項目 `harmonica-ai-gateway` / `harmonica` から読みます。
 
 - 4言語のUIは固定ロケールファイルを使い、閲覧者の操作によるAI翻訳費用は発生しません。
+- 全処理で同時実行1件と1時間あたりの上限（`HARMONICA_LLM_MAX_CALLS_PER_HOUR`、既定120）を共有し、上限に達した場合はキャッシュを保持します。
 - `HARMONICA_LLM_PROVIDER=disabled` で新しい推論を完全に無効化できます。
-- 利用枠や認証が使えない場合はキャッシュを保持し、有料APIに自動で切り替えません。
-- `HARMONICA_LLM_PROVIDER=openai` を明示した場合に限り、元のAPIキーとその個別課金を使用します。
+- `HARMONICA_LLM_PROVIDER=codex` は予備手段です。管理者のローカル `codex login` CLI を読み取り専用・ツール無効・1時間12回で使います。
 
-閲覧者に Codex の認証情報や任意の推論を実行できるエンドポイントは提供しません。公式の仕組みは [Codex non-interactive mode](https://learn.chatgpt.com/docs/non-interactive-mode)を参照してください。
+閲覧者にゲートウェイのキー、Codex の認証情報、任意の推論エンドポイントは提供しません。
 
 ## 公開API
 

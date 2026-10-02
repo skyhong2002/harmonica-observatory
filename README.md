@@ -67,7 +67,7 @@ scripts/global_catalog.py  Normalize existing data into a global public model
 scripts/serve.py           Local HTTP routes, public API, same-origin and CSRF checks
 scripts/community.py       Encrypted Apify tokens, budgets, browser identity and reports
 scripts/apify_pool.py      Shared collection budgets, atomic reservations and account rotation
-scripts/llm_backend.py     Local Codex structured classification and invocation limits
+scripts/llm_backend.py     AI gateway / Codex structured inference and invocation limits
 data/sources/              Tracked public CSV files with stable public_id identifiers
 site/                      Generated JSON, RSS, ICS, legacy pages and cached images
 state/                     Private SQLite, keys and classification caches (not in Git)
@@ -106,16 +106,16 @@ Facebook posts, Instagram posts and stories share Harmonica Observatory's own Ap
 
 See the [Apify pool](deploy/apify-pool.md) and [Instagram collection details](deploy/instagram-public-ingestion.md). The local deployment does not require `--publish-pages`; the [legacy Pages workflow](deploy/github-pages.md) remains as a fallback reference.
 
-### Using existing Codex capacity
+### AI gateway inference
 
-The default is `HARMONICA_LLM_PROVIDER=codex`, which uses the maintainer's authenticated local CLI to organize data. Run `codex login` in a terminal first. Structured inference is read-only, with shell, apps and web tools disabled. By default, all processes share a limit of 12 invocations per hour, and existing classification results are cached.
+The default is `HARMONICA_LLM_PROVIDER=gateway`: maintainer jobs (classification, calendar review, directory tags, form submission review) send OpenAI-compatible requests to the local AI gateway (`http://127.0.0.1:8317/v1`) using semantic aliases only — `sky-fast` for classification and `sky-quality` for submission review. The gateway decides the concrete model; the resolved model it reports is stored next to the requested alias. The client key comes from `HARMONICA_LLM_API_KEY` or the Keychain item `harmonica-ai-gateway` / `harmonica`.
 
 - The four-language UI uses static locale files, with no visitor-triggered AI translation costs.
+- All jobs share one in-flight request and an hourly budget (`HARMONICA_LLM_MAX_CALLS_PER_HOUR`, default 120); when it is exhausted, cached results are retained.
 - `HARMONICA_LLM_PROVIDER=disabled` disables new inference entirely.
-- If capacity or authentication is unavailable, cached results are retained; there is no automatic fallback to a paid API.
-- Only an explicit `HARMONICA_LLM_PROVIDER=openai` setting uses the original API key and its separate billing.
+- `HARMONICA_LLM_PROVIDER=codex` is the fallback: the maintainer's local `codex login` CLI, read-only with tools disabled and 12 invocations per hour.
 
-Visitors cannot access Codex credentials or an arbitrary inference endpoint. See [Codex non-interactive mode](https://learn.chatgpt.com/docs/non-interactive-mode) for the official mechanism.
+Visitors cannot reach gateway keys, Codex credentials or an arbitrary inference endpoint.
 
 ## Public API
 

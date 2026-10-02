@@ -1,5 +1,7 @@
 # GPT-6 專案設定遷移（#33）
 
+> 2026-10-02 起由 AI 閘道取代：預設 `HARMONICA_LLM_PROVIDER=gateway`，只請求 `sky-fast`／`sky-quality` 別名，部署模板不再指定具體模型。見 [本機服務](local-hosting.md#ai-閘道推論)。下文為當時紀錄。
+
 依使用者要求，所有口琴觀測站的模型預設及執行設定改為GPT-6系列。參照 [OpenAI GPT-6 遷移說明](https://developers.openai.com/api/docs/guides/latest-model/gpt-6-astra.md#migration-quickstart)，保留各流程原有用途與成本層級：
 
 | 流程 | 設定 | 模型 |

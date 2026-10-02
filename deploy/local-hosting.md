@@ -54,21 +54,22 @@ launchctl kickstart -k gui/$(id -u)/tw.observe.harmonica.web
 
 詳見 [Apify 池](apify-pool.md)。所有新 actor 請求先預留完整上限；不明結果保留預留，不能以重試繞過額度。社群貢獻上限為累計授權，不會在換月自動重置。
 
-## Codex 額度
+## AI 閘道推論
 
-預設 `HARMONICA_LLM_PROVIDER=codex`：利用本機 `codex login` 已保存的 ChatGPT 登入，在維護者的抓取／整理流程中執行只讀結構化分類。沒有公開 inference endpoint；訪客只讀快取資料與隨程式附帶的四語文字。
+預設 `HARMONICA_LLM_PROVIDER=gateway`：維護者的抓取／整理與投稿審核流程以 OpenAI 相容 Chat Completions 呼叫本機中央閘道（CLIProxyAPI，政策見 `~/Projects/ai-gateway`）。專案只請求語意別名，具體模型由閘道政策決定。沒有公開 inference endpoint；訪客只讀快取資料與隨程式附帶的四語文字。
 
-- `HARMONICA_CODEX_BIN`：CLI 執行檔，可省略。
-- `HARMONICA_CODEX_MODEL=gpt-6.1-sol`：明確傳入 Codex CLI；未設定時程式也使用此值，不再依賴 CLI 的隱含模型。
-- `HARMONICA_LLM_MODEL=gpt-6-luna`：僅供明確啟用的舊 API 模式使用。
-- `HARMONICA_CODEX_MAX_CALLS_PER_HOUR=12`：所有抓取程序共用的上限。
-- `HARMONICA_CODEX_TIMEOUT=180`：每次最長秒數。
+- `HARMONICA_LLM_BASE_URL`：預設 `http://127.0.0.1:8317/v1`。
+- `HARMONICA_LLM_MODEL`：分類、日曆審核、目錄標籤，預設 `sky-fast`。
+- `HARMONICA_INTAKE_AI_MODEL`：表單投稿審核，預設 `sky-quality`。
+- 金鑰：`HARMONICA_LLM_API_KEY`，否則讀 Keychain `harmonica-ai-gateway`／`harmonica`（本機採 Keychain，`.env` 不放金鑰）。金鑰來源為 `~/.config/ai-gateway/clients.env` 的 `harmonica=`。
+- `HARMONICA_LLM_MAX_CALLS_PER_HOUR=120`：所有程序共用；同一時間只有一個請求，等待上限 `HARMONICA_LLM_LOCK_WAIT=120` 秒。`state/llm/usage.json` 記錄呼叫數與最後結果。
+- `HARMONICA_LLM_SEND_SAMPLING=1`：僅在確認端點接受時才送出 temperature／top_p 等取樣參數；預設省略。不依模型名稱推測能力。
+- 回應的 `model` 是閘道解析後的實際模型；分類快取記錄 `llm_requested_model`（別名）與 `llm_model`（實際模型），投稿審核記錄於 `proposal_json.llm`。既有快取沿用原紀錄，不重新分類。
 - `HARMONICA_LLM_PROVIDER=disabled`：完全停用新推論。
-- 僅明確設定 `HARMONICA_LLM_PROVIDER=openai` 才使用原 API key 模式與其獨立計費。
 
-登入失效、額度耗盡、鎖被占用或逾時會保留現有資料，不會自動切換付費 API。`state/codex/usage.json` 記錄呼叫數與最後結果。不要複製或公開 Codex 登入憑證。這是本機維護者流程，不是將個人登入暴露為訪客服務。
+### Codex 備援
 
-官方方式參考：[Codex non-interactive mode](https://learn.chatgpt.com/docs/non-interactive-mode)。
+`HARMONICA_LLM_PROVIDER=codex` 改用本機 `codex login` 保存的 ChatGPT 登入，以只讀、停用工具的 `codex exec` 執行。`HARMONICA_CODEX_MODEL` 未設定時使用 CLI 預設模型；`HARMONICA_CODEX_MAX_CALLS_PER_HOUR=12`、`HARMONICA_CODEX_TIMEOUT=180`、`HARMONICA_CODEX_BIN` 可調整，帳本在 `state/codex/usage.json`。登入失效、額度耗盡、鎖被占用或逾時會保留現有資料，不會自動切換其他供應者。
 
 ## 貢獻與資料回報
 
@@ -93,6 +94,6 @@ Apify token 以 Fernet 加密放在 `state/community/community.sqlite3`，密鑰
 - `scripts/serve.py`：路由、公開 API、CSRF／同源驗證及檔案白名單。
 - `scripts/community.py`：瀏覽器身份、加密 token、貢獻預算及回報。
 - `scripts/apify_pool.py`：額度刷新、原子預留、平台分配與頻率估算。
-- `scripts/llm_backend.py`：維護者的 Codex 批次資料整理。
+- `scripts/llm_backend.py`：維護者的 AI 閘道／Codex 批次資料整理。
 
 `GET /api/v1/catalog` 是完整快照；`GET /api/v1/sources`、`posts`、`events`、`scores` 支援 `q`、`country`、`limit`（最高 200）、`offset`。讀取不需要登入。社群寫入需 session CSRF token 及同源 Origin。
