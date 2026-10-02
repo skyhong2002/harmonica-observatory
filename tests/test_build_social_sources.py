@@ -81,6 +81,17 @@ class BuildSocialSourcesWebpageTests(unittest.TestCase):
 
         self.assertEqual(source["url"], "http://youth.whut.edu.cn/")
 
+    def test_program_crawl_config_builds_lineup_crawler(self):
+        row = {"public_id": "363", "name": "臺中爵士音樂節", "website_url": "https://www.taichungjazzfestival.tw/"}
+        source = builder.parse_program_crawl_source(row)
+
+        self.assertEqual(source["id"], "web_363")
+        self.assertEqual(source["type"], "webpage_watch")
+        self.assertTrue(source["url"].endswith("/team-tour/team-tour.html"))
+        self.assertEqual(len(source["index_urls"]), 2)
+        self.assertIn("detail", source["follow_links"])
+        self.assertIsNone(builder.parse_program_crawl_source({**row, "public_id": "1"}))
+
     def test_invalid_webpage_url_is_not_accepted(self):
         self.assertIsNone(
             builder.parse_webpage_source(

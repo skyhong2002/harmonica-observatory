@@ -15114,6 +15114,40 @@
           "국제 교류"
         ]
       }
+    },
+    "watchlist-363": {
+      "sourceName": "臺中爵士音樂節",
+      "sourceNameEn": "Taichung Jazz Festival",
+      "sourceSummary": "臺中爵士音樂節自2003年起每年秋天舉辦，以臺中市民廣場主舞臺為核心，並有商圈爵士巡演與售票音樂會。本站只收錄節目中提及口琴的演出頁面。",
+      "summaryLanguage": "zh-Hant",
+      "summaries": {
+        "zh-Hant": "臺中爵士音樂節自2003年起每年秋天舉辦，以臺中市民廣場主舞臺為核心，並有商圈爵士巡演與售票音樂會。本站只收錄節目中提及口琴的演出頁面。",
+        "en": "Held every autumn since 2003, the Taichung Jazz Festival centers on the main stage at Taichung Civic Square, with jazz tours through local shopping districts and ticketed concerts. Only program pages that mention harmonica are tracked here.",
+        "ja": "2003年から毎年秋に開催される台中ジャズフェスティバル。台中市民広場のメインステージを中心に、商店街を巡るジャズツアーや有料コンサートも行われます。当サイトではハーモニカが登場する公演ページのみを収録しています。",
+        "ko": "2003년부터 매년 가을 열리는 타이중 재즈 페스티벌로, 타이중 시민광장 메인 무대를 중심으로 상권 재즈 투어와 유료 콘서트가 펼쳐집니다. 이 사이트에서는 하모니카가 언급된 공연 페이지만 수록합니다."
+      },
+      "sourceTags": [
+        "活動資訊",
+        "音樂節"
+      ],
+      "tags": {
+        "zh-Hant": [
+          "活動資訊",
+          "音樂節"
+        ],
+        "en": [
+          "Events",
+          "Festival"
+        ],
+        "ja": [
+          "イベント情報",
+          "音楽祭"
+        ],
+        "ko": [
+          "행사 정보",
+          "음악제"
+        ]
+      }
     }
   }
 }

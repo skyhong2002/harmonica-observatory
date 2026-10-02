@@ -1105,6 +1105,27 @@
       "latestVerifiedUpload": "2025-07-18T10:02:04+00:00",
       "youtubeChannelId": "UCeI-4_UjLwwHvTGjM0cKEIw",
       "youtubeUrl": "https://www.youtube.com/@JuzzieSmithYoutube"
+    },
+    "watchlist-363": {
+      "name": "臺中爵士音樂節",
+      "nameEn": "Taichung Jazz Festival",
+      "summary": "臺中爵士音樂節自2003年起每年秋天舉辦，以臺中市民廣場主舞臺為核心，並有商圈爵士巡演與售票音樂會。本站只收錄節目中提及口琴的演出頁面。",
+      "summaryLanguage": "zh-Hant",
+      "tags": [
+        "活動資訊",
+        "音樂節"
+      ],
+      "avatarFilename": "e94238997c2da8765b3b.webp",
+      "avatarSourceUrl": "https://www.taichungjazzfestival.tw/favicon/web-app-manifest-512x512.png",
+      "avatarProfileUrl": "https://www.taichungjazzfestival.tw/",
+      "evidenceUrls": [
+        "https://www.taichungjazzfestival.tw/2026/tw/about/origin.html",
+        "https://www.taichungjazzfestival.tw/2026/tw/team-tour/team-tour.html",
+        "https://www.taichungjazzfestival.tw/2026/tw/team-tour-detail/tour-detail-06.html"
+      ],
+      "verifiedOn": "2026-10-02",
+      "activityEvidence": "Official 2026 site lists a 10-day festival at Taichung Civic Square (Oct 16–25) plus district jazz tours; tour-detail-06 (Toshi Fujii Trio ft. RIO, 2026-10-02) lists harmonica in the instrumentation.",
+      "activityUrl": "https://www.taichungjazzfestival.tw/2026/tw/schedule/schedule.html"
     }
   }
 }

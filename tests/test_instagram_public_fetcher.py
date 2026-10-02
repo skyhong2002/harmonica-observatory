@@ -176,6 +176,25 @@ class InstagramPublicTests(unittest.TestCase):
         self.assertEqual(len(selected), 5)
         self.assertEqual(len([s for s in selected if s["id"].startswith("new")]), 4)
 
+    def test_unscanned_profiles_with_event_history_are_checked_first(self):
+        profiles = [{"id": f"ig_{name}", "username": name, "name": name.title(), "provider": "instagram_public"}
+                    for name in ("alpha", "beta", "toshi")]
+        state = {"_affinity": {"toshi": 3}}
+        selected = collector.select_due(profiles, state, "instagram_public", self.now, 2)
+        self.assertEqual([s["username"] for s in selected], ["toshi", "alpha"])
+
+    def test_event_affinity_counts_event_posts_by_source_name(self):
+        import tempfile
+        from source_priority import event_affinity
+        rows = [{"source_name": "Toshi", "llm_categories": ["events"]},
+                {"source_name": "toshi", "llm_categories": ["events", "news"]},
+                {"source_name": "Toshi", "llm_categories": ["news"]},
+                {"source_name": "Other", "text": "events"}]
+        with tempfile.NamedTemporaryFile("w", suffix=".jsonl", delete=False) as handle:
+            handle.write("\n".join(__import__("json").dumps(row) for row in rows) + "\nnot json \"events\"\n")
+        self.assertEqual(event_affinity(Path(handle.name)), {"toshi": 2})
+        self.assertEqual(event_affinity(Path(handle.name + ".missing")), {})
+
     def test_known_active_sources_outrank_older_inactive_checks_with_exploration(self):
         sources = [{**self.source, "id": f"s{i}", "username": f"s{i}"} for i in range(8)]
         state = {"sources": {s["id"]: {"last_success_at": collector.iso(self.now - 86400),

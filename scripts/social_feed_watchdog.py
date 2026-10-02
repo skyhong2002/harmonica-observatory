@@ -1211,7 +1211,8 @@ def webpage_due_info(
     source_id = source_identity(source)
     entries = fetch_state.setdefault("sources", {})
     entry = entries.setdefault(source_id, {})
-    initial_baseline = not bool(entry.get("last_success_at"))
+    # Lineup crawls emit only harmonica pages, so even the first scan is reported.
+    initial_baseline = not bool(entry.get("last_success_at")) and not source.get("follow_links")
     interval_hours = max(0.5, float(source.get("interval_hours") or 12.0))
     next_due_at = parse_datetime(entry.get("next_due_at"))
     changed = False
@@ -1766,11 +1767,13 @@ def fetch_facebook_page(source: dict[str, Any], token: str) -> list[dict[str, An
     return posts
 
 
-def fetch_webpage(source: dict[str, Any]) -> list[dict[str, Any]]:
-    """Fingerprint an authoritative public page and emit a row when it changes."""
-    url = str(source.get("url") or source.get("profile_url") or "").strip()
-    if not url:
-        return []
+HARMONICA_TERMS = ("口琴", "harmonica", "ハーモニカ", "하모니카", "harmonika", "armónica")
+HREF_RE = re.compile(r"""href\s*=\s*["']([^"'#]+)""", re.IGNORECASE)
+PROGRAM_PAGE_LIMIT = 80
+
+
+def read_webpage(url: str) -> tuple[str, str, bytes]:
+    """Return (final URL, lowercased content type, body) for one public page."""
     request = urllib.request.Request(
         url,
         headers={
@@ -1780,26 +1783,45 @@ def fetch_webpage(source: dict[str, Any]) -> list[dict[str, Any]]:
     )
     with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT) as response:
         body = response.read(5_000_000)
-        headers = response.headers
-        content_type = str(headers.get("Content-Type") or "").casefold()
-        final_url = response.geturl() or url
-        last_modified = str(headers.get("Last-Modified") or "").strip()
+        content_type = str(response.headers.get("Content-Type") or "").casefold()
+        return response.geturl() or url, content_type, body
+
+
+def is_html(content_type: str, body: bytes) -> bool:
+    return "html" in content_type or body.lstrip().lower().startswith((b"<!doctype", b"<html"))
+
+
+def decode_markup(content_type: str, body: bytes) -> str:
+    charset_match = re.search(r"charset=([\w.-]+)", content_type)
+    try:
+        return body.decode(charset_match.group(1) if charset_match else "utf-8", "replace")
+    except LookupError:
+        return body.decode("utf-8", "replace")
+
+
+def webpage_text(markup: str) -> tuple[str, str]:
+    """Return the page title and its visible text."""
+    title_match = re.search(r"<title[^>]*>(.*?)</title>", markup, re.IGNORECASE | re.DOTALL)
+    title = compact_text(html.unescape(TAG_RE.sub(" ", title_match.group(1))), 300) if title_match else ""
+    content = re.sub(r"<(?:script|style|noscript|svg)\b[^>]*>.*?</(?:script|style|noscript|svg)>", " ", markup, flags=re.IGNORECASE | re.DOTALL)
+    return title, compact_text(html.unescape(TAG_RE.sub(" ", content)), 20_000)
+
+
+def fetch_webpage(source: dict[str, Any]) -> list[dict[str, Any]]:
+    """Fingerprint an authoritative public page and emit a row when it changes."""
+    if source.get("follow_links"):
+        return fetch_program_pages(source)
+    url = str(source.get("url") or source.get("profile_url") or "").strip()
+    if not url:
+        return []
+    final_url, content_type, body = read_webpage(url)
 
     title = str(source.get("name") or "官方網站更新")
     summary = title
     fingerprint_payload = body
-    if "html" in content_type or body.lstrip().startswith((b"<!doctype", b"<html")):
-        charset_match = re.search(r"charset=([\w.-]+)", content_type)
-        charset = charset_match.group(1) if charset_match else "utf-8"
-        try:
-            markup = body.decode(charset, "replace")
-        except LookupError:
-            markup = body.decode("utf-8", "replace")
-        title_match = re.search(r"<title[^>]*>(.*?)</title>", markup, re.IGNORECASE | re.DOTALL)
-        if title_match:
-            title = compact_text(html.unescape(TAG_RE.sub(" ", title_match.group(1))), 300) or title
-        content = re.sub(r"<(?:script|style|noscript|svg)\b[^>]*>.*?</(?:script|style|noscript|svg)>", " ", markup, flags=re.IGNORECASE | re.DOTALL)
-        content = compact_text(html.unescape(TAG_RE.sub(" ", content)), 20_000)
+    if is_html(content_type, body):
+        page_title, content = webpage_text(decode_markup(content_type, body))
+        title = page_title or title
         summary = compact_text(f"{title}\n{content}", 12_000)
         fingerprint_payload = content.encode("utf-8")
     elif content_type:
@@ -1819,6 +1841,55 @@ def fetch_webpage(source: dict[str, Any]) -> list[dict[str, Any]]:
             media_type="webpage_update",
         )
     ]
+
+
+def fetch_program_pages(source: dict[str, Any]) -> list[dict[str, Any]]:
+    """Crawl a festival or venue lineup and emit each detail page that mentions harmonica.
+
+    Lineup index pages list performer names only; the instrumentation that makes a
+    show relevant usually appears on the linked detail page.
+    """
+    pattern = re.compile(str(source["follow_links"]))
+    index_urls = [str(source.get("url") or ""), *(str(url) for url in source.get("index_urls") or [])]
+    links: list[str] = []
+    for index_url in filter(None, index_urls):
+        final_url, content_type, body = read_webpage(index_url)
+        host = urllib.parse.urlparse(final_url).netloc
+        for href in HREF_RE.findall(decode_markup(content_type, body)):
+            link = urllib.parse.urljoin(final_url, html.unescape(href.strip()))
+            if urllib.parse.urlparse(link).netloc == host and pattern.search(link) and link not in links:
+                links.append(link)
+    posts: list[dict[str, Any]] = []
+    for index, link in enumerate(links[: int(source.get("max_pages") or PROGRAM_PAGE_LIMIT)]):
+        if index:
+            time.sleep(0.5)
+        try:
+            final_url, content_type, body = read_webpage(link)
+        except (urllib.error.URLError, TimeoutError, OSError):
+            continue  # one retired detail page must not hide the rest of the lineup
+        if not is_html(content_type, body):
+            continue
+        title, content = webpage_text(decode_markup(content_type, body))
+        folded = content.casefold()
+        mention = min((folded.find(term) for term in HARMONICA_TERMS if term in folded), default=-1)
+        if mention < 0:
+            continue
+        # normalize_post keeps 1,600 characters: retain the page opening (date,
+        # venue, title) and the passage that actually mentions the harmonica.
+        excerpt = content if len(content) <= 1_200 else (
+            content[:500] + " … " + content[max(500, mention - 300):mention + 400]
+        )
+        posts.append(
+            normalize_post(
+                source,
+                post_id=hashlib.sha256(f"{final_url}\n{content}".encode("utf-8")).hexdigest(),
+                text=f"{title}\n{excerpt}",
+                url=final_url,
+                posted_at="",
+                media_type="program_page",
+            )
+        )
+    return posts
 
 
 def fetch_source(source: dict[str, Any], token: str | None) -> list[dict[str, Any]]:

@@ -16,6 +16,7 @@ from typing import Any
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG = PROJECT_ROOT / "data" / "feeds" / "social_sources.json"
 UPDATE_URL_OVERRIDES = PROJECT_ROOT / "data" / "sources" / "source-update-url-overrides.json"
+PROGRAM_CRAWLS = PROJECT_ROOT / "data" / "sources" / "source-program-crawls.json"
 REVIEWED_PROFILES = PROJECT_ROOT / "data" / "sources" / "source-profile-overrides.json"
 DEFAULT_RSSHUB_BASE = "https://rss.observe.tw"
 GENERATED_BY = "scripts/build_social_sources.py"
@@ -403,6 +404,36 @@ def parse_webpage_source(row: dict[str, str]) -> dict[str, Any] | None:
     }
 
 
+def parse_program_crawl_source(row: dict[str, str]) -> dict[str, Any] | None:
+    """Build a lineup crawler for festivals and venues listed in PROGRAM_CRAWLS.
+
+    Each entry names lineup index pages and a regex for their detail links; only
+    detail pages that mention harmonica become candidates.
+    """
+    crawls = load_json(PROGRAM_CRAWLS, {})
+    crawl = crawls.get(clean(row.get("public_id"))) if isinstance(crawls, dict) else None
+    if not isinstance(crawl, dict) or not crawl.get("index_urls") or not crawl.get("follow_links"):
+        return None
+    index_urls = [normalize_url(clean(url)) for url in crawl["index_urls"] if clean(url)]
+    public_id = safe_slug(clean(row.get("public_id")), url_hash(index_urls[0], 8))
+    return {
+        "enabled": True,
+        "id": f"web_{public_id}",
+        "include_without_keywords": True,
+        "interval_hours": float(crawl.get("interval_hours") or 24),
+        "limit": int(crawl.get("max_pages") or 80),
+        "max_pages": int(crawl.get("max_pages") or 80),
+        "name": source_name(row),
+        "platform": "website",
+        "profile_url": canonical_webpage_url(normalize_url(clean(row.get("website_url"))) or index_urls[0]),
+        "type": "webpage_watch",
+        "url": index_urls[0],
+        "index_urls": index_urls[1:],
+        "follow_links": str(crawl["follow_links"]),
+        "generated_by": GENERATED_BY,
+    }
+
+
 def source_key(source: dict[str, Any]) -> str:
     platform = str(source.get("platform") or source.get("type") or "").casefold()
     source_type = str(source.get("type") or "").casefold()
@@ -447,7 +478,10 @@ def generated_sources() -> list[dict[str, Any]]:
                 if not source:
                     continue
                 row_sources.append(source)
-            if not row_sources:
+            crawl_source = parse_program_crawl_source(row)
+            if crawl_source:
+                row_sources.append(crawl_source)
+            elif not row_sources:
                 webpage_source = parse_webpage_source(row)
                 if webpage_source:
                     row_sources.append(webpage_source)

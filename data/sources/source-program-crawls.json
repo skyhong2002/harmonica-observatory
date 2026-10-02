@@ -1,0 +1,11 @@
+{
+  "363": {
+    "index_urls": [
+      "https://www.taichungjazzfestival.tw/2026/tw/team-tour/team-tour.html",
+      "https://www.taichungjazzfestival.tw/2026/tw/team-main/team-main.html",
+      "https://www.taichungjazzfestival.tw/2026/tw/ticketed-concert/ticketed-concert.html"
+    ],
+    "follow_links": "/\\d{4}/tw/[a-z-]+-detail/[^/]+\\.html$",
+    "interval_hours": 24
+  }
+}

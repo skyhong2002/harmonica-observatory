@@ -76,6 +76,66 @@ class SocialFeedWatchdogWebpageTests(unittest.TestCase):
         self.assertNotIn("unstable", posts[0]["text"])
         self.assertTrue(posts[0]["include_without_keywords"])
 
+    def test_program_crawl_emits_only_detail_pages_mentioning_harmonica(self):
+        source = {
+            **self.source,
+            "id": "web_363",
+            "url": "https://fest.example/2026/tw/lineup/a.html",
+            "index_urls": ["https://fest.example/2026/tw/lineup/b.html"],
+            "follow_links": r"/\d{4}/tw/[a-z-]+-detail/[^/]+\.html$",
+        }
+        pages = {
+            "https://fest.example/2026/tw/lineup/a.html":
+                '<a href="../tour-detail/1.html">Trio</a><a href="../tour-detail/2.html">Quartet</a>'
+                '<a href="https://other.example/2026/tw/tour-detail/9.html">elsewhere</a><a href="../news/x.html">news</a>',
+            "https://fest.example/2026/tw/lineup/b.html": '<a href="../tour-detail/1.html">Trio again</a>'
+                '<a href="../main-detail/3.html">Big band</a>',
+            "https://fest.example/2026/tw/tour-detail/1.html":
+                "<title>Fest 2026</title><p>10/2 19:10</p><p>烏克麗麗、鋼琴、貝斯與口琴</p>",
+            "https://fest.example/2026/tw/tour-detail/2.html": "<title>Fest 2026</title><p>Sax quartet</p>",
+        }
+        requested = []
+
+        def urlopen(request, timeout):
+            requested.append(request.full_url)
+            if request.full_url not in pages:
+                raise urllib.error.HTTPError(request.full_url, 404, "missing", {}, None)
+            return FakeResponse(pages[request.full_url], {"Content-Type": "text/html"}, request.full_url)
+
+        with mock.patch.object(watchdog.urllib.request, "urlopen", side_effect=urlopen), \
+                mock.patch.object(watchdog.time, "sleep"):
+            posts = watchdog.fetch_webpage(source)
+
+        self.assertEqual([post["url"] for post in posts], ["https://fest.example/2026/tw/tour-detail/1.html"])
+        self.assertEqual(posts[0]["media_type"], "program_page")
+        self.assertIn("口琴", posts[0]["text"])
+        self.assertNotIn("https://other.example/2026/tw/tour-detail/9.html", requested)
+        self.assertIn("https://fest.example/2026/tw/main-detail/3.html", requested)
+
+    def test_program_crawl_keeps_harmonica_passage_of_long_pages(self):
+        source = {**self.source, "url": "https://fest.example/lineup.html", "follow_links": r"/detail/"}
+        detail = "<title>Fest</title><p>10/2 19:10 Plaza</p>" + "<p>" + "menu " * 600 + "</p><p>Trio with harmonica solo</p>"
+        pages = {
+            "https://fest.example/lineup.html": '<a href="/detail/1.html">a</a><a href="/detail/2.html">b</a>',
+            "https://fest.example/detail/1.html": detail,
+            "https://fest.example/detail/2.html": detail,
+        }
+        with mock.patch.object(watchdog.urllib.request, "urlopen",
+                               side_effect=lambda request, timeout: FakeResponse(
+                                   pages[request.full_url], {"Content-Type": "text/html"}, request.full_url)), \
+                mock.patch.object(watchdog.time, "sleep"):
+            posts = watchdog.fetch_webpage(source)
+
+        self.assertEqual(len({post["key"] for post in posts}), 2)
+        self.assertIn("10/2 19:10 Plaza", posts[0]["text"])
+        self.assertIn("harmonica solo", posts[0]["text"])
+
+    def test_program_crawl_reports_its_first_scan(self):
+        state = {"version": 1, "sources": {}}
+        now = dt.datetime(2026, 8, 20, tzinfo=dt.timezone.utc)
+        source = {**self.source, "follow_links": "detail"}
+        self.assertFalse(watchdog.webpage_due_info(source, state, now=now)[3])
+
     def test_webpage_schedule_baselines_once_then_waits(self):
         state = {"version": 1, "sources": {}}
         now = dt.datetime(2026, 8, 20, tzinfo=dt.timezone.utc)

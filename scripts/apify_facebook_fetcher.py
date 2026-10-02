@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any
 
 import apify_pool
+from source_priority import affinity_of, event_affinity
 
 
 PROJECT_ROOT = Path(os.environ.get("HARMONICA_OBSERVE_HOME", Path(__file__).resolve().parents[1])).expanduser()
@@ -319,6 +320,7 @@ def select_adaptive_sources(
     now = dt.datetime.now(dt.timezone.utc)
     run_stats = source_run_stats(ledger)
     post_stats = inbox_post_stats(inbox, now)
+    affinity = event_affinity()
     scored: list[tuple[float, dict[str, Any], dict[str, Any]]] = []
     due_count = 0
     for source in sources:
@@ -336,7 +338,10 @@ def select_adaptive_sources(
             due_count += 1
         activity_bonus = min(1.5, float(posts.get("post_count_30d") or 0) * 0.25)
         priority_bonus = 1.0 if sid in PRIORITY_SOURCE_IDS else 0.0
-        score = (days_since_success / max(interval_days, 0.1)) + activity_bonus + priority_bonus
+        # Sources that announced events before are worth checking sooner.
+        events = affinity_of(source, affinity)
+        event_bonus = min(1.0, events * 0.25)
+        score = (days_since_success / max(interval_days, 0.1)) + activity_bonus + priority_bonus + event_bonus
         scored.append(
             (
                 score,
@@ -348,6 +353,7 @@ def select_adaptive_sources(
                     "days_since_success": None if days_since_success > 9000 else round(days_since_success, 2),
                     "latest_post_at": posts.get("latest_post_at").isoformat() if isinstance(posts.get("latest_post_at"), dt.datetime) else None,
                     "post_count_30d": posts.get("post_count_30d") or 0,
+                    "event_posts": events,
                     "score": round(score, 3),
                 },
             )

@@ -15,12 +15,16 @@ Whenever adding a new entry to the public watchlist (`data/sources/harmonica-sou
    - Keep the reviewed English summary, evidence and any short original-bio excerpt in the profile override manifest, with matching four-language name/description records. Distinguish editorial summaries from self-written bios; do not invent a quotation or full-time employment claim.
    - Verify YouTube account identity before recording `youtubeChannelId` and `youtubeUrl`; official Atom feeds are preferred when this reviewed identity still matches the registry. Distinguish upload dates, other activity dates and advertised future events.
 
-3. **Build & Validation**:
+3. **Festival and Venue Lineups**:
+   - When harmonica appears only on a festival's or venue's per-show detail pages, add an entry keyed by `public_id` to `data/sources/source-program-crawls.json` (`index_urls`, a `follow_links` regex for detail links, optional `interval_hours`/`max_pages`). The crawler emits only detail pages that mention harmonica, so do not also register the organizer's general social accounts; they would spend collection budget on unrelated posts.
+   - Year-specific lineup URLs must be updated when the next edition's site goes live.
+
+4. **Build & Validation**:
    - Use `.venv/bin/python scripts/build_local.py` to rebuild already collected snapshots without paid collection, inference or calendar writes. Avoid simultaneous scheduled builds by acquiring the pipeline lock; use the full ingestion pipeline only when new collection is needed.
    - Run verification scripts (`validate_public_outputs.py`, `check_source_coverage.py`, `validate_legacy_redirects.py`) to ensure no build errors.
    - Run `validate_description_translations.py` and `validate_sitemap_seo.py`, and verify the new entry pages and images over HTTP.
 
-4. **Deployment**:
+5. **Deployment**:
    - Commit and push source files to the `main` branch.
    - Production uses the local Python service described in `deploy/local-hosting.md`; `gh-pages` is a historical snapshot and is not the current deployment target.
    - Rebuild local outputs, restart `tw.observe.harmonica.web` after Python changes, and verify `https://harmonica.observe.tw/` source pages, images and API. Preserve unrelated worktree changes when staging.

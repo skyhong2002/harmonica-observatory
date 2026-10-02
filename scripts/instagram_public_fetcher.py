@@ -25,6 +25,7 @@ from pathlib import Path
 
 from apify_facebook_fetcher import load_json, save_json
 import apify_pool
+from source_priority import affinity_of, event_affinity
 from run_pipeline import PROJECT_ROOT, load_dotenv, acquire_lock, release_lock
 
 STATE = PROJECT_ROOT / "state/instagram_public.json"
@@ -122,10 +123,12 @@ def select_due(sources, state, kind, now, limit, wanted=()):
     def priority(source):
         entry = entries.get(source["id"], {})
         # Rotate never-scanned accounts before revisiting them. Within that group,
-        # prefer accounts that published recently in the site's existing feed.
+        # prefer accounts that have announced events before, then accounts that
+        # published recently in the site's existing feed.
         last = float(entry.get("last_attempt_at") or 0)
         history = state.get("history", {}).get(source["username"], [])
-        return (bool(last), cadence(history, now), last, source["username"])
+        events = affinity_of(source, state.get("_affinity", {}))
+        return (bool(last), -min(events, 8), cadence(history, now), last, source["username"])
     if kind == "apify_stories" and not wanted:
         # Prefer known active publishers, while retaining one exploration slot
         # per four choices. Old successful-empty accounts must not outrank
@@ -134,7 +137,8 @@ def select_due(sources, state, kind, now, limit, wanted=()):
         def known_priority(source):
             entry = entries[source["id"]]
             activity = state.get("history", {}).get(source["username"], []) + entry.get("posts", [])
-            return (cadence(activity, now), float(entry.get("last_attempt_at") or 0), source["username"])
+            events = affinity_of(source, state.get("_affinity", {}))
+            return (cadence(activity, now), -min(events, 8), float(entry.get("last_attempt_at") or 0), source["username"])
         known = sorted((s for s in rows if entries.get(s["id"], {}).get("last_success_at")), key=known_priority)
         ordered = []
         # A tiny one-target budget still explores during one of four 3h slots.
@@ -549,6 +553,7 @@ def main():
             if post.get("platform") == "instagram":
                 state["history"].setdefault(post.get("account", ""), []).append(post)
         sources = load_json(CONFIG, {}).get("sources", [])
+        state["_affinity"] = event_affinity()
         state["_use_pool"] = True
         token, limits, cap = "", {}, 0
         quota = apify_pool.pool_status(refresh=True, now=now)
@@ -557,7 +562,7 @@ def main():
         state.pop("quota_error", None)
         def save():
             state["updated_at"] = iso()
-            save_json(STATE, {k: v for k, v in state.items() if k not in {"history", "_use_pool"}})
+            save_json(STATE, {k: v for k, v in state.items() if k not in {"history", "_use_pool", "_affinity"}})
         wanted = {s.strip().lstrip("@").lower() for s in args.accounts.split(",") if s.strip()}
         for kind, collector in (("story", collect_stories), ("profile", collect_profiles_pool)):
             if args.kind not in ("all", kind):
