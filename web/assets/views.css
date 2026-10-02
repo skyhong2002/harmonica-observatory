@@ -209,10 +209,10 @@
 
 /* Multilingual identities remain readable, including their original spelling. */
 .source-translation-note { margin: 12px 0 8px; color: var(--color-text-secondary); font-size: .75rem; line-height: 1.6; }
-.source-card.src-row, .src-head { grid-template-columns: minmax(280px, 3fr) minmax(55px, .55fr) minmax(150px, 1.3fr) minmax(105px, .9fr) 65px 84px 94px; }
-.source-card.src-row { align-items: start; padding-block: 16px; }
+.source-card.src-row, .src-head { grid-template-columns: minmax(280px, 3fr) minmax(55px, .55fr) minmax(150px, 1.3fr) minmax(128px, .9fr) 65px 84px 94px; }
+.source-card.src-row { align-items: center; padding-block: 8px; }
 .src-c-name a { display: grid; grid-template-columns: 72px minmax(0, 1fr); align-items: start; gap: 8px 14px; }
-.source-card.src-row .avatar { width: 72px; height: 72px; border-radius: 14px; font-size: 1.2rem; }
+.source-card.src-row .avatar { width: 44px; height: 44px; border-radius: 50%; font-size: .9rem; }
 .src-sort { max-width: 100%; text-align: start; white-space: normal; }
 .src-name { overflow: visible; text-overflow: clip; white-space: normal; flex: 1; overflow-wrap: anywhere; }
 .source-names, .source-types { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
@@ -232,22 +232,22 @@
   .source-card.src-row, .src-head { grid-template-columns: minmax(255px, 2.6fr) minmax(55px, .55fr) minmax(120px, 1.2fr) minmax(70px, .8fr) 60px 75px 44px; }
   .src-head > :nth-child(3) { display: block; }
   .src-c-name a { grid-template-columns: 64px minmax(0, 1fr); gap: 8px 12px; }
-  .source-card.src-row .avatar { width: 64px; height: 64px; border-radius: 12px; }
+  .source-card.src-row .avatar { width: 40px; height: 40px; border-radius: 50%; }
 }
 @media (max-width: 899px) and (min-width: 700px) {
   .source-card.src-row, .src-head { grid-template-columns: minmax(185px, 2.2fr) 50px minmax(95px, 1.1fr) minmax(60px, .7fr) 60px 44px; }
   .src-upd, .src-head > :nth-child(6) { display: none; }
 }
 @media (max-width: 699px) {
-  .source-card.src-row { grid-template-columns: minmax(0, 1fr) 36px 55px; grid-template-areas: "name name follow" "types types types" "links count updated"; gap: 8px; padding-block: 15px; }
+  .source-card.src-row { grid-template-columns: minmax(0, 1fr) 36px 55px; grid-template-areas: "name name follow" "types types types" "links count updated"; gap: 4px 8px; padding-block: 8px; }
   .src-c-name { overflow: visible; }
   .src-c-name a { grid-template-columns: 60px minmax(0, 1fr); gap: 8px 12px; }
-  .source-card.src-row .avatar { width: 60px; height: 60px; border-radius: 12px; font-size: 1.1rem; }
+  .source-card.src-row .avatar { width: 40px; height: 40px; border-radius: 50%; font-size: .9rem; }
   .src-c-name .src-name { grid-column: 2; min-width: 0; }
-  .src-c-chips { grid-area: types; padding-left: 72px; }
+  .src-c-chips { grid-area: types; padding-left: 50px; }
   .src-c-chips .source-types { flex-direction: row; flex-wrap: wrap; gap: 4px 12px; }
   .src-country-mobile { grid-column: 2; justify-self: start; margin-left: 0; }
-  .src-links { padding-left: 72px; }
+  .src-links { padding-left: 50px; }
   .src-c-follow { justify-self: end; }
   .src-count { align-self: center; }
   .src-upd { align-self: center; font-size: .65rem; }
@@ -261,12 +261,11 @@
 .src-upd { white-space: normal; overflow: visible; text-overflow: clip; max-width: none; line-height: 1.45; }
 
 /* Keep the familiar identity visible; additional translations are optional. */
-.src-c-name { position: relative; min-height: 72px; }
-.source-card.src-row .src-c-name h3 { margin-left: 86px; }
+.src-c-name { position: relative; display: flex; align-items: center; min-height: 44px; }
+.source-card.src-row .src-c-name h3 { flex: 1; min-width: 0; margin-left: 54px; }
 .src-c-name a { display: block; }
-.src-c-name .avatar { position: absolute; top: 0; left: 0; }
+.src-c-name .avatar { position: absolute; top: 50%; left: 0; transform: translateY(-50%); }
 .source-alternatives { margin: 5px 0 0; font-weight: 400; }
-.src-c-name > .source-alternatives { margin-left: 86px; }
 .source-alternatives > summary { padding-block: 4px; min-height: 28px; cursor: pointer; color: var(--color-text-secondary); font-size: .73rem; line-height: 1.4; overflow-wrap: anywhere; }
 .source-alternatives > summary:hover { color: var(--color-text-primary); }
 .source-alternatives-content { padding: 5px 0 8px; }
@@ -277,17 +276,60 @@
 .profile-types { border: 0; margin-block: 8px; padding: 0; }
 .source-profile > div > .source-alternatives { margin-block: 8px 12px; }
 @media (min-width: 700px) and (max-width: 1250px) {
-  .src-c-name { min-height: 64px; }
-  .source-card.src-row .src-c-name h3 { margin-left: 76px; }
-  .src-c-name > .source-alternatives { margin-left: 76px; }
+  .src-c-name { min-height: 40px; }
+  .source-card.src-row .src-c-name h3 { margin-left: 50px; }
 }
 @media (max-width: 699px) {
-  .src-c-name { min-height: 60px; }
-  .source-card.src-row .src-c-name h3 { margin-left: 72px; }
-  .src-c-name > .source-alternatives { margin-left: 72px; }
+  .src-c-name { min-height: 40px; }
+  .source-card.src-row .src-c-name h3 { margin-left: 50px; }
   .src-country-mobile { margin-top: 5px; }
 }
 
 .source-biography p { white-space: pre-wrap; overflow-wrap: anywhere; }
 .source-summary-original > summary { color: var(--color-text-secondary); font-size: .78rem; cursor: pointer; padding-block: 4px; }
 .source-summary-original > p { color: var(--color-text-secondary); font-size: .86rem; }
+
+/* Center headings and row contents even when names or links wrap. */
+.src-head { align-items: center; padding-block: 6px; }
+.src-head > * { padding-block: 4px; line-height: 20px; }
+.src-head .src-sort { padding: 0; line-height: inherit; align-items: center; }
+.src-head .src-sort > span { flex-shrink: 0; }
+.src-row .source-names { gap: 2px; }
+.src-row .source-name-line, .src-row .source-type-line,
+.src-row .src-country, .src-row .src-link, .src-row .src-count, .src-row .src-upd { line-height: 20px; }
+@media (min-width: 700px) {
+  .src-head > :first-child { padding-left: 54px; }
+  .src-head > :nth-child(5), .src-head > :nth-child(6) { text-align: right; }
+}
+@media (min-width: 700px) and (max-width: 1250px) {
+  .src-head > :first-child { padding-left: 50px; }
+}
+
+/* Small, labelled platform marks keep directory links compact. */
+.src-row .src-links { gap: 2px; align-items: center; }
+.src-links .src-link-icon { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 24px; width: 24px; height: 28px; padding: 0; border-radius: 6px; overflow: visible; }
+.src-links .src-link-icon svg { width: 18px; height: 18px; }
+.src-links .src-link-icon .external { display: none; }
+.src-links .src-link-icon:hover { background: var(--color-surface-soft); text-decoration: none; }
+.src-links .src-link-icon:focus-visible { outline: 2px solid var(--color-text-brand); outline-offset: 2px; }
+@media (max-width: 699px) {
+  .src-row .src-links { gap: 4px; }
+  .src-links .src-link-icon { flex-basis: 32px; width: 32px; height: 32px; }
+}
+
+/* Desktop column dividers resize the adjacent pair, preserving the table width. */
+.src-column-resize, .src-columns-reset { display: none; }
+@media (min-width: 900px) {
+  .source-card.src-row, .src-head { grid-template-columns: var(--directory-columns, minmax(180px, 3fr) minmax(70px, .55fr) 100px minmax(128px, .9fr) 65px 84px 94px); }
+  .src-head > * { position: relative; }
+  .src-head .src-column-resize { display: block; position: absolute; right: -10px; top: 50%; transform: translateY(-50%); width: 10px; height: 30px; cursor: col-resize; touch-action: none; z-index: 1; }
+  .src-column-resize::after { content: ''; position: absolute; left: 4px; top: 4px; bottom: 4px; width: 2px; background: var(--color-border-strong); border-radius: 2px; }
+  .src-column-resize:hover::after, .src-column-resize:focus-visible::after { background: var(--color-text-brand); }
+  .src-column-resize:focus-visible { outline: 2px solid var(--color-text-brand); outline-offset: 1px; }
+  .src-head.is-resizing, .src-head.is-resizing * { cursor: col-resize; user-select: none; }
+  .src-columns-reset { display: inline-flex; padding: 4px 8px; border: 0; background: transparent; color: var(--color-text-secondary); font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+}
+@media (min-width: 900px) and (max-width: 1250px) {
+  .source-card.src-row, .src-head { grid-template-columns: var(--directory-columns, minmax(180px, 2.6fr) minmax(65px, .55fr) 90px minmax(104px, .8fr) 60px 75px 44px); }
+  .src-head .src-column-resize { right: -9px; }
+}

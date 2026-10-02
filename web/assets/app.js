@@ -1,10 +1,11 @@
+import { bindDirectoryColumns } from "./directory-columns.js";
 import { sourceDisplayName, sourceSummaryText } from "./source-names.js";
 import { observatoryHome } from "./home.js";
 import { bindStories } from "./stories.js";
 import { bindGoogleCalendar } from "./google-calendar.js";
 import { eventsView, bindEvents } from "./events.js";
 import { scoresView, scoreSourcesView } from "./scores.js";
-import { navigation, footer, initializeShell, handleShellClick } from "./shell.js";
+import { navigation, accountNavigation, footer, initializeShell, handleShellClick } from "./shell.js";
 import { timelineView, bindTimeline } from "./timeline.js";
 import { t, getLocale, setLocale } from "./i18n.js";
 import {
@@ -39,11 +40,13 @@ import {
   refreshCommunity,
   syncCommunityUi,
   getCommunity,
+  getSession,
   capacityPanel,
   contributeView,
   submitView,
   handleForm,
   withdraw,
+  handleGoogleAuth,
 } from "./community.js";
 const app = document.querySelector("#app");
 let catalog = null,
@@ -54,7 +57,8 @@ let catalog = null,
   timelineCleanup,
   calendarCleanup,
   storiesCleanup,
-  eventsCleanup;
+  eventsCleanup,
+  directoryCleanup;
 let previousRenderedPath = null;
 let following = new Set();
 try {
@@ -235,6 +239,7 @@ function render({ focus = false } = {}) {
   calendarCleanup?.();
   storiesCleanup?.();
   eventsCleanup?.();
+  directoryCleanup?.();
   renderVersion++;
   setLocale(getLocale());
   const current = routes[path()] || "sources";
@@ -244,9 +249,10 @@ function render({ focus = false } = {}) {
   const isTimeline = ["/", "/post/"].includes(path());
   document.body.classList.remove("feed-locked");
   app.innerHTML =
-    navigation(path(), routes) +
+    navigation(path(), routes, getSession()) +
     `<main id="main" class="main-container${path() === "/post/" ? " timeline-main" : path() === "/" ? " home-main" : ""}" tabindex="-1">${body()}</main>` +
     footer();
+  directoryCleanup = bindDirectoryColumns(app);
   if (isTimeline && catalog) timelineCleanup = bindTimeline(app);
   if (path() === "/events/" && catalog) eventsCleanup = bindEvents(app);
   if (path() === "/" && catalog) {
@@ -294,6 +300,10 @@ function updateMetadata() {
   if (description) description.content = descriptionText;
 }
 let refreshingCommunity = false;
+function syncAccountNavigation() {
+  const control = document.querySelector('[data-account-nav]');
+  if (control && !control.querySelector('[aria-busy="true"]')) control.outerHTML = accountNavigation(getSession());
+}
 async function refreshVisibleCommunity() {
   if (
     refreshingCommunity ||
@@ -305,6 +315,7 @@ async function refreshVisibleCommunity() {
   const currentPath = path();
   try {
     await refreshCommunity();
+    syncAccountNavigation();
     if (currentPath !== path()) return;
     if (currentPath === "/contribute/") {
       const panel = document.querySelector(".capacity-panel");
@@ -331,6 +342,7 @@ function navigate(url) {
   if (["/contribute/", "/submit/", "/status/"].includes(path())) {
     const version = renderVersion;
     refreshCommunity().then(() => {
+      syncAccountNavigation();
       if (version === renderVersion) {
         if (path() === "/status/") render();
         else syncCommunityUi();
@@ -360,6 +372,7 @@ async function load() {
     render();
     const version = renderVersion;
     await refreshCommunity();
+    syncAccountNavigation();
     if (
       version === renderVersion &&
       ["/status/", "/contribute/", "/submit/"].includes(path())
@@ -375,7 +388,13 @@ async function load() {
   }
 }
 initializeShell();
+if (path() === '/') {
+  const authError = new URLSearchParams(location.search).get('auth_error');
+  if (authError) toast(t(authError === 'cancelled' ? 'loginCancelled' : 'loginFailed'));
+}
 app.addEventListener("click", (event) => {
+  const googleAuth = event.target.closest('[data-google-auth]');
+  if (googleAuth) { handleGoogleAuth(googleAuth, render); return; }
   if (handleShellClick(event)) return;
   const expand = event.target.closest("[data-expand-post]");
   if (expand) { togglePostExpansion(expand); return; }

@@ -1,5 +1,5 @@
 import { getLocale, locales } from './i18n.js';
-import { esc, safeUrl } from './utils.js';
+import { esc, safeUrl, icon } from './utils.js';
 
 const labels = {
   report: ['Report', '回報資料', '情報を報告', '정보 신고'],
@@ -18,7 +18,7 @@ function publicUrl(value) {
     return result.length <= 2000 ? result : '';
   } catch { return ''; }
 }
-export function reportLink(row = {}, urlOverride) {
+export function reportLink(row = {}, urlOverride, {iconOnly = false} = {}) {
   const url = publicUrl(urlOverride ?? (row.url || row.sourceUrl));
   if (!url) return '';
   const params = new URLSearchParams({lang:getLocale(),reportUrl:url});
@@ -27,7 +27,7 @@ export function reportLink(row = {}, urlOverride) {
   if (name) params.set('reportName', name);
   if (country) params.set('reportCountry', country);
   const label = translated('report');
-  return `<a class="context-report-link text-link" href="${esc('/submit/?' + params)}" aria-label="${esc(name ? label + ': ' + name : label)}">${esc(label)}</a>`;
+  return `<a class="context-report-link text-link${iconOnly ? ' src-link-icon' : ''}" href="${esc('/submit/?' + params)}" title="${esc(label)}" aria-label="${esc(name ? label + ': ' + name : label)}">${iconOnly ? icon('flag') + `<span class="sr-only">${esc(label)}</span>` : esc(label)}</a>`;
 }
 export function submissionContext(search = globalThis.location?.search || '') {
   const params = search instanceof URLSearchParams ? search : new URLSearchParams(search);

@@ -30,6 +30,11 @@ export function link(url, label, classes = "", extra = "") {
 }
 export const icon = (name) => {
   const paths = {
+    facebook: '<path d="M14 21v-8h3l.5-4H14V7c0-1 .4-2 2-2h2V1.5A24 24 0 0 0 15 1c-3 0-5 2-5 5v3H7v4h3v8"/>',
+    instagram: '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".7" fill="currentColor" stroke="none"/>',
+    youtube: '<rect x="2" y="5" width="20" height="14" rx="4"/><path d="m10 9 5 3-5 3Z" fill="currentColor" stroke="none"/>',
+    threads: '<path d="M20 7c-1-4-4-5-8-5C6 2 3 6 3 12s3 10 9 10c5 0 9-3 9-7 0-4-4-6-8-6-3 0-5 1-5 3s2 3 4 3c3 0 4-2 4-5s-1-5-4-5c-2 0-3 1-4 2"/>',
+    flag: '<path d="M5 22V3m0 0c5-4 9 4 14 0v11c-5 4-9-4-14 0"/>',
     search: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>',
     globe:
       '<circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18M5 6.5h14M5 17.5h14"/>',

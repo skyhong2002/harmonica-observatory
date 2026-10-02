@@ -31,6 +31,14 @@ const viewLabels = {
 };
 const vl = (key) => (viewLabels[getLocale()] || viewLabels.en)[key];
 const sourceLinkLabel = (label) => /^(網站|website|web site)$/i.test(String(label || "").trim()) ? vl("website") : label || t("original");
+function sourceIconLink(item) {
+  let host = '';
+  try { host = new URL(item.url).hostname.toLowerCase(); } catch { /* Generic website icon. */ }
+  const domains = {facebook:['facebook.com','fb.com','fb.me'], instagram:['instagram.com'], youtube:['youtube.com','youtu.be'], threads:['threads.net','threads.com']};
+  const platform = Object.keys(domains).find(key => domains[key].some(domain => host === domain || host.endsWith('.' + domain)));
+  const label = sourceLinkLabel(item.label || (platform ? platformName(platform) : 'Website'));
+  return link(item.url, icon(platform || 'globe') + `<span class="sr-only">${esc(label)}</span>`, 'src-link src-link-icon', `title="${esc(label)}" aria-label="${esc(label)}"`);
+}
 const sourcePostCount = (s, catalog) => catalog?.posts?.filter(p => p.sourceId === s.id).length;
 export function directoryHeader(sort = "name", descending = false) {
   const heading = (key, label) => `<button type="button" class="src-sort ${sort === key ? "active" : ""}" data-source-sort="${key}" aria-label="${esc(vl("sort") + ": " + label)}">${esc(label)}<span aria-hidden="true">${sort === key ? descending ? "↓" : "↑" : "↕"}</span></button>`;
@@ -48,7 +56,7 @@ export function sortSources(rows, sort = "name", descending = false, catalog = {
 }
 export function sourceCard(s, following = new Set(), catalog) {
   const followed = following.has(s.id), count = sourcePostCount(s, catalog);
-  return `<article class="source-card src-row"><div class="src-c-name"><h3>${link(sourceHref(s), avatar(s) + `<span class="src-name">${sourceNamesMarkup(s)}</span><span class="src-country-mobile" title="${esc(countryName(s.countryCode, s.country))}">${esc(countryName(s.countryCode, s.country))}</span>`, "source-avatar-link", `title="${esc(s.name)}"`)}</h3>${sourceAlternativesMarkup(s)}</div><span class="src-country">${esc(countryName(s.countryCode, s.country))}</span><div class="src-c-chips">${sourceTypesMarkup(s)}</div><div class="src-links">${(s.links || []).map(l => link(l.url, esc(sourceLinkLabel(l.label)), "src-link")).join("")}${reportLink(s, sourceHref(s))}</div><span class="src-count" title="${esc(t("posts"))}">${count === undefined ? "—" : number(count)}</span><span class="src-upd">${s.updatedAt ? timestamp(s.updatedAt, { dateOnly: true }) : "—"}</span><button class="follow-button src-c-follow ${followed ? "is-following" : ""}" data-follow="${esc(s.id)}" aria-pressed="${followed}" aria-label="${esc(t(followed ? "unfollow" : "follow") + " " + s.name)}">${icon(followed ? "check" : "heart")}<span>${t(followed ? "following" : "follow")}</span></button></article>`;
+  return `<article class="source-card src-row"><div class="src-c-name"><h3>${link(sourceHref(s), avatar(s) + `<span class="src-name">${sourceNamesMarkup(s)}</span><span class="src-country-mobile" title="${esc(countryName(s.countryCode, s.country))}">${esc(countryName(s.countryCode, s.country))}</span>`, "source-avatar-link", `title="${esc(s.name)}"`)}</h3></div><span class="src-country">${esc(countryName(s.countryCode, s.country))}</span><div class="src-c-chips">${sourceTypesMarkup(s)}</div><div class="src-links">${(s.links || []).map(sourceIconLink).join("")}${reportLink(s, sourceHref(s), {iconOnly:true})}</div><span class="src-count" title="${esc(t("posts"))}">${count === undefined ? "—" : number(count)}</span><span class="src-upd">${s.updatedAt ? timestamp(s.updatedAt, { dateOnly: true }) : "—"}</span><button class="follow-button src-c-follow ${followed ? "is-following" : ""}" data-follow="${esc(s.id)}" aria-pressed="${followed}" aria-label="${esc(t(followed ? "unfollow" : "follow") + " " + s.name)}">${icon(followed ? "check" : "heart")}<span>${t(followed ? "following" : "follow")}</span></button></article>`;
 }
 export function togglePostExpansion(button) {
   const expanded = button.getAttribute("aria-expanded") !== "true";

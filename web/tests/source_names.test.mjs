@@ -16,7 +16,8 @@ test('directory defaults to the reading-language name and distinct recorded name
   assert.deepEqual([...names.querySelectorAll('.source-name-value')].map(node=>node.textContent),[source.names[locale],'原始名']);
   assert.equal(names.querySelector('.source-language-label'),null);
   assert.equal(document.querySelector('a details'),null);
-  assert.equal(document.querySelector('.source-alternatives').open,false);
+  assert.equal(document.querySelector('.source-alternatives'),null);
+  assert.equal(document.querySelector('.source-translation-note'),null);
  }
  const rows=sourceNameRows({...source,names:{original:'Same','zh-Hant':'Same',en:' SAME ',ja:'Same',ko:'Same'}},'ja');
  assert.equal(rows.length,1);assert.equal(rows[0].text,'Same');
