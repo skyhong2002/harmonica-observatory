@@ -179,7 +179,8 @@ def post_row(source, ident, caption, url, posted_at, images):
     return {"key": f"{source['id']}:{ident}", "source_id": source["id"],
             "source_name": source["name"], "platform": "instagram", "account": source["username"],
             "post_id": str(ident), "url": url, "posted_at": posted_at,
-            "source_profile_url": source["source_profile_url"], "text": caption or "",
+            "source_profile_url": source.get("source_profile_url") or f"https://www.instagram.com/{source['username']}/",
+            "text": caption or "",
             "images": images, "image_url": next(iter(images), ""),
             "include_without_keywords": bool(source.get("include_without_keywords"))}
 

@@ -44,7 +44,9 @@ def google_workspace_python() -> str:
 
 def write_json_atomic(path: Path, data: dict[str, object]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
+    # The temp name carries the pid so two pipeline processes writing the same
+    # file never rename each other's half-written temp file away.
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
     tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     tmp.replace(path)
 
@@ -132,12 +134,26 @@ def acquire_lock(path: Path, *, stale_after_minutes: float) -> bool:
         "started_at": now.isoformat(),
     }
 
-    while True:
-        try:
-            fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-        except FileExistsError:
+    # Write the lock contents to a private file first and publish it with an
+    # atomic link, so no other process can ever observe an empty lock file,
+    # mistake it for stale and steal it.
+    staging = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    staging.write_text(
+        json.dumps(lock_info, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    try:
+        for _attempt in range(3):
+            try:
+                os.link(staging, path)
+                return True
+            except FileExistsError:
+                pass
             existing = load_lock(path)
-            if lock_is_stale(existing, stale_after=stale_after, now=now):
+            if not existing and path.exists() and lock_file_is_fresh(path, now=now):
+                # Another process is mid-acquire with an older writer; treat as held.
+                existing = {"pid": None, "started_at": None}
+            elif lock_is_stale(existing, stale_after=stale_after, now=now):
                 try:
                     path.unlink()
                 except FileNotFoundError:
@@ -148,10 +164,21 @@ def acquire_lock(path: Path, *, stale_after_minutes: float) -> bool:
                 f"(lock={path}, pid={existing.get('pid')}, started_at={existing.get('started_at')})."
             )
             return False
-        with os.fdopen(fd, "w", encoding="utf-8") as handle:
-            json.dump(lock_info, handle, ensure_ascii=False, indent=2, sort_keys=True)
-            handle.write("\n")
-        return True
+        print(f"Pipeline lock contended; skipping this scheduled tick (lock={path}).")
+        return False
+    finally:
+        try:
+            staging.unlink()
+        except FileNotFoundError:
+            pass
+
+
+def lock_file_is_fresh(path: Path, *, now: dt.datetime, grace_seconds: float = 60.0) -> bool:
+    try:
+        modified = dt.datetime.fromtimestamp(path.stat().st_mtime, tz=dt.timezone.utc)
+    except OSError:
+        return False
+    return (now - modified).total_seconds() < grace_seconds
 
 
 def release_lock(path: Path) -> None:
@@ -357,14 +384,19 @@ def main() -> int:
         completed = True
         publish_runtime_status("ok", message="Pipeline completed")
     finally:
+        # Publish the final status while the lock is still held so a run that
+        # starts the moment the lock drops never races this write.
+        if not completed:
+            try:
+                publish_runtime_status(
+                    "failed",
+                    current_step=current_step_label,
+                    message="Pipeline stopped before completion",
+                )
+            except OSError as exc:
+                print(f"Could not publish failed runtime status: {exc}", file=sys.stderr)
         if not args.no_lock:
             release_lock(lock_path)
-        if not completed:
-            publish_runtime_status(
-                "failed",
-                current_step=current_step_label,
-                message="Pipeline stopped before completion",
-            )
     return 0
 
 

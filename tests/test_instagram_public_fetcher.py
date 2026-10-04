@@ -287,6 +287,11 @@ class InstagramPublicTests(unittest.TestCase):
         self.assertEqual(len(state["runs"]), 1)
 
 
+    def test_profile_posts_derive_profile_url_when_source_omits_it(self):
+        source = {k: v for k, v in self.source.items() if k != "source_profile_url"}
+        posts = collector.normalize_profile(source, {"latestPosts": [{"id": "1", "shortCode": "ABC", "timestamp": collector.iso(self.now)}]})
+        self.assertEqual(posts[0]["source_profile_url"], "https://www.instagram.com/test/")
+
     def test_existing_id_is_preserved_for_profile_dedup(self):
         posts = collector.normalize_profile(self.source, {"latestPosts": [{"id": "123", "shortCode": "ABC", "timestamp": collector.iso(self.now), "isPinned": True}]})
         self.assertEqual(posts[0]["key"], "ig_story_test:123")
