@@ -50,7 +50,7 @@ launchctl kickstart -k gui/$(id -u)/tw.observe.harmonica.web
 
 ## 排程與額度
 
-`deploy/tw.observe.harmonica.pipeline.plist` 與 `social-fast.plist` 已改用專案 venv 並直接更新本機產物；不再依賴 `--publish-pages`。安裝到 `~/Library/LaunchAgents/` 後重新載入。保留既有調度間隔和 IG 每次嘗試上限，避免額度突增。
+`deploy/tw.observe.harmonica.pipeline.plist` 與 `social-fast.plist` 已改用專案 venv 並直接更新本機產物；不再依賴 `--publish-pages`。安裝到 `~/Library/LaunchAgents/` 後重新載入。兩個排程共用 `state/run_pipeline.lock`，因此改用錯開的固定時刻：完整 pipeline 每兩小時整點（00:00、02:00…）啟動，social-fast 每小時 15 分與 45 分啟動，避免同一秒搶鎖而讓 social-fast 長期被跳過。IG 每次嘗試上限維持不變，避免額度突增。
 
 詳見 [Apify 池](apify-pool.md)。所有新 actor 請求先預留完整上限；不明結果保留預留，不能以重試繞過額度。社群貢獻上限為累計授權，不會在換月自動重置。
 

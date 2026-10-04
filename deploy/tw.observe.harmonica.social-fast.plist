@@ -23,8 +23,17 @@
 	<string>/Users/skyhong/Library/Logs/Harmonica-in-Taiwan/social-fast.log</string>
 	<key>StandardErrorPath</key>
 	<string>/Users/skyhong/Library/Logs/Harmonica-in-Taiwan/social-fast.err.log</string>
-	<key>StartInterval</key>
-	<integer>1800</integer>
+	<key>StartCalendarInterval</key>
+	<array>
+		<dict>
+			<key>Minute</key>
+			<integer>15</integer>
+		</dict>
+		<dict>
+			<key>Minute</key>
+			<integer>45</integer>
+		</dict>
+	</array>
 	<key>RunAtLoad</key>
 	<false/>
 </dict>

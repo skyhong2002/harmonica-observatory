@@ -18,7 +18,8 @@ class SocialFastPlistTests(unittest.TestCase):
         self.assertIn("scripts/run_pipeline.py", arguments[2])
         self.assertNotIn("--publish-pages", arguments[2])
         self.assertIn(".venv/bin/python", arguments[2])
-        self.assertEqual(plist["StartInterval"], 1800)
+        self.assertNotIn("StartInterval", plist)
+        self.assertEqual(plist["StartCalendarInterval"], [{"Minute": 15}, {"Minute": 45}])
 
     def test_uses_pipeline_native_lock_without_an_unrecoverable_outer_directory(self):
         plist = plistlib.loads(PLIST_PATH.read_bytes())
@@ -36,7 +37,16 @@ class SocialFastPlistTests(unittest.TestCase):
         self.assertIs(plist['RunAtLoad'], False)
         self.assertFalse(plist.get('KeepAlive'))
         self.assertEqual(plist['EnvironmentVariables']['HARMONICA_LLM_PROVIDER'], 'gateway')
-        self.assertEqual(plist['StartInterval'], 1800)
+        self.assertIn('StartCalendarInterval', plist)
+
+    def test_full_pipeline_and_social_fast_never_share_a_start_minute(self):
+        full = plistlib.loads((ROOT / "deploy" / "tw.observe.harmonica.pipeline.plist").read_bytes())
+        fast = plistlib.loads(PLIST_PATH.read_bytes())
+        self.assertNotIn("StartInterval", full)
+        self.assertEqual(full["StartCalendarInterval"], [{"Hour": h, "Minute": 0} for h in range(0, 24, 2)])
+        full_minutes = {entry["Minute"] for entry in full["StartCalendarInterval"]}
+        fast_minutes = {entry["Minute"] for entry in fast["StartCalendarInterval"]}
+        self.assertFalse(full_minutes & fast_minutes)
 
     def test_inference_jobs_use_gateway_aliases_not_concrete_models(self):
         for name in ("pipeline", "social-fast", "submission-intake"):
