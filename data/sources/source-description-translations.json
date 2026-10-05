@@ -13036,49 +13036,39 @@
     "watchlist-315": {
       "sourceName": "Yotam Ben-Or",
       "sourceNameEn": "Yotam Ben-Or",
-      "sourceSummary": "以色列的半音階口琴與爵士口琴國際演出人員、作曲家與爵士樂團領隊，活動脈絡包含比利時與以色列背景的爵士半音階口琴家與作曲家、以中東與拉丁。",
-      "summaryLanguage": "zh-Hant",
+      "sourceSummary": "Belgian-Israeli jazz harmonica player, composer and leader of Yotam Ben-Or Quartet. His 2025 album Impermanence features Gabriel Chakarji on piano, Alon Near on bass and Alon Benjamini on drums.",
+      "summaryLanguage": "en",
       "summaries": {
-        "zh-Hant": "以色列的半音階口琴與爵士口琴國際演出人員、作曲家與爵士樂團領隊，活動脈絡包含比利時與以色列背景的爵士半音階口琴家與作曲家、以中東與拉丁。",
-        "en": "An Israeli chromatic and jazz harmonica performer, composer and jazz bandleader active internationally. His background is Belgian and Israeli; the source description also mentions Middle Eastern and Latin contexts but ends mid-sentence.",
-        "ja": "イスラエルのクロマチック・ジャズハーモニカ奏者、作曲家、ジャズバンドリーダー。ベルギーとイスラエルにルーツを持ち、国際的に活動する。元の紹介文は中東とラテンへの言及で途切れている。",
-        "ko": "이스라엘의 크로매틱·재즈 하모니카 연주자이자 작곡가, 재즈 밴드 리더. 벨기에와 이스라엘 배경을 바탕으로 국제적으로 활동한다. 원문 소개는 중동과 라틴을 언급하는 부분에서 끝나 있다."
+        "zh-Hant": "比利時與以色列背景的爵士口琴家與作曲家，領導 Yotam Ben-Or Quartet。2025 年專輯《Impermanence》由 Gabriel Chakarji 擔任鋼琴、Alon Near 擔任貝斯、Alon Benjamini 擔任鼓手。",
+        "en": "Belgian-Israeli jazz harmonica player, composer and leader of Yotam Ben-Or Quartet. His 2025 album Impermanence features Gabriel Chakarji on piano, Alon Near on bass and Alon Benjamini on drums.",
+        "ja": "ベルギーとイスラエルにルーツを持つジャズハーモニカ奏者・作曲家で、Yotam Ben-Or Quartetを率いる。2025年のアルバム『Impermanence』にはGabriel Chakarji（ピアノ）、Alon Near（ベース）、Alon Benjamini（ドラム）が参加。",
+        "ko": "벨기에와 이스라엘에 뿌리를 둔 재즈 하모니카 연주자이자 작곡가로 Yotam Ben-Or Quartet을 이끈다. 2025년 앨범 Impermanence에는 Gabriel Chakarji가 피아노, Alon Near가 베이스, Alon Benjamini가 드럼으로 참여했다."
       },
       "sourceTags": [
         "演奏者",
-        "團體樂團",
-        "半音階",
-        "重奏",
-        "國際交流"
+        "爵士",
+        "半音階"
       ],
       "tags": {
         "zh-Hant": [
           "演奏者",
-          "團體樂團",
-          "半音階",
-          "重奏",
-          "國際交流"
+          "爵士",
+          "半音階"
         ],
         "en": [
-          "Performer",
-          "Ensembles & bands",
-          "Chromatic harmonica",
-          "Chamber ensemble",
-          "International exchange"
+          "Performers",
+          "Jazz",
+          "Chromatic harmonica"
         ],
         "ja": [
           "演奏家",
-          "アンサンブル・楽団",
-          "クロマチックハーモニカ",
-          "重奏",
-          "国際交流"
+          "ジャズ",
+          "クロマチックハーモニカ"
         ],
         "ko": [
           "연주자",
-          "앙상블·밴드",
-          "크로매틱 하모니카",
-          "중주",
-          "국제 교류"
+          "재즈",
+          "크로매틱 하모니카"
         ]
       }
     },
@@ -15146,6 +15136,147 @@
         "ko": [
           "행사 정보",
           "음악제"
+        ]
+      }
+    },
+    "watchlist-364": {
+      "sourceName": "Yotam Ben-Or Quartet",
+      "sourceNameEn": "Yotam Ben-Or Quartet",
+      "sourceSummary": "Jazz quartet led by harmonica player Yotam Ben-Or. The lineup on the 2025 album Impermanence includes Gabriel Chakarji (piano), Alon Near (bass) and Alon Benjamini (drums). The quartet performed at Taichung Jazz Festival on October 20, 2025.",
+      "summaryLanguage": "en",
+      "summaries": {
+        "zh-Hant": "由口琴家 Yotam Ben-Or 領導的爵士四重奏。2025 年專輯《Impermanence》陣容包括 Gabriel Chakarji（鋼琴）、Alon Near（貝斯）與 Alon Benjamini（鼓）；樂團於 2025 年 10 月 20 日登上臺中爵士音樂節。",
+        "en": "Jazz quartet led by harmonica player Yotam Ben-Or. The lineup on the 2025 album Impermanence includes Gabriel Chakarji (piano), Alon Near (bass) and Alon Benjamini (drums). The quartet performed at Taichung Jazz Festival on October 20, 2025.",
+        "ja": "ハーモニカ奏者Yotam Ben-Or率いるジャズ四重奏団。2025年のアルバム『Impermanence』にはGabriel Chakarji（ピアノ）、Alon Near（ベース）、Alon Benjamini（ドラム）が参加。2025年10月20日に台中ジャズフェスティバルに出演した。",
+        "ko": "하모니카 연주자 Yotam Ben-Or가 이끄는 재즈 사중주단. 2025년 앨범 Impermanence의 편성은 Gabriel Chakarji(피아노), Alon Near(베이스), Alon Benjamini(드럼)를 포함한다. 2025년 10월 20일 타이중 재즈 페스티벌에서 공연했다."
+      },
+      "sourceTags": [
+        "團體樂團",
+        "爵士",
+        "半音階"
+      ],
+      "tags": {
+        "zh-Hant": [
+          "團體樂團",
+          "爵士",
+          "半音階"
+        ],
+        "en": [
+          "Ensembles & bands",
+          "Jazz",
+          "Chromatic harmonica"
+        ],
+        "ja": [
+          "アンサンブル・楽団",
+          "ジャズ",
+          "クロマチックハーモニカ"
+        ],
+        "ko": [
+          "앙상블·밴드",
+          "재즈",
+          "크로매틱 하모니카"
+        ]
+      }
+    },
+    "watchlist-365": {
+      "sourceName": "Gabriel Chakarji",
+      "sourceNameEn": "Gabriel Chakarji",
+      "sourceSummary": "Venezuelan-born pianist and composer based in New York, combining Afro-Venezuelan rhythms with jazz. He plays piano in Yotam Ben-Or Quartet and appears on the 2025 album Impermanence.",
+      "summaryLanguage": "en",
+      "summaries": {
+        "zh-Hant": "旅居紐約、出身委內瑞拉的鋼琴家與作曲家，融合非裔委內瑞拉節奏與爵士樂。擔任 Yotam Ben-Or Quartet 的鋼琴手，參與 2025 年專輯《Impermanence》。",
+        "en": "Venezuelan-born pianist and composer based in New York, combining Afro-Venezuelan rhythms with jazz. He plays piano in Yotam Ben-Or Quartet and appears on the 2025 album Impermanence.",
+        "ja": "ニューヨークを拠点とするベネズエラ出身のピアニスト・作曲家。アフロ・ベネズエラのリズムとジャズを融合する。Yotam Ben-Or Quartetのピアノを担当し、2025年のアルバム『Impermanence』に参加。",
+        "ko": "뉴욕을 기반으로 활동하는 베네수엘라 출신 피아니스트이자 작곡가로, 아프로 베네수엘라 리듬과 재즈를 결합한다. Yotam Ben-Or Quartet의 피아노를 맡으며 2025년 앨범 Impermanence에 참여했다."
+      },
+      "sourceTags": [
+        "演奏者",
+        "爵士"
+      ],
+      "tags": {
+        "zh-Hant": [
+          "演奏者",
+          "爵士"
+        ],
+        "en": [
+          "Performers",
+          "Jazz"
+        ],
+        "ja": [
+          "演奏家",
+          "ジャズ"
+        ],
+        "ko": [
+          "연주자",
+          "재즈"
+        ]
+      }
+    },
+    "watchlist-366": {
+      "sourceName": "Alon Near",
+      "sourceNameEn": "Alon Near",
+      "sourceSummary": "Double bassist and composer working between New York and Europe, focusing on melody, space and ensemble interaction. He plays bass in Yotam Ben-Or Quartet and appears on the 2025 album Impermanence.",
+      "summaryLanguage": "en",
+      "summaries": {
+        "zh-Hant": "往返紐約與歐洲的低音提琴家與作曲家，重視旋律、留白與合奏互動。擔任 Yotam Ben-Or Quartet 的貝斯手，參與 2025 年專輯《Impermanence》。",
+        "en": "Double bassist and composer working between New York and Europe, focusing on melody, space and ensemble interaction. He plays bass in Yotam Ben-Or Quartet and appears on the 2025 album Impermanence.",
+        "ja": "ニューヨークとヨーロッパで活動するコントラバス奏者・作曲家。旋律、余白、アンサンブルの対話を重視する。Yotam Ben-Or Quartetのベースを担当し、2025年のアルバム『Impermanence』に参加。",
+        "ko": "뉴욕과 유럽을 오가며 활동하는 더블베이스 연주자이자 작곡가로, 선율과 여백, 합주의 상호작용을 중시한다. Yotam Ben-Or Quartet의 베이스를 맡으며 2025년 앨범 Impermanence에 참여했다."
+      },
+      "sourceTags": [
+        "演奏者",
+        "爵士"
+      ],
+      "tags": {
+        "zh-Hant": [
+          "演奏者",
+          "爵士"
+        ],
+        "en": [
+          "Performers",
+          "Jazz"
+        ],
+        "ja": [
+          "演奏家",
+          "ジャズ"
+        ],
+        "ko": [
+          "연주자",
+          "재즈"
+        ]
+      }
+    },
+    "watchlist-367": {
+      "sourceName": "Alon Benjamini",
+      "sourceNameEn": "Alon Benjamini",
+      "sourceSummary": "New York-based drummer, composer and recording, mixing and mastering engineer. He plays drums in Yotam Ben-Or Quartet and appears on the 2025 album Impermanence.",
+      "summaryLanguage": "en",
+      "summaries": {
+        "zh-Hant": "旅居紐約的鼓手、作曲家與錄音、混音及母帶工程師。擔任 Yotam Ben-Or Quartet 的鼓手，參與 2025 年專輯《Impermanence》。",
+        "en": "New York-based drummer, composer and recording, mixing and mastering engineer. He plays drums in Yotam Ben-Or Quartet and appears on the 2025 album Impermanence.",
+        "ja": "ニューヨークを拠点とするドラマー・作曲家で、録音・ミキシング・マスタリングのエンジニアとしても活動する。Yotam Ben-Or Quartetのドラムを担当し、2025年のアルバム『Impermanence』に参加。",
+        "ko": "뉴욕을 기반으로 활동하는 드러머이자 작곡가, 녹음·믹싱·마스터링 엔지니어. Yotam Ben-Or Quartet의 드럼을 맡으며 2025년 앨범 Impermanence에 참여했다."
+      },
+      "sourceTags": [
+        "演奏者",
+        "爵士"
+      ],
+      "tags": {
+        "zh-Hant": [
+          "演奏者",
+          "爵士"
+        ],
+        "en": [
+          "Performers",
+          "Jazz"
+        ],
+        "ja": [
+          "演奏家",
+          "ジャズ"
+        ],
+        "ko": [
+          "연주자",
+          "재즈"
         ]
       }
     }

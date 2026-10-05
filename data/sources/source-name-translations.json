@@ -3623,6 +3623,46 @@
         "ja": "台中ジャズフェスティバル",
         "ko": "타이중 재즈 페스티벌"
       }
+    },
+    "watchlist-364": {
+      "sourceName": "Yotam Ben-Or Quartet",
+      "sourceNameEn": "Yotam Ben-Or Quartet",
+      "names": {
+        "zh-Hant": "Yotam Ben-Or Quartet",
+        "en": "Yotam Ben-Or Quartet",
+        "ja": "Yotam Ben-Or Quartet",
+        "ko": "Yotam Ben-Or Quartet"
+      }
+    },
+    "watchlist-365": {
+      "sourceName": "Gabriel Chakarji",
+      "sourceNameEn": "Gabriel Chakarji",
+      "names": {
+        "zh-Hant": "Gabriel Chakarji",
+        "en": "Gabriel Chakarji",
+        "ja": "Gabriel Chakarji",
+        "ko": "Gabriel Chakarji"
+      }
+    },
+    "watchlist-366": {
+      "sourceName": "Alon Near",
+      "sourceNameEn": "Alon Near",
+      "names": {
+        "zh-Hant": "Alon Near",
+        "en": "Alon Near",
+        "ja": "Alon Near",
+        "ko": "Alon Near"
+      }
+    },
+    "watchlist-367": {
+      "sourceName": "Alon Benjamini",
+      "sourceNameEn": "Alon Benjamini",
+      "names": {
+        "zh-Hant": "Alon Benjamini",
+        "en": "Alon Benjamini",
+        "ja": "Alon Benjamini",
+        "ko": "Alon Benjamini"
+      }
     }
   }
 }
