@@ -1526,8 +1526,13 @@ def fetch_rss(source: dict[str, Any]) -> list[dict[str, Any]]:
     except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, socket.timeout) as exc:
         public_bases = {"https://rss.observe.tw", "http://rss.observe.tw"}
         is_public_rsshub = any(url.startswith(base) for base in public_bases)
+        # The public host fronts the same local RSSHub: an error RSSHub itself rendered
+        # would only repeat locally, re-scraping the upstream platform for nothing.
+        answered_by_rsshub = isinstance(exc, urllib.error.HTTPError) and bool(
+            exc.headers and exc.headers.get("x-rsshub-route")
+        )
         root = None
-        if is_public_rsshub:
+        if is_public_rsshub and not answered_by_rsshub:
             local_url = url
             for base in public_bases:
                 if local_url.startswith(base):
