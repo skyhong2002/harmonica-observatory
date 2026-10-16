@@ -436,6 +436,137 @@ class SocialFeedWatchdogRssBackoffTests(unittest.TestCase):
             self.assertEqual(seen["last_watchdog_run"]["errors"], 0)
 
 
+class SocialFeedWatchdogRssCadenceTests(unittest.TestCase):
+    def setUp(self):
+        self.source = {"id": "cadence_example", "type": "rss"}
+        self.now = dt.datetime(2026, 10, 16, 6, tzinfo=dt.timezone.utc)
+
+    def state(self, age):
+        return {"sources": {self.source["id"]: {
+            "last_new_post_at": watchdog.utc_iso(self.now - dt.timedelta(days=age)),
+            "last_attempt_at": watchdog.utc_iso(self.now),
+        }}}
+
+    def test_active_source_is_not_skipped(self):
+        for age in (0, 7):
+            self.assertTrue(watchdog.rss_cadence_due_info(self.source, self.state(age), now=self.now)[0])
+
+    def test_quiet_sources_wait_until_due_with_grace(self):
+        for age, hours in ((10, 2), (40, 6)):
+            with self.subTest(age=age):
+                state = self.state(age)
+                self.assertFalse(watchdog.rss_cadence_due_info(
+                    self.source, state, now=self.now + dt.timedelta(minutes=30)
+                )[0])
+                self.assertTrue(watchdog.rss_cadence_due_info(
+                    self.source, state, now=self.now + dt.timedelta(hours=hours)
+                )[0])
+                self.assertTrue(watchdog.rss_cadence_due_info(
+                    self.source, state, now=self.now + dt.timedelta(hours=hours, minutes=-5)
+                )[0])
+
+    def test_bootstrap_uses_newest_matching_candidate_or_inbox_once(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            paths = [Path(tmp) / name for name in ("candidates.jsonl", "inbox.jsonl")]
+            for path, age in zip(paths, (40, 10)):
+                path.write_text(json.dumps({"source_id": self.source["id"],
+                    "posted_at": watchdog.utc_iso(self.now - dt.timedelta(days=age))}) + "\n" +
+                    json.dumps({"source_id": "other", "posted_at": watchdog.utc_iso(self.now)}))
+            state = {"sources": {}}
+            self.assertTrue(watchdog.bootstrap_rss_activity([self.source], state, paths, now=self.now))
+            entry = state["sources"][self.source["id"]]
+            self.assertEqual(watchdog.parse_datetime(entry["last_new_post_at"]), self.now - dt.timedelta(days=10))
+            self.assertFalse(watchdog.bootstrap_rss_activity([self.source], state, paths, now=self.now))
+            candidate_only = {"sources": {}}
+            watchdog.bootstrap_rss_activity([self.source], candidate_only, paths[:1], now=self.now)
+            self.assertEqual(watchdog.parse_datetime(candidate_only["sources"][self.source["id"]]["last_new_post_at"]),
+                             self.now - dt.timedelta(days=40))
+
+    def test_no_history_starts_active_and_ages_naturally(self):
+        state = {"sources": {}}
+        watchdog.bootstrap_rss_activity([self.source], state, [], now=self.now)
+        entry = state["sources"][self.source["id"]]
+        entry["last_attempt_at"] = watchdog.utc_iso(self.now)
+        self.assertTrue(watchdog.rss_cadence_due_info(self.source, state, now=self.now)[0])
+        later = self.now + dt.timedelta(days=10)
+        entry["last_attempt_at"] = watchdog.utc_iso(later)
+        self.assertFalse(watchdog.rss_cadence_due_info(self.source, state, now=later)[0])
+
+    def test_run_skips_then_baseline_forces_and_new_post_resets_age(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            config = root / "config.json"
+            config.write_text(json.dumps({"sources": [self.source], "keywords": []}))
+            now = dt.datetime.now(dt.timezone.utc)
+            state = self.state(40)
+            entry = state["sources"][self.source["id"]]
+            entry["last_new_post_at"] = watchdog.utc_iso(now - dt.timedelta(days=40))
+            entry["last_attempt_at"] = watchdog.utc_iso(now)
+            watchdog.save_json(root / "state.json", state)
+            argv = ["watchdog", "--config", str(config), "--no-llm-tags"]
+            for flag, name in (("--seen", "seen.json"), ("--fetch-state", "state.json"),
+                               ("--candidates", "candidates.jsonl"), ("--errors", "errors.jsonl"),
+                               ("--progress", "progress.json")):
+                argv.extend([flag, str(root / name)])
+            posted_at = now - dt.timedelta(hours=1)
+            post = {"key": "new-post", "posted_at": watchdog.utc_iso(posted_at), "text": ""}
+            with (mock.patch.object(sys, "argv", argv),
+                  mock.patch.object(watchdog, "DEFAULT_INBOX", root / "inbox.jsonl"),
+                  mock.patch.object(watchdog, "fetch_source", return_value=[post]) as fetch,
+                  mock.patch.object(watchdog.time, "sleep")):
+                self.assertEqual(watchdog.main(), 0)
+                fetch.assert_not_called()
+                for name, field in (("seen.json", "last_watchdog_run"), ("state.json", "last_run")):
+                    stats = json.loads((root / name).read_text())[field]
+                    self.assertEqual(stats["rss_cadence_skipped"], 1)
+                    self.assertEqual(stats["rss_backoff_skipped"], 0)
+                self.assertEqual(json.loads((root / "progress.json").read_text())["rss_cadence_skipped"], 1)
+                state["sources"][self.source["id"]].update({
+                    "consecutive_errors": 3,
+                    "next_due_at": watchdog.utc_iso(now + dt.timedelta(hours=2)),
+                })
+                watchdog.save_json(root / "state.json", state)
+                self.assertEqual(watchdog.main(), 0)
+                fetch.assert_not_called()
+                stats = json.loads((root / "seen.json").read_text())["last_watchdog_run"]
+                self.assertEqual(stats["rss_backoff_skipped"], 1)
+                self.assertEqual(stats["rss_cadence_skipped"], 0)
+                argv.append("--baseline")
+                self.assertEqual(watchdog.main(), 0)
+                fetch.assert_called_once()
+                updated = json.loads((root / "state.json").read_text())
+                activity = updated["sources"][self.source["id"]]["last_new_post_at"]
+                self.assertEqual(watchdog.parse_datetime(activity), watchdog.parse_datetime(watchdog.utc_iso(posted_at)))
+                argv.remove("--baseline")
+                self.assertEqual(watchdog.main(), 0)
+                self.assertEqual(fetch.call_count, 2)
+                self.assertEqual(json.loads((root / "state.json").read_text())["sources"][self.source["id"]]["last_new_post_at"], activity)
+
+    def test_unseen_old_post_does_not_make_a_dormant_source_active(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            config = root / "config.json"
+            config.write_text(json.dumps({"sources": [self.source], "keywords": []}))
+            now = dt.datetime.now(dt.timezone.utc)
+            state = self.state(40)
+            dormant_since = watchdog.utc_iso(now - dt.timedelta(days=40))
+            state["sources"][self.source["id"]]["last_new_post_at"] = dormant_since
+            watchdog.save_json(root / "state.json", state)
+            argv = ["watchdog", "--config", str(config), "--no-llm-tags", "--baseline"]
+            for flag, name in (("--seen", "seen.json"), ("--fetch-state", "state.json"),
+                               ("--candidates", "candidates.jsonl"), ("--errors", "errors.jsonl"),
+                               ("--progress", "progress.json")):
+                argv.extend([flag, str(root / name)])
+            post = {"key": "resurfaced", "posted_at": watchdog.utc_iso(now - dt.timedelta(days=100)), "text": ""}
+            with (mock.patch.object(sys, "argv", argv),
+                  mock.patch.object(watchdog, "DEFAULT_INBOX", root / "inbox.jsonl"),
+                  mock.patch.object(watchdog, "fetch_source", return_value=[post]),
+                  mock.patch.object(watchdog.time, "sleep")):
+                self.assertEqual(watchdog.main(), 0)
+            updated = json.loads((root / "state.json").read_text())
+            self.assertEqual(updated["sources"][self.source["id"]]["last_new_post_at"], dormant_since)
+
+
 class SocialFeedWatchdogInstagramTests(unittest.TestCase):
     def setUp(self):
         self.source = {

@@ -104,6 +104,11 @@ RSS_BACKOFF_SOURCE_TYPES = frozenset({"rss", "rsshub_facebook_page", "rsshub_twi
 RSS_BACKOFF_BASE = dt.timedelta(minutes=30)
 RSS_BACKOFF_MAX = dt.timedelta(hours=24)
 RSS_BACKOFF_GRACE = dt.timedelta(minutes=5)
+# Activity cadence: active feeds run every time; quieter feeds wait two or six hours.
+RSS_CADENCE_ACTIVE_AGE = dt.timedelta(days=7)
+RSS_CADENCE_RECENT_AGE = dt.timedelta(days=30)
+RSS_CADENCE_RECENT_INTERVAL = dt.timedelta(hours=2)
+RSS_CADENCE_INACTIVE_INTERVAL = dt.timedelta(hours=6)
 THREADS_BASE_URL = "https://www.threads.com"
 THREADS_GRAPHQL_URL = f"{THREADS_BASE_URL}/graphql/query"
 THREADS_GRAPHQL_OPERATION = "BarcelonaProfileThreadsTabRefetchableDirectQuery"
@@ -1324,6 +1329,75 @@ def rss_backoff_due_info(
     if consecutive_errors <= 0 or next_due_at is None or next_due_at <= now + RSS_BACKOFF_GRACE:
         return True, ""
     return False, f"backing off after {consecutive_errors} consecutive errors until {utc_iso(next_due_at)}"
+
+
+def bootstrap_rss_activity(
+    sources: list[dict[str, Any]],
+    fetch_state: dict[str, Any],
+    paths: list[Path],
+    *,
+    now: dt.datetime,
+) -> bool:
+    """Seed missing activity once from stored posts, or start aging from now."""
+    entries = fetch_state.setdefault("sources", {})
+    missing = {
+        source_identity(source)
+        for source in sources
+        if rss_backoff_applies(source)
+        and not entries.get(source_identity(source), {}).get("last_new_post_at")
+    }
+    if not missing:
+        return False
+    newest: dict[str, dt.datetime] = {}
+    for path in dict.fromkeys(paths):
+        if not path.exists():
+            continue
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(row, dict):
+                continue
+            source_id = str(row.get("source_id") or "")
+            if source_id not in missing:
+                continue
+            posted_at = parse_datetime(row.get("posted_at"))
+            if posted_at is not None and (source_id not in newest or posted_at > newest[source_id]):
+                newest[source_id] = posted_at
+    for source_id in missing:
+        entries.setdefault(source_id, {})["last_new_post_at"] = utc_iso(newest.get(source_id, now))
+    return True
+
+
+def rss_cadence_due_info(
+    source: dict[str, Any],
+    fetch_state: dict[str, Any],
+    *,
+    now: dt.datetime,
+    force: bool = False,
+) -> tuple[bool, str]:
+    """Return whether a feed is due based on its most recent new post."""
+    if force or not rss_backoff_applies(source):
+        return True, ""
+    entries = fetch_state.get("sources") if isinstance(fetch_state.get("sources"), dict) else {}
+    entry = entries.get(source_identity(source))
+    if not isinstance(entry, dict):
+        return True, ""
+    last_new_post_at = parse_datetime(entry.get("last_new_post_at"))
+    last_attempt_at = parse_datetime(entry.get("last_attempt_at"))
+    if last_new_post_at is None or last_attempt_at is None:
+        return True, ""
+    age = now - last_new_post_at
+    if age <= RSS_CADENCE_ACTIVE_AGE:
+        return True, ""
+    interval = RSS_CADENCE_RECENT_INTERVAL if age <= RSS_CADENCE_RECENT_AGE else RSS_CADENCE_INACTIVE_INTERVAL
+    next_due_at = last_attempt_at + interval
+    if next_due_at <= now + RSS_BACKOFF_GRACE:
+        return True, ""
+    return False, f"activity cadence: polling every {interval.total_seconds() / 3600:g} hours; next due {utc_iso(next_due_at)}"
 
 
 def record_rss_attempt(
@@ -2612,8 +2686,12 @@ def main() -> int:
     fetched_count = 0
     skipped_old = 0
     rss_backoff_skipped = 0
+    rss_cadence_skipped = 0
     now_utc = dt.datetime.now(dt.timezone.utc)
     run_started_at = now_utc
+    fetch_state_changed = bootstrap_rss_activity(
+        sources, fetch_state, [args.candidates, DEFAULT_INBOX], now=now_utc
+    )
     bootstrap_anchor = instagram_bootstrap_anchor(fetch_state, seen, sources, args)
     schedule_stats: dict[str, Any] = {
         "profile_interval_hours": float(args.instagram_profile_interval_hours),
@@ -2682,6 +2760,8 @@ def main() -> int:
                 "fetchedPosts": fetched_count,
                 "newRelevantPosts": len(new_posts),
                 "skippedOldPosts": skipped_old,
+                "rss_backoff_skipped": rss_backoff_skipped,
+                "rss_cadence_skipped": rss_cadence_skipped,
                 "errors": len(errors),
                 "instagram": schedule_stats,
                 "llmTags": {
@@ -2726,6 +2806,16 @@ def main() -> int:
                 # Not a fetch failure: the source's earlier posts stay published and
                 # its failure streak is already recorded in the fetch state.
                 rss_backoff_skipped += 1
+                publish_progress(
+                    phase="source skipped",
+                    processed_sources=source_index,
+                    current_source=progress_source_summary(source),
+                    message=skip_reason,
+                )
+                continue
+            due, skip_reason = rss_cadence_due_info(source, fetch_state, now=now_utc, force=bool(args.baseline))
+            if not due:
+                rss_cadence_skipped += 1
                 publish_progress(
                     phase="source skipped",
                     processed_sources=source_index,
@@ -2895,6 +2985,19 @@ def main() -> int:
                 post_count=len(posts),
             )
             fetch_state_changed = True
+            # Age activity by the new posts' own dates, so an old post that reappears in
+            # a feed does not make a dormant account look active again.
+            new_post_times = [
+                parse_datetime(post.get("posted_at")) or dt.datetime.now(dt.timezone.utc)
+                for post in posts
+                if post.get("key") and post["key"] not in seen_map
+            ]
+            if new_post_times:
+                entry = fetch_state["sources"][source_identity(source)]
+                newest = max(new_post_times)
+                previous = parse_datetime(entry.get("last_new_post_at"))
+                if previous is None or newest > previous:
+                    entry["last_new_post_at"] = utc_iso(newest)
         fetched_count += len(posts)
         for post in posts:
             key = post.get("key")
@@ -2980,8 +3083,9 @@ def main() -> int:
         "finished_at": utc_iso(run_finished_at),
         "instagram": schedule_stats,
         "rss_backoff_skipped": rss_backoff_skipped,
+        "rss_cadence_skipped": rss_cadence_skipped,
     }
-    if fetch_state_changed or schedule_stats["attempted"] or schedule_stats["skipped"]:
+    if fetch_state_changed or rss_backoff_skipped or rss_cadence_skipped or schedule_stats["attempted"] or schedule_stats["skipped"]:
         save_json(args.fetch_state, fetch_state)
 
     seen["seen"] = seen_map
@@ -2994,6 +3098,7 @@ def main() -> int:
         "skipped_old_posts": skipped_old,
         "errors": len(errors),
         "rss_backoff_skipped": rss_backoff_skipped,
+        "rss_cadence_skipped": rss_cadence_skipped,
         "instagram": schedule_stats,
     }
     save_json(args.seen, seen)
@@ -3008,6 +3113,8 @@ def main() -> int:
                         "baseline": True,
                         "fetched_posts": fetched_count,
                         "skipped_old_posts": skipped_old,
+                        "rss_backoff_skipped": rss_backoff_skipped,
+                        "rss_cadence_skipped": rss_cadence_skipped,
                         "instagram": schedule_stats,
                         "llm_tags": llm_stats,
                         "errors": errors,
@@ -3028,6 +3135,8 @@ def main() -> int:
                         "baseline": True,
                         "fetched_posts": fetched_count,
                         "skipped_old_posts": skipped_old,
+                        "rss_backoff_skipped": rss_backoff_skipped,
+                        "rss_cadence_skipped": rss_cadence_skipped,
                         "instagram": schedule_stats,
                         "llm_tags": llm_stats,
                         "errors": errors,
@@ -3048,6 +3157,8 @@ def main() -> int:
                 {
                     "new_relevant_posts": new_posts,
                     "skipped_old_posts": skipped_old,
+                    "rss_backoff_skipped": rss_backoff_skipped,
+                    "rss_cadence_skipped": rss_cadence_skipped,
                     "instagram": schedule_stats,
                     "llm_tags": llm_stats,
                     "errors": errors if args.verbose else [],
