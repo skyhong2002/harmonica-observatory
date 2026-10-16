@@ -97,6 +97,13 @@ DEFAULT_INSTAGRAM_BOOTSTRAP_COOLDOWN_HOURS = 6.0
 DEFAULT_INSTAGRAM_MAX_ATTEMPTS_PER_RUN = 40
 INSTAGRAM_SCHEDULE_EPOCH = dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc)
 DEFAULT_RSS_DELAY_SECS = 0.25
+# Feed sources that keep failing back off: 30 min after the first failure, then
+# doubling up to a day. A success clears the backoff. The grace keeps a run that
+# starts a few seconds early from skipping a source whose backoff just ended.
+RSS_BACKOFF_SOURCE_TYPES = frozenset({"rss", "rsshub_facebook_page", "rsshub_twitter_user", "rsshub_threads_user"})
+RSS_BACKOFF_BASE = dt.timedelta(minutes=30)
+RSS_BACKOFF_MAX = dt.timedelta(hours=24)
+RSS_BACKOFF_GRACE = dt.timedelta(minutes=5)
 THREADS_BASE_URL = "https://www.threads.com"
 THREADS_GRAPHQL_URL = f"{THREADS_BASE_URL}/graphql/query"
 THREADS_GRAPHQL_OPERATION = "BarcelonaProfileThreadsTabRefetchableDirectQuery"
@@ -1280,6 +1287,78 @@ def record_webpage_attempt(
         entry["last_error_at"] = utc_iso(now)
         entry["last_error"] = compact_text(error, 500)
         entry["consecutive_errors"] = int(entry.get("consecutive_errors") or 0) + 1
+
+
+def rss_backoff_applies(source: dict[str, Any]) -> bool:
+    return (
+        str(source.get("type") or "") in RSS_BACKOFF_SOURCE_TYPES
+        and not instagram_source_kind(source)
+        and not externally_collected_instagram(source)
+        and bool(source_identity(source))
+    )
+
+
+def rss_backoff_delay(consecutive_errors: int) -> dt.timedelta:
+    if consecutive_errors <= 0:
+        return dt.timedelta(0)
+    doublings = min(consecutive_errors - 1, 16)
+    return min(RSS_BACKOFF_BASE * (2**doublings), RSS_BACKOFF_MAX)
+
+
+def rss_backoff_due_info(
+    source: dict[str, Any],
+    fetch_state: dict[str, Any],
+    *,
+    now: dt.datetime,
+    force: bool = False,
+) -> tuple[bool, str]:
+    """Return whether a feed source is due, skipping it while it backs off after failures."""
+    if force or not rss_backoff_applies(source):
+        return True, ""
+    entries = fetch_state.get("sources") if isinstance(fetch_state.get("sources"), dict) else {}
+    entry = entries.get(source_identity(source))
+    if not isinstance(entry, dict):
+        return True, ""
+    consecutive_errors = int(entry.get("consecutive_errors") or 0)
+    next_due_at = parse_datetime(entry.get("next_due_at"))
+    if consecutive_errors <= 0 or next_due_at is None or next_due_at <= now + RSS_BACKOFF_GRACE:
+        return True, ""
+    return False, f"backing off after {consecutive_errors} consecutive errors until {utc_iso(next_due_at)}"
+
+
+def record_rss_attempt(
+    fetch_state: dict[str, Any],
+    source: dict[str, Any],
+    *,
+    now: dt.datetime,
+    scheduled_from: dt.datetime,
+    status: str,
+    post_count: int = 0,
+    error: str = "",
+) -> None:
+    """Record a feed fetch; failures schedule the backoff from the run's start time."""
+    if not rss_backoff_applies(source):
+        return
+    entry = fetch_state.setdefault("sources", {}).setdefault(source_identity(source), {})
+    entry.update(
+        {
+            "source_type": str(source.get("type") or ""),
+            "last_attempt_at": utc_iso(now),
+            "last_status": status,
+            "last_post_count": int(post_count),
+        }
+    )
+    if status == "ok":
+        entry["last_success_at"] = utc_iso(now)
+        entry["consecutive_errors"] = 0
+        entry.pop("last_error", None)
+        entry.pop("next_due_at", None)
+        return
+    consecutive_errors = int(entry.get("consecutive_errors") or 0) + 1
+    entry["consecutive_errors"] = consecutive_errors
+    entry["last_error_at"] = utc_iso(now)
+    entry["last_error"] = compact_text(error, 500)
+    entry["next_due_at"] = utc_iso(scheduled_from + rss_backoff_delay(consecutive_errors))
 
 
 def source_delay_secs(source: dict[str, Any], token: str | None, args: argparse.Namespace) -> float:
@@ -2532,6 +2611,7 @@ def main() -> int:
     errors: list[dict[str, str]] = []
     fetched_count = 0
     skipped_old = 0
+    rss_backoff_skipped = 0
     now_utc = dt.datetime.now(dt.timezone.utc)
     run_started_at = now_utc
     bootstrap_anchor = instagram_bootstrap_anchor(fetch_state, seen, sources, args)
@@ -2632,6 +2712,20 @@ def main() -> int:
             )
             fetch_state_changed = fetch_state_changed or schedule_changed
             if not due:
+                publish_progress(
+                    phase="source skipped",
+                    processed_sources=source_index,
+                    current_source=progress_source_summary(source),
+                    message=skip_reason,
+                )
+                continue
+        rss_backoff = rss_backoff_applies(source)
+        if rss_backoff:
+            due, skip_reason = rss_backoff_due_info(source, fetch_state, now=now_utc, force=bool(args.baseline))
+            if not due:
+                # Not a fetch failure: the source's earlier posts stay published and
+                # its failure streak is already recorded in the fetch state.
+                rss_backoff_skipped += 1
                 publish_progress(
                     phase="source skipped",
                     processed_sources=source_index,
@@ -2744,6 +2838,16 @@ def main() -> int:
                     error=error_text,
                 )
                 fetch_state_changed = True
+            if rss_backoff:
+                record_rss_attempt(
+                    fetch_state,
+                    source,
+                    now=dt.datetime.now(dt.timezone.utc),
+                    scheduled_from=now_utc,
+                    status="error",
+                    error=error_text,
+                )
+                fetch_state_changed = True
             delay_secs = source_delay_secs(source, token, args)
             if delay_secs:
                 publish_progress(
@@ -2777,6 +2881,16 @@ def main() -> int:
                 fetch_state,
                 source,
                 now=dt.datetime.now(dt.timezone.utc),
+                status="ok",
+                post_count=len(posts),
+            )
+            fetch_state_changed = True
+        if rss_backoff:
+            record_rss_attempt(
+                fetch_state,
+                source,
+                now=dt.datetime.now(dt.timezone.utc),
+                scheduled_from=now_utc,
                 status="ok",
                 post_count=len(posts),
             )
@@ -2865,6 +2979,7 @@ def main() -> int:
         "started_at": utc_iso(run_started_at),
         "finished_at": utc_iso(run_finished_at),
         "instagram": schedule_stats,
+        "rss_backoff_skipped": rss_backoff_skipped,
     }
     if fetch_state_changed or schedule_stats["attempted"] or schedule_stats["skipped"]:
         save_json(args.fetch_state, fetch_state)
@@ -2878,6 +2993,7 @@ def main() -> int:
         "fetched_posts": fetched_count,
         "skipped_old_posts": skipped_old,
         "errors": len(errors),
+        "rss_backoff_skipped": rss_backoff_skipped,
         "instagram": schedule_stats,
     }
     save_json(args.seen, seen)

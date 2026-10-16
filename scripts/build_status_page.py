@@ -498,6 +498,10 @@ def persistent_source_errors(
             or "instagram user feed returned no author" in error.casefold()
         ):
             continue
+        # A backed-off Threads feed keeps its streak in the fetch state; the
+        # known upstream outage stays hidden just like it is for current errors.
+        if ignorable_threads_upstream_error({"source_type": source_type, "error": error, "source_id": source_id}, source_by_id):
+            continue
         if source_type == "rsshub_instagram_story" and (
             "timed out" in error.casefold()
             or "content does not exist" in error.casefold()

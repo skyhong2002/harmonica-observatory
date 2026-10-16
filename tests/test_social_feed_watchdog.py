@@ -1,9 +1,11 @@
 import importlib.util
 import datetime as dt
 import io
+import json
 import socket
 import subprocess
 import sys
+import tempfile
 import unittest
 import urllib.error
 from pathlib import Path
@@ -306,6 +308,132 @@ class SocialFeedWatchdogThreadsTests(unittest.TestCase):
 
         self.assertEqual(posts, [])
         fallback.assert_called_once_with(self.source)
+
+
+class SocialFeedWatchdogRssBackoffTests(unittest.TestCase):
+    def setUp(self):
+        self.source = {
+            "id": "threads_example",
+            "name": "Example",
+            "platform": "threads",
+            "type": "rss",
+            "username": "example",
+        }
+        self.now = dt.datetime(2026, 10, 16, 6, 0, tzinfo=dt.timezone.utc)
+
+    def fail(self, state, now, times=1):
+        for _ in range(times):
+            watchdog.record_rss_attempt(
+                state, self.source, now=now, scheduled_from=now, status="error", error="RSSHub HTTP 503"
+            )
+
+    def test_backoff_doubles_from_thirty_minutes_and_caps_at_a_day(self):
+        delays = [watchdog.rss_backoff_delay(count) for count in range(1, 10)]
+        self.assertEqual(
+            [delay.total_seconds() / 3600 for delay in delays],
+            [0.5, 1, 2, 4, 8, 16, 24, 24, 24],
+        )
+        self.assertEqual(watchdog.rss_backoff_delay(1000), dt.timedelta(hours=24))
+
+    def test_healthy_and_unknown_sources_are_always_due(self):
+        state = {"version": 1, "sources": {}}
+        self.assertEqual(watchdog.rss_backoff_due_info(self.source, state, now=self.now), (True, ""))
+        watchdog.record_rss_attempt(state, self.source, now=self.now, scheduled_from=self.now, status="ok", post_count=3)
+        self.assertEqual(watchdog.rss_backoff_due_info(self.source, state, now=self.now), (True, ""))
+        self.assertNotIn("next_due_at", state["sources"]["threads_example"])
+
+    def test_failing_source_is_skipped_until_its_backoff_ends(self):
+        state = {"version": 1, "sources": {}}
+        self.fail(state, self.now, times=3)
+        entry = state["sources"]["threads_example"]
+        self.assertEqual(entry["consecutive_errors"], 3)
+        self.assertEqual(watchdog.parse_datetime(entry["next_due_at"]), self.now + dt.timedelta(hours=2))
+
+        due, reason = watchdog.rss_backoff_due_info(self.source, state, now=self.now + dt.timedelta(minutes=90))
+        self.assertFalse(due)
+        self.assertIn("3 consecutive errors", reason)
+        # A run starting a few seconds before the backoff ends still fetches it.
+        due, _ = watchdog.rss_backoff_due_info(
+            self.source, state, now=self.now + dt.timedelta(hours=2) - dt.timedelta(seconds=20)
+        )
+        self.assertTrue(due)
+        # --baseline forces every source.
+        self.assertTrue(watchdog.rss_backoff_due_info(self.source, state, now=self.now, force=True)[0])
+
+    def test_first_failure_retries_on_the_next_half_hourly_run(self):
+        state = {"version": 1, "sources": {}}
+        self.fail(state, self.now)
+        self.assertTrue(watchdog.rss_backoff_due_info(self.source, state, now=self.now + dt.timedelta(minutes=30))[0])
+
+    def test_success_resets_the_streak(self):
+        state = {"version": 1, "sources": {}}
+        self.fail(state, self.now, times=5)
+        later = self.now + dt.timedelta(hours=9)
+        watchdog.record_rss_attempt(state, self.source, now=later, scheduled_from=later, status="ok", post_count=2)
+        entry = state["sources"]["threads_example"]
+        self.assertEqual(entry["consecutive_errors"], 0)
+        self.assertNotIn("last_error", entry)
+        self.assertEqual(watchdog.rss_backoff_due_info(self.source, state, now=later), (True, ""))
+        self.fail(state, later)
+        self.assertEqual(
+            watchdog.parse_datetime(state["sources"]["threads_example"]["next_due_at"]),
+            later + dt.timedelta(minutes=30),
+        )
+
+    def test_backoff_leaves_other_source_types_alone(self):
+        state = {"version": 1, "sources": {}}
+        for source in (
+            {"id": "ig", "type": "rsshub_instagram_profile", "provider": "instagram_public"},
+            {"id": "story", "type": "rss", "media_type": "instagram_story"},
+            {"id": "web", "type": "webpage_watch"},
+            {"id": "fb", "type": "facebook_page_posts"},
+        ):
+            self.assertFalse(watchdog.rss_backoff_applies(source))
+            watchdog.record_rss_attempt(state, source, now=self.now, scheduled_from=self.now, status="error", error="x")
+        self.assertEqual(state["sources"], {})
+        self.assertTrue(watchdog.rss_backoff_applies({"id": "x_example", "type": "rss", "platform": "x"}))
+
+    def test_runs_skip_a_failing_feed_without_reporting_new_errors(self):
+        healthy = {**self.source, "id": "threads_healthy", "username": "healthy"}
+        calls = []
+
+        def fake_fetch(source, token):
+            calls.append(source["id"])
+            if source["id"] == "threads_example":
+                raise urllib.error.URLError("RSSHub HTTP 503")
+            return []
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            config = tmp_path / "sources.json"
+            config.write_text(json.dumps({"sources": [self.source, healthy], "keywords": []}), encoding="utf-8")
+            paths = {name: tmp_path / name for name in ("seen.json", "candidates.jsonl", "errors.jsonl", "state.json", "progress.json")}
+            argv = [
+                "social_feed_watchdog.py",
+                "--config", str(config),
+                "--seen", str(paths["seen.json"]),
+                "--candidates", str(paths["candidates.jsonl"]),
+                "--errors", str(paths["errors.jsonl"]),
+                "--fetch-state", str(paths["state.json"]),
+                "--progress", str(paths["progress.json"]),
+                "--no-llm-tags",
+            ]
+            with (
+                mock.patch.object(sys, "argv", argv),
+                mock.patch.object(watchdog, "fetch_source", side_effect=fake_fetch),
+                mock.patch.object(watchdog.time, "sleep"),
+            ):
+                self.assertEqual(watchdog.main(), 0)
+                self.assertEqual(watchdog.main(), 0)
+
+            self.assertEqual(calls, ["threads_example", "threads_healthy", "threads_healthy"])
+            error_rows = [line for line in paths["errors.jsonl"].read_text(encoding="utf-8").splitlines() if line]
+            self.assertEqual(len(error_rows), 1)
+            state = json.loads(paths["state.json"].read_text(encoding="utf-8"))
+            self.assertEqual(state["sources"]["threads_example"]["consecutive_errors"], 1)
+            self.assertEqual(state["last_run"]["rss_backoff_skipped"], 1)
+            seen = json.loads(paths["seen.json"].read_text(encoding="utf-8"))
+            self.assertEqual(seen["last_watchdog_run"]["errors"], 0)
 
 
 class SocialFeedWatchdogInstagramTests(unittest.TestCase):
