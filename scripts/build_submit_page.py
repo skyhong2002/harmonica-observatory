@@ -8,6 +8,8 @@ import json
 import sys
 from pathlib import Path
 
+from output_files import write_text_if_changed
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -41,7 +43,7 @@ def render_submit_page() -> str:
 
 def main() -> int:
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT_PATH.write_text(render_submit_page(), encoding="utf-8")
+    write_text_if_changed(OUTPUT_PATH, render_submit_page())
     print(f"Built {OUTPUT_PATH.relative_to(PROJECT_ROOT)}")
     return 0
 

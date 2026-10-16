@@ -1,5 +1,8 @@
 import importlib.util
 import json
+import os
+import contextlib
+import io
 import sys
 import tempfile
 import unittest
@@ -147,6 +150,41 @@ class SourceJsonApiTests(unittest.TestCase):
         self.assertEqual(payload["source"]["id"], 198)
         self.assertEqual(payload["source"]["slug"], "bamboo-melody-harmonica-club")
         self.assertEqual(payload["items"], [])
+
+    def test_generate_twice_preserves_source_files_and_removes_only_stale_json(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            api = root / "api"
+            api.mkdir()
+            for name, payload in {
+                "sources": {"entries": [self.entry]},
+                "public-calendar-events": {"events": []},
+                "scores": {"scores": []},
+                "latest": {"updates": [], "generatedAt": "2026-06-27T00:00:00Z"},
+            }.items():
+                (api / f"{name}.json").write_text(json.dumps(payload))
+            with mock.patch.multiple(seo, SITE_ROOT=root, SOURCES_JSON=api / "sources.json",
+                                     EVENTS_JSON=api / "public-calendar-events.json",
+                                     SCORES_JSON=api / "scores.json", SOURCE_API_DIR=api / "source",
+                                     SITEMAP_XML=root / "sitemap.xml"), \
+                 mock.patch.object(seo, "read_legacy_alias_source_paths", return_value=set()), \
+                 contextlib.redirect_stdout(io.StringIO()):
+                seo.main()
+                paths = [root / "source" / seo.make_slug(self.entry) / "index.html",
+                         api / "source" / "198.json",
+                         root / "source" / self.entry["id"] / "index.html",
+                         root / "source" / "index.html"]
+                for path in paths:
+                    os.utime(path, ns=(1000000000, 1000000000))
+                before = [(p.read_bytes(), p.stat().st_mtime_ns, p.stat().st_ino) for p in paths]
+                stale = api / "source" / "obsolete.json"
+                stale.write_text("{}")
+                keep = api / "source" / "keep.txt"
+                keep.write_text("keep")
+                seo.main()
+                self.assertEqual(before, [(p.read_bytes(), p.stat().st_mtime_ns, p.stat().st_ino) for p in paths])
+                self.assertFalse(stale.exists())
+                self.assertTrue(keep.exists())
 
     def test_source_page_advertises_json_endpoint(self):
         page = seo.generate_source_page(self.entry, [], [])

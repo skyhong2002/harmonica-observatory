@@ -20,6 +20,8 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
+from output_files import write_text_if_changed
+
 import public_tags
 import report_links
 import site_chrome
@@ -287,7 +289,7 @@ def read_json(path: Path, default: Any) -> Any:
 
 def write_json(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    write_text_if_changed(path, json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
 
 
 def parse_time(value: str | None) -> dt.datetime | None:
@@ -449,7 +451,9 @@ def convert_image_bytes_to_webp(data: bytes, ext: str, output_path: Path) -> boo
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                 )
-            output_path.write_bytes(tmp_output.read_bytes())
+            output_bytes = tmp_output.read_bytes()
+            if not output_path.exists() or output_path.read_bytes() != output_bytes:
+                output_path.write_bytes(output_bytes)
     except (OSError, subprocess.CalledProcessError):
         return False
     return True
@@ -503,11 +507,11 @@ def save_image_failures(path: Path) -> None:
     failures = image_failures(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = path.with_name(f".{path.name}.tmp")
-    tmp_path.write_text(
+    write_text_if_changed(
+        path,
         json.dumps({"version": 1, "failures": failures}, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
+        temp_path=tmp_path,
     )
-    tmp_path.replace(path)
 
 
 def image_failure_blocks_fetch(entry: dict[str, Any] | None, now: dt.datetime) -> bool:
@@ -595,7 +599,8 @@ def cache_remote_image(
         return f"{public_prefix}/{path.name}"
 
     fallback = image_dir / f"{digest}{ext}"
-    fallback.write_bytes(data)
+    if not fallback.exists() or fallback.read_bytes() != data:
+        fallback.write_bytes(data)
     index[digest] = [fallback.name]
     return f"{public_prefix}/{fallback.name}"
 
@@ -1140,8 +1145,7 @@ def build_channel(title: str, description: str, link: str) -> ET.Element:
 def write_xml(path: Path, root: ET.Element) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     ET.indent(root, space="  ")
-    tree = ET.ElementTree(root)
-    tree.write(path, encoding="utf-8", xml_declaration=True)
+    write_text_if_changed(path, ET.tostring(root, encoding="utf-8", xml_declaration=True).decode("utf-8"))
 
 
 def candidate_sort_key(row: dict[str, Any]) -> dt.datetime:
@@ -1767,7 +1771,7 @@ def write_update_json(path: Path, items: list[dict[str, Any]], category: dict[st
             "rss": f"{PUBLIC_BASE_URL}/{category['rss_path']}",
             "page": f"{PUBLIC_BASE_URL}/{category['page_path'].removesuffix('/index.html')}/",
         }
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    write_text_if_changed(path, json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
 
 
 def category_payload(category: dict[str, str], items: list[dict[str, Any]]) -> dict[str, Any]:
@@ -1797,12 +1801,9 @@ def write_feed_data_js(public_rows: list[dict[str, Any]], categorized: dict[str,
         ],
     }
     FEED_DATA_JS.parent.mkdir(parents=True, exist_ok=True)
-    FEED_DATA_JS.write_text(
-        "window.HARMONICA_OBSERVE_FEEDS = "
+    write_text_if_changed(FEED_DATA_JS, "window.HARMONICA_OBSERVE_FEEDS = "
         + json.dumps(payload, ensure_ascii=False, indent=2)
-        + ";\n",
-        encoding="utf-8",
-    )
+        + ";\n")
 
 
 def api_category_payload(category: dict[str, str], items: list[dict[str, Any]]) -> dict[str, Any]:
@@ -1848,10 +1849,10 @@ def write_api_files(public_rows: list[dict[str, Any]], categorized: dict[str, li
         "socialSources": social_sources,
         "feeds": feeds,
     }
-    (API_DIR / "latest.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    (API_DIR / "catalog.json").write_text(json.dumps({"site": PUBLIC_BASE_URL, "feeds": catalog}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    write_text_if_changed(API_DIR / "latest.json", json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
+    write_text_if_changed(API_DIR / "catalog.json", json.dumps({"site": PUBLIC_BASE_URL, "feeds": catalog}, ensure_ascii=False, indent=2) + "\n")
     for feed in feeds:
-        (API_DIR / f"{feed['id']}.json").write_text(json.dumps(feed, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        write_text_if_changed(API_DIR / f"{feed['id']}.json", json.dumps(feed, ensure_ascii=False, indent=2) + "\n")
 
 
 def write_update_rss(path: Path, title: str, description: str, link: str, items: list[dict[str, Any]]) -> None:
@@ -2690,10 +2691,7 @@ def write_homepage_latest(public_rows: list[dict[str, Any]], categorized: dict[s
         if start in text and end in text:
             before, rest = text.split(start, 1)
             _, after = rest.split(end, 1)
-            HOME_PAGE.write_text(
-                modernize_submission_links(f"{before}{start}\n{latest_html_home}\n            {end}{after}"),
-                encoding="utf-8",
-            )
+            write_text_if_changed(HOME_PAGE, modernize_submission_links(f"{before}{start}\n{latest_html_home}\n            {end}{after}"))
 
     # 2. Update site/post/index.html
     pagination_nav_p1 = render_pagination_nav(1, total_pages)
@@ -2711,10 +2709,7 @@ def write_homepage_latest(public_rows: list[dict[str, Any]], categorized: dict[s
         if start in text and end in text:
             before, rest = text.split(start, 1)
             _, after = rest.split(end, 1)
-            posts_page.write_text(
-                modernize_submission_links(f"{before}{start}\n{latest_html_post}\n            {end}{after}"),
-                encoding="utf-8",
-            )
+            write_text_if_changed(posts_page, modernize_submission_links(f"{before}{start}\n{latest_html_post}\n            {end}{after}"))
 
     # 3. Generate static pagination pages for 2, 3, etc.
     pagination_root = SITE_ROOT / "post" / "page"
@@ -2746,7 +2741,7 @@ def write_homepage_latest(public_rows: list[dict[str, Any]], categorized: dict[s
         if start in baseline_text and end in baseline_text:
             before, rest = baseline_text.split(start, 1)
             _, after = rest.split(end, 1)
-            (page_dir / "index.html").write_text(f"{before}{start}\n{latest_html_p}\n            {end}{after}", encoding="utf-8")
+            write_text_if_changed(page_dir / "index.html", f"{before}{start}\n{latest_html_p}\n            {end}{after}")
 
 
 def render_update_cards(items: list[dict[str, Any]]) -> str:
@@ -2932,13 +2927,13 @@ def render_feed_index(categorized: dict[str, list[dict[str, Any]]]) -> str:
 
 def write_feed_pages(categorized: dict[str, list[dict[str, Any]]]) -> None:
     FEED_INDEX_OUT.parent.mkdir(parents=True, exist_ok=True)
-    FEED_INDEX_OUT.write_text(render_feed_index(categorized), encoding="utf-8")
+    write_text_if_changed(FEED_INDEX_OUT, render_feed_index(categorized))
     catalog = []
     for category in FEED_CATEGORIES:
         page = SITE_ROOT / category["page_path"]
         page.parent.mkdir(parents=True, exist_ok=True)
         items = categorized.get(category["id"], [])
-        page.write_text(render_feed_page(category, items), encoding="utf-8")
+        write_text_if_changed(page, render_feed_page(category, items))
         catalog.append(
             {
                 "id": category["id"],
@@ -2950,7 +2945,7 @@ def write_feed_pages(categorized: dict[str, list[dict[str, Any]]]) -> None:
                 "items": len(items),
             }
         )
-    CATALOG_JSON_OUT.write_text(json.dumps({"feeds": catalog}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    write_text_if_changed(CATALOG_JSON_OUT, json.dumps({"feeds": catalog}, ensure_ascii=False, indent=2) + "\n")
 
 
 def bump_html_asset_versions() -> None:
@@ -2959,7 +2954,7 @@ def bump_html_asset_versions() -> None:
         updated = site_chrome.normalize_document(text)
         updated = "\n".join(line.rstrip() for line in updated.splitlines()) + "\n"
         if updated != text:
-            path.write_text(updated, encoding="utf-8")
+            write_text_if_changed(path, updated)
 
 
 def generate_sources(limit: int) -> int:
@@ -3002,8 +2997,7 @@ def generate_sources(limit: int) -> int:
 
     write_xml(SOURCES_OUT, rss)
     API_DIR.mkdir(parents=True, exist_ok=True)
-    (API_DIR / "sources.json").write_text(
-        json.dumps(
+    write_text_if_changed(API_DIR / "sources.json", json.dumps(
             {
                 "site": PUBLIC_BASE_URL,
                 "generatedAt": data.get("generatedAt") or "",
@@ -3014,9 +3008,7 @@ def generate_sources(limit: int) -> int:
             ensure_ascii=False,
             indent=2,
         )
-        + "\n",
-        encoding="utf-8",
-    )
+        + "\n")
     return len(entries)
 
 

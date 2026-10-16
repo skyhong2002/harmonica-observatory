@@ -11,6 +11,8 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any
 
+from output_files import write_text_if_changed
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SOURCE_CSV = PROJECT_ROOT / "data" / "sources" / "harmonica-score-publications.csv"
@@ -270,13 +272,10 @@ def write_outputs(payload: dict[str, Any]) -> None:
     API_OUT.parent.mkdir(parents=True, exist_ok=True)
     DATA_OUT.parent.mkdir(parents=True, exist_ok=True)
     json_text = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
-    API_OUT.write_text(json_text, encoding="utf-8")
-    DATA_OUT.write_text(
-        "window.HARMONICA_OBSERVE_SCORES = "
+    write_text_if_changed(API_OUT, json_text)
+    write_text_if_changed(DATA_OUT, "window.HARMONICA_OBSERVE_SCORES = "
         + json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True)
-        + ";\n",
-        encoding="utf-8",
-    )
+        + ";\n")
 
 
 def main() -> int:

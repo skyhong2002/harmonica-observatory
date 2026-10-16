@@ -5,7 +5,10 @@ from __future__ import annotations
 
 import csv
 import json
+import io
 from pathlib import Path
+
+from output_files import write_text_if_changed
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -54,7 +57,7 @@ def validate_rows(rows: list[dict[str, str]]) -> None:
 
 def write_bulk_redirects(rows: list[dict[str, str]]) -> int:
     redirect_rows = [row for row in rows if clean(row.get("status_code")) == "301"]
-    with BULK_REDIRECTS_CSV.open("w", newline="", encoding="utf-8") as handle:
+    with io.StringIO(newline="") as handle:
         writer = csv.writer(handle, lineterminator="\n")
         for row in redirect_rows:
             writer.writerow(
@@ -68,6 +71,7 @@ def write_bulk_redirects(rows: list[dict[str, str]]) -> int:
                     "false",
                 ]
             )
+        write_text_if_changed(BULK_REDIRECTS_CSV, handle.getvalue())
     return len(redirect_rows)
 
 
@@ -100,7 +104,7 @@ export default {{
   }}
 }};
 """
-    GONE_WORKER_JS.write_text(content, encoding="utf-8")
+    write_text_if_changed(GONE_WORKER_JS, content)
     return len(gone_paths)
 
 

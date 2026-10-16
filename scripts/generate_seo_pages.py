@@ -16,6 +16,8 @@ from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
 
+from output_files import write_text_if_changed
+
 import generate_rss_feeds as feed_render
 import report_links
 import site_chrome
@@ -293,10 +295,7 @@ def source_api_payload(
 def write_source_api(entry: dict[str, Any], entry_updates: list[dict[str, Any]], generated_at: str) -> Path:
     path = SOURCE_API_DIR / f"{source_public_id(entry)}.json"
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(source_api_payload(entry, entry_updates, generated_at), ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
+    write_text_if_changed(path, json.dumps(source_api_payload(entry, entry_updates, generated_at), ensure_ascii=False, indent=2) + "\n")
     return path
 
 
@@ -1720,9 +1719,7 @@ def write_not_found_page() -> None:
   </body>
 </html>
 """
-    (SITE_ROOT / "404.html").write_text(
-        normalize_generated_html(not_found_html), encoding="utf-8"
-    )
+    write_text_if_changed(SITE_ROOT / "404.html", normalize_generated_html(site_chrome.normalize_document(normalize_generated_html(not_found_html))))
 
 
 def write_source_index_redirect() -> None:
@@ -1742,7 +1739,7 @@ def write_source_index_redirect() -> None:
   </body>
 </html>
 """
-    (redirect_dir / "index.html").write_text(redirect_html, encoding="utf-8")
+    write_text_if_changed(redirect_dir / "index.html", normalize_generated_html(site_chrome.normalize_document(redirect_html)))
 
 
 def generate_source_facet_page(group: dict[str, Any], value: str, entries: list[dict[str, Any]]) -> str:
@@ -1921,7 +1918,7 @@ def update_core_pages(
 ) -> None:
     source_index_path = SITE_ROOT / "source" / "index.html"
     source_index_path.parent.mkdir(parents=True, exist_ok=True)
-    source_index_path.write_text(generate_source_index_base_page(), encoding="utf-8")
+    source_index_content = generate_source_index_base_page()
 
     # 1. Load api/score-sources.json
     try:
@@ -2008,10 +2005,10 @@ def update_core_pages(
 
     for rel_path, inject_info in core_pages:
         page_path = SITE_ROOT / rel_path
-        if not page_path.exists():
+        if not page_path.exists() and page_path != source_index_path:
             continue
         try:
-            content = page_path.read_text(encoding="utf-8")
+            content = source_index_content if page_path == source_index_path else page_path.read_text(encoding="utf-8")
 
             content = replace_stat(content, "watchSourceCount", watch_source_count)
             content = replace_stat(content, "rsshubSourceCount", rsshub_sources_count)
@@ -2047,7 +2044,7 @@ def update_core_pages(
                     flags=re.DOTALL,
                 )
 
-            page_path.write_text(content, encoding="utf-8")
+            write_text_if_changed(page_path, normalize_generated_html(site_chrome.normalize_document(content)))
             print(f"Updated core page: {rel_path}")
         except Exception as e:
             print(f"Error updating core page {rel_path}: {e}")
@@ -2064,7 +2061,7 @@ def update_core_pages(
                     re.DOTALL
                 )
                 content = pattern.sub(rf'\g<1>{item_count} 筆\g<2>', content)
-            feeds_html_path.write_text(content, encoding="utf-8")
+            write_text_if_changed(feeds_html_path, normalize_generated_html(site_chrome.normalize_document(content)))
             print("Updated feeds catalog page")
         except Exception as e:
             print(f"Error updating feeds catalog: {e}")
@@ -2077,7 +2074,7 @@ def normalize_site_html() -> None:
         text = path.read_text(encoding="utf-8")
         updated = normalize_generated_html(site_chrome.normalize_document(text))
         if updated != text:
-            path.write_text(updated, encoding="utf-8")
+            write_text_if_changed(path, updated)
 
 
 def remove_stale_source_page_outputs(entries: list[dict[str, Any]]) -> list[Path]:
@@ -2149,8 +2146,7 @@ def main() -> int:
     source_groups = source_facet_groups(entries)
     source_count = 0
     stale_source_pages = remove_stale_source_page_outputs(entries)
-    if SOURCE_API_DIR.exists():
-        shutil.rmtree(SOURCE_API_DIR)
+    produced_source_apis: set[Path] = set()
     SOURCE_API_DIR.mkdir(parents=True, exist_ok=True)
     for entry in entries:
         entry_id = clean(entry.get("id"))
@@ -2159,7 +2155,7 @@ def main() -> int:
 
         # Source pages and source APIs must share this exact identity-based selection.
         entry_updates = source_updates_for_entry(entry, updates)
-        write_source_api(entry, entry_updates, latest_generated_at)
+        produced_source_apis.add(write_source_api(entry, entry_updates, latest_generated_at))
 
         slug = make_slug(entry)
 
@@ -2170,7 +2166,7 @@ def main() -> int:
         html_content = normalize_generated_html(
             generate_source_page(entry, entry_updates, related_facets)
         )
-        (slug_dir / "index.html").write_text(html_content, encoding="utf-8")
+        write_text_if_changed(slug_dir / "index.html", normalize_generated_html(site_chrome.normalize_document(html_content)))
 
         redirect_aliases = {entry_id, source_public_id(entry)}
         for alias in sorted(redirect_aliases):
@@ -2195,9 +2191,13 @@ def main() -> int:
   </body>
 </html>
 """
-            (old_dir / "index.html").write_text(redirect_html, encoding="utf-8")
+            write_text_if_changed(old_dir / "index.html", normalize_generated_html(site_chrome.normalize_document(redirect_html)))
 
         source_count += 1
+
+    for stale_api in SOURCE_API_DIR.glob("*.json"):
+        if stale_api not in produced_source_apis:
+            stale_api.unlink()
 
     # 3. Pre-render source facet landing pages
     source_facet_count = 0
@@ -2210,7 +2210,7 @@ def main() -> int:
             page_dir = SITE_ROOT / "source" / group["path"] / value
             page_dir.mkdir(parents=True, exist_ok=True)
             html_content = normalize_generated_html(generate_source_facet_page(group, value, facet_entries))
-            (page_dir / "index.html").write_text(html_content, encoding="utf-8")
+            write_text_if_changed(page_dir / "index.html", normalize_generated_html(site_chrome.normalize_document(html_content)))
             source_facet_count += 1
 
     # 4. Pre-render Event Pages
@@ -2223,7 +2223,7 @@ def main() -> int:
         page_dir = SITE_ROOT / "event" / event_id
         page_dir.mkdir(parents=True, exist_ok=True)
         html_content = normalize_generated_html(generate_event_page(event, source_by_name))
-        (page_dir / "index.html").write_text(html_content, encoding="utf-8")
+        write_text_if_changed(page_dir / "index.html", normalize_generated_html(site_chrome.normalize_document(html_content)))
         event_count += 1
 
     # 5. Pre-render Score Category Pages
@@ -2233,7 +2233,7 @@ def main() -> int:
         page_dir = SITE_ROOT / "scores" / category
         page_dir.mkdir(parents=True, exist_ok=True)
         html_content = normalize_generated_html(generate_scores_category_page(category, category_scores))
-        (page_dir / "index.html").write_text(html_content, encoding="utf-8")
+        write_text_if_changed(page_dir / "index.html", normalize_generated_html(site_chrome.normalize_document(html_content)))
         score_cat_count += 1
 
     # 6. Pre-render Core Pages (index, post, source, scores, scores/sources, feeds)
@@ -2243,7 +2243,7 @@ def main() -> int:
 
     # 7. Rebuild sitemap
     sitemap_content = generate_sitemap_xml(entries, events, categories, updates, scores, source_groups)
-    SITEMAP_XML.write_text(sitemap_content, encoding="utf-8")
+    write_text_if_changed(SITEMAP_XML, sitemap_content)
     normalize_site_html()
 
     print(f"SEO Pre-rendering completed:")

@@ -15,6 +15,8 @@ from datetime import date, datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any
 
+from output_files import write_text_if_changed
+
 from source_slugs import make_slug
 from curated_source_profiles import load_profiles, apply_profile
 
@@ -1448,10 +1450,7 @@ def main() -> None:
 
     DATA_OUT.parent.mkdir(parents=True, exist_ok=True)
     data = json.dumps(payload, ensure_ascii=False, indent=2)
-    DATA_OUT.write_text(
-        "window.HARMONICA_OBSERVE_DATA = " + data + ";\n",
-        encoding="utf-8",
-    )
+    write_text_if_changed(DATA_OUT, "window.HARMONICA_OBSERVE_DATA = " + data + ";\n")
     print(f"Wrote {DATA_OUT.relative_to(PROJECT_ROOT)} with {len(entries)} public entries")
 
 
