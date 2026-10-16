@@ -971,9 +971,14 @@ def scheduled_instagram_due_at(
 ) -> dt.datetime:
     source_id = source_identity(source)
     kind = instagram_source_kind(source)
+    return stable_slot_at_or_after(f"{kind}:{source_id}", anchor=anchor, interval_hours=interval_hours)
+
+
+def stable_slot_at_or_after(key: str, *, anchor: dt.datetime, interval_hours: float) -> dt.datetime:
+    """First slot of ``key``'s fixed per-key phase that is not before ``anchor``."""
     interval_seconds = max(0.0, interval_hours * 3600.0)
     anchor_utc = anchor.astimezone(dt.timezone.utc)
-    offset = stable_offset_seconds(f"{kind}:{source_id}", interval_seconds)
+    offset = stable_offset_seconds(key, interval_seconds)
     if interval_seconds <= 0:
         return anchor_utc
     elapsed = (anchor_utc - INSTAGRAM_SCHEDULE_EPOCH).total_seconds()
@@ -1244,7 +1249,18 @@ def record_webpage_attempt(
         return
     source_id = source_identity(source)
     interval_hours = max(0.5, float(source.get("interval_hours") or 12.0))
-    retry_hours = min(interval_hours, 1.0) if status != "ok" else interval_hours
+    if status == "ok":
+        # Each watcher keeps its own phase of the interval, so watchers fetched in
+        # the same run spread out instead of all coming due together again. The
+        # next slot is at least half an interval away, so a watcher is never
+        # refetched sooner than that while it moves onto its phase.
+        next_due_at = stable_slot_at_or_after(
+            f"webpage:{source_id}",
+            anchor=now + dt.timedelta(hours=interval_hours / 2),
+            interval_hours=interval_hours,
+        )
+    else:
+        next_due_at = now + dt.timedelta(hours=min(interval_hours, 1.0))
     entry = fetch_state.setdefault("sources", {}).setdefault(source_id, {})
     entry.update(
         {
@@ -1253,7 +1269,7 @@ def record_webpage_attempt(
             "last_attempt_at": utc_iso(now),
             "last_status": status,
             "last_post_count": int(post_count),
-            "next_due_at": utc_iso(now + dt.timedelta(hours=retry_hours)),
+            "next_due_at": utc_iso(next_due_at),
         }
     )
     if status == "ok":

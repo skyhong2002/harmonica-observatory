@@ -155,6 +155,42 @@ class SocialFeedWatchdogWebpageTests(unittest.TestCase):
         self.assertIn("scheduled until", reason)
         self.assertFalse(initial)
 
+    def test_webpages_fetched_together_spread_their_next_due_times(self):
+        state = {"version": 1, "sources": {}}
+        now = dt.datetime(2026, 8, 20, 3, 0, tzinfo=dt.timezone.utc)
+        due_times = []
+        for index in range(40):
+            source = {**self.source, "id": f"web_{index}"}
+            watchdog.record_webpage_attempt(state, source, now=now, status="ok")
+            due_times.append(watchdog.parse_datetime(state["sources"][source["id"]]["next_due_at"]))
+
+        # Never refetched within half an interval, never later than 1.5 intervals.
+        for due_at in due_times:
+            self.assertGreaterEqual(due_at, now + dt.timedelta(hours=6))
+            self.assertLess(due_at, now + dt.timedelta(hours=18))
+        # Spread across the interval instead of landing in one 30-minute run.
+        half_hour_slots = {int((due_at - now).total_seconds() // 1800) for due_at in due_times}
+        self.assertGreater(len(half_hour_slots), 15)
+
+    def test_webpage_keeps_its_interval_once_on_its_phase(self):
+        state = {"version": 1, "sources": {}}
+        now = dt.datetime(2026, 8, 20, 3, 0, tzinfo=dt.timezone.utc)
+        watchdog.record_webpage_attempt(state, self.source, now=now, status="ok")
+        first_due = watchdog.parse_datetime(state["sources"]["web_249"]["next_due_at"])
+
+        # The next run picks it up 20 minutes after its slot.
+        watchdog.record_webpage_attempt(state, self.source, now=first_due + dt.timedelta(minutes=20), status="ok")
+        second_due = watchdog.parse_datetime(state["sources"]["web_249"]["next_due_at"])
+        self.assertEqual(second_due - first_due, dt.timedelta(hours=12))
+
+    def test_webpage_error_still_retries_within_an_hour(self):
+        state = {"version": 1, "sources": {}}
+        now = dt.datetime(2026, 8, 20, 3, 0, tzinfo=dt.timezone.utc)
+        watchdog.record_webpage_attempt(state, self.source, now=now, status="error", error="HTTP 500")
+        entry = state["sources"]["web_249"]
+        self.assertEqual(watchdog.parse_datetime(entry["next_due_at"]), now + dt.timedelta(hours=1))
+        self.assertEqual(entry["consecutive_errors"], 1)
+
 
 class SocialFeedWatchdogThreadsTests(unittest.TestCase):
     def setUp(self):
