@@ -41,6 +41,10 @@ HOME_PAGE = SITE_ROOT / "index.html"
 API_DIR = SITE_ROOT / "api"
 FEED_IMAGE_DIR = SITE_ROOT / "assets" / "feed-images"
 SOURCE_AVATAR_DIR = SITE_ROOT / "assets" / "source-avatars"
+# Remote images that answered with a client error. Kept in state/ rather than
+# beside the images because everything under site/ is published.
+IMAGE_FETCH_FAILURES = PROJECT_ROOT / "state" / "remote_image_failures.json"
+IMAGE_FAILURE_RETRY_AFTER = dt.timedelta(days=7)
 PUBLIC_BASE_URL = "https://harmonica.observe.tw"
 ASSET_VERSION = site_chrome.ASSET_VERSION
 HOME_FEED_BATCH_SIZE = 12
@@ -451,7 +455,82 @@ def convert_image_bytes_to_webp(data: bytes, ext: str, output_path: Path) -> boo
     return True
 
 
-def cache_remote_image(url: str, image_dir: Path, public_prefix: str, max_bytes: int = 5_000_000) -> str:
+_IMAGE_DIR_INDEX: dict[Path, dict[str, list[str]]] = {}
+_IMAGE_FAILURES: dict[Path, dict[str, dict[str, Any]]] = {}
+
+
+def image_dir_index(image_dir: Path) -> dict[str, list[str]]:
+    """Cached file names by digest, listed once per directory per run instead of a glob per image."""
+    index = _IMAGE_DIR_INDEX.get(image_dir)
+    if index is None:
+        index = {}
+        try:
+            names = sorted(entry.name for entry in image_dir.iterdir())
+        except OSError:
+            names = []
+        for name in names:
+            stem, dot, _ = name.partition(".")
+            if dot and stem:
+                index.setdefault(stem, []).append(name)
+        _IMAGE_DIR_INDEX[image_dir] = index
+    return index
+
+
+def signed_url_expired(url: str, now: dt.datetime) -> bool:
+    """True when a signed CDN URL's ``oe=`` hex expiry (Instagram, Facebook) has passed."""
+    values = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query).get("oe") or []
+    try:
+        expires_at = int(values[0], 16)
+    except (IndexError, ValueError):
+        return False
+    return expires_at <= now.timestamp()
+
+
+def image_failures(path: Path) -> dict[str, dict[str, Any]]:
+    failures = _IMAGE_FAILURES.get(path)
+    if failures is None:
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            payload = {}
+        failures = payload.get("failures") if isinstance(payload, dict) else None
+        failures = {key: value for key, value in (failures or {}).items() if isinstance(value, dict)}
+        _IMAGE_FAILURES[path] = failures
+    return failures
+
+
+def save_image_failures(path: Path) -> None:
+    failures = image_failures(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = path.with_name(f".{path.name}.tmp")
+    tmp_path.write_text(
+        json.dumps({"version": 1, "failures": failures}, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    tmp_path.replace(path)
+
+
+def image_failure_blocks_fetch(entry: dict[str, Any] | None, now: dt.datetime) -> bool:
+    if not entry:
+        return False
+    if entry.get("permanent"):
+        return True
+    try:
+        failed_at = dt.datetime.fromisoformat(str(entry.get("failed_at") or ""))
+    except ValueError:
+        return False
+    if failed_at.tzinfo is None:
+        failed_at = failed_at.replace(tzinfo=dt.timezone.utc)
+    return now - failed_at < IMAGE_FAILURE_RETRY_AFTER
+
+
+def cache_remote_image(
+    url: str,
+    image_dir: Path,
+    public_prefix: str,
+    max_bytes: int = 5_000_000,
+    failure_cache: Path | None = None,
+) -> str:
     if not url:
         return ""
     if url.startswith("/assets/"):
@@ -460,7 +539,8 @@ def cache_remote_image(url: str, image_dir: Path, public_prefix: str, max_bytes:
     webp_path = image_dir / f"{digest}.webp"
     if webp_path.exists():
         return f"{public_prefix}/{webp_path.name}"
-    existing = sorted(image_dir.glob(f"{digest}.*"))
+    index = image_dir_index(image_dir)
+    existing = [image_dir / name for name in index.get(digest, []) if name != webp_path.name]
     if existing:
         existing_path = existing[0]
         ext = existing_path.suffix.casefold() or ".jpg"
@@ -473,10 +553,15 @@ def cache_remote_image(url: str, image_dir: Path, public_prefix: str, max_bytes:
                 existing_path.unlink()
             except OSError:
                 pass
+            index[digest] = [webp_path.name]
             return f"{public_prefix}/{webp_path.name}"
         return f"{public_prefix}/{existing_path.name}"
 
     if OFFLINE:
+        return ""
+    now = dt.datetime.now(dt.timezone.utc)
+    failures = image_failures(failure_cache) if failure_cache else None
+    if failures is not None and image_failure_blocks_fetch(failures.get(digest), now):
         return ""
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "HarmonicaObserveImageCache/1.0"})
@@ -485,17 +570,33 @@ def cache_remote_image(url: str, image_dir: Path, public_prefix: str, max_bytes:
             if not content_type.startswith("image/"):
                 return ""
             data = response.read(max_bytes)
+    except urllib.error.HTTPError as exc:
+        # Only a definite client error is remembered; timeouts, server errors and
+        # rate limits may pass, so those images are retried on the next run.
+        if failures is not None and 400 <= exc.code < 500 and exc.code not in {408, 429}:
+            failures[digest] = {
+                "failed_at": now.isoformat(),
+                "status": exc.code,
+                # A signed CDN URL past its expiry never works again.
+                "permanent": exc.code in {403, 404} and signed_url_expired(url, now),
+            }
+            save_image_failures(failure_cache)
+        return ""
     except (urllib.error.URLError, TimeoutError, OSError):
         return ""
+    if failures is not None and failures.pop(digest, None) is not None:
+        save_image_failures(failure_cache)
 
     image_dir.mkdir(parents=True, exist_ok=True)
     ext = image_extension(url, content_type)
     path = image_dir / f"{digest}.webp"
     if convert_image_bytes_to_webp(data, ext, path):
+        index[digest] = [path.name]
         return f"{public_prefix}/{path.name}"
 
     fallback = image_dir / f"{digest}{ext}"
     fallback.write_bytes(data)
+    index[digest] = [fallback.name]
     return f"{public_prefix}/{fallback.name}"
 
 
@@ -507,11 +608,17 @@ def request_url(url: str) -> str:
 
 
 def cache_image(url: str) -> str:
-    return cache_remote_image(url, FEED_IMAGE_DIR, "/assets/feed-images")
+    return cache_remote_image(url, FEED_IMAGE_DIR, "/assets/feed-images", failure_cache=IMAGE_FETCH_FAILURES)
 
 
 def cache_avatar(url: str) -> str:
-    return cache_remote_image(url, SOURCE_AVATAR_DIR, "/assets/source-avatars", max_bytes=2_000_000)
+    return cache_remote_image(
+        url,
+        SOURCE_AVATAR_DIR,
+        "/assets/source-avatars",
+        max_bytes=2_000_000,
+        failure_cache=IMAGE_FETCH_FAILURES,
+    )
 
 
 def parse_png_dimensions(data: bytes) -> tuple[int, int] | None:
