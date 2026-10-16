@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 import tempfile
@@ -49,6 +50,45 @@ class StoryBackupPipelineTests(unittest.TestCase):
     def test_disabled_and_skipped_watch_or_instagram_never_run_backup(self):
         for enabled, extra in [("0", ()), ("1", ("--skip-instagram",)), ("1", ("--skip-watch",))]:
             self.assertNotIn("scripts/insta_stories_viewer.py", [c[1] for c in self.commands(enabled, extra)])
+
+
+class PublicDataRebuildTests(unittest.TestCase):
+    def steps(self, backfill_writes):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            inbox = root / "inbox.jsonl"
+            candidates = root / "candidates.jsonl"
+            candidates.write_text('{"source_id": "a"}\n', encoding="utf-8")
+            runtime = root / "runtime.json"
+
+            def fake_run(args, *, optional=False, step="", status_hook=None):
+                if args[1] == "scripts/backfill_public_source_pages.py" and backfill_writes:
+                    with candidates.open("a", encoding="utf-8") as handle:
+                        handle.write('{"source_id": "b"}\n')
+
+            with (
+                mock.patch.object(run_pipeline, "load_dotenv"),
+                mock.patch.object(run_pipeline, "BACKFILL_OUTPUTS", (inbox, candidates)),
+                mock.patch.object(run_pipeline, "run", side_effect=fake_run) as run,
+                mock.patch.object(sys, "argv", ["run_pipeline", "--no-lock", "--skip-watch", "--skip-calendar-sync", "--runtime-status", str(runtime)]),
+            ):
+                self.assertEqual(run_pipeline.main(), 0)
+            steps = [call.kwargs.get("step") for call in run.call_args_list]
+            runtime_steps = {step["name"]: step["status"] for step in json.loads(runtime.read_text())["steps"]}
+            return steps, runtime_steps
+
+    def test_second_build_is_skipped_when_backfill_adds_nothing(self):
+        steps, runtime_steps = self.steps(backfill_writes=False)
+        self.assertEqual(steps.count("build public data"), 1)
+        self.assertNotIn("rebuild public data", steps)
+        self.assertEqual(runtime_steps["rebuild public data"], "skipped")
+
+    def test_second_build_runs_after_backfill_adds_rows(self):
+        steps, _ = self.steps(backfill_writes=True)
+        self.assertEqual(
+            steps[steps.index("build public data"):steps.index("build public data") + 3],
+            ["build public data", "backfill source pages", "rebuild public data"],
+        )
 
 
 class LockAndStatusTests(unittest.TestCase):

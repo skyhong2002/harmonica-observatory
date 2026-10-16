@@ -16,6 +16,12 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 PYTHON = sys.executable
 DEFAULT_LOCK_FILE = PROJECT_ROOT / "state" / "run_pipeline.lock"
 DEFAULT_RUNTIME_STATUS = PROJECT_ROOT / "site" / "api" / "pipeline-runtime.json"
+# The rows the source-page backfill appends; the public data only needs a
+# rebuild after the backfill when one of these changed.
+BACKFILL_OUTPUTS = (
+    PROJECT_ROOT / "data" / "feeds" / "social_feed_inbox.jsonl",
+    PROJECT_ROOT / "data" / "feeds" / "social_candidates.jsonl",
+)
 DEFAULT_GOOGLE_WORKSPACE_PYTHON = Path.home() / ".hermes" / "harmonica-intake-venv" / "bin" / "python"
 
 
@@ -77,6 +83,18 @@ def run(args: list[str], *, optional: bool = False, step: str = "", status_hook=
     else:
         if status_hook is not None:
             status_hook(step or " ".join(args), "ok", args=args, returncode=0)
+
+
+def file_signatures(paths: tuple[Path, ...]) -> tuple[tuple[int, int] | None, ...]:
+    signatures: list[tuple[int, int] | None] = []
+    for path in paths:
+        try:
+            stat = path.stat()
+        except FileNotFoundError:
+            signatures.append(None)
+        else:
+            signatures.append((stat.st_size, stat.st_mtime_ns))
+    return tuple(signatures)
 
 
 def utc_now() -> dt.datetime:
@@ -348,12 +366,17 @@ def main() -> int:
             run(watch_args, step="watch social feeds", status_hook=mark_step)
 
         run([PYTHON, "scripts/build_public_data.py"], step="build public data", status_hook=mark_step)
+        backfill_inputs_before = file_signatures(BACKFILL_OUTPUTS)
         run(
             [PYTHON, "scripts/backfill_public_source_pages.py", "--skip-fetch"],
             step="backfill source pages",
             status_hook=mark_step,
         )
-        run([PYTHON, "scripts/build_public_data.py"], step="rebuild public data", status_hook=mark_step)
+        rebuild_args = [PYTHON, "scripts/build_public_data.py"]
+        if file_signatures(BACKFILL_OUTPUTS) != backfill_inputs_before:
+            run(rebuild_args, step="rebuild public data", status_hook=mark_step)
+        else:
+            mark_step("rebuild public data", "skipped", args=rebuild_args)
         run([PYTHON, "scripts/build_score_publications.py"], step="build score publications", status_hook=mark_step)
         run([PYTHON, "scripts/build_score_sources.py"], step="build score sources", status_hook=mark_step)
         run([PYTHON, "scripts/generate_rss_feeds.py"], step="generate rss feeds", status_hook=mark_step)
