@@ -10,11 +10,11 @@
     <array>
       <string>/bin/zsh</string>
       <string>-lc</string>
-      <string>cd '/Users/skyhong/Documents/Harmonica-in-Taiwan' &amp;&amp; PYTHONWARNINGS=ignore '/Users/skyhong/.hermes/harmonica-intake-venv/bin/python' scripts/sync_google_calendar_events.py --history-days 365 --required</string>
+      <string>cd '/Users/skyhong/Projects/Harmonica-in-Taiwan' &amp;&amp; PYTHONWARNINGS=ignore '/Users/skyhong/.hermes/harmonica-intake-venv/bin/python' scripts/sync_google_calendar_events.py --history-days 365 --required</string>
     </array>
 
     <key>WorkingDirectory</key>
-    <string>/Users/skyhong/Documents/Harmonica-in-Taiwan</string>
+    <string>/Users/skyhong/Projects/Harmonica-in-Taiwan</string>
 
     <key>ProcessType</key>
     <string>Background</string>

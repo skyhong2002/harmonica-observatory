@@ -8,7 +8,7 @@
 	<array>
 		<string>/bin/zsh</string>
 		<string>-lc</string>
-		<string>cd '/Users/skyhong/Documents/Harmonica-in-Taiwan' &amp;&amp; exec ./.venv/bin/python scripts/run_pipeline.py --skip-youtube --skip-facebook --skip-llm-tags --max-post-age-days 2</string>
+		<string>cd '/Users/skyhong/Projects/Harmonica-in-Taiwan' &amp;&amp; exec ./.venv/bin/python scripts/run_pipeline.py --skip-youtube --skip-facebook --skip-llm-tags --max-post-age-days 2</string>
 	</array>
 	<key>EnvironmentVariables</key>
 	<dict>
@@ -17,7 +17,7 @@
 		<key>HARMONICA_LLM_PROVIDER</key>
 		<string>gateway</string>
 		<key>HARMONICA_OBSERVE_HOME</key>
-		<string>/Users/skyhong/Documents/Harmonica-in-Taiwan</string>
+		<string>/Users/skyhong/Projects/Harmonica-in-Taiwan</string>
 	</dict>
 	<key>StandardOutPath</key>
 	<string>/Users/skyhong/Library/Logs/Harmonica-in-Taiwan/social-fast.log</string>

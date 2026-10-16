@@ -9,11 +9,11 @@
     <array>
       <string>/bin/zsh</string>
       <string>-lc</string>
-      <string>cd '/Users/skyhong/Documents/Harmonica-in-Taiwan' &amp;&amp; PYTHONWARNINGS=ignore '/Users/skyhong/.hermes/harmonica-intake-venv/bin/python' scripts/process_submission_intake.py</string>
+      <string>cd '/Users/skyhong/Projects/Harmonica-in-Taiwan' &amp;&amp; PYTHONWARNINGS=ignore '/Users/skyhong/.hermes/harmonica-intake-venv/bin/python' scripts/process_submission_intake.py</string>
     </array>
 
     <key>WorkingDirectory</key>
-    <string>/Users/skyhong/Documents/Harmonica-in-Taiwan</string>
+    <string>/Users/skyhong/Projects/Harmonica-in-Taiwan</string>
 
     <key>EnvironmentVariables</key>
     <dict>
