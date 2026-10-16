@@ -142,6 +142,43 @@ def event_patch_resource(event: dict[str, Any]) -> dict[str, Any]:
     return body
 
 
+def _same_event_time(remote: Any, wanted: dict[str, Any]) -> bool:
+    remote = remote if isinstance(remote, dict) else {}
+    if wanted.get("date"):
+        return remote.get("date") == wanted["date"] and not remote.get("dateTime")
+    if remote.get("date") or (remote.get("timeZone") or "") != (wanted.get("timeZone") or ""):
+        return False
+    remote_time, wanted_time = str(remote.get("dateTime") or ""), str(wanted.get("dateTime") or "")
+    try:
+        # Google echoes dateTime in its own offset form, so compare instants.
+        return dt.datetime.fromisoformat(remote_time) == dt.datetime.fromisoformat(wanted_time)
+    except ValueError:
+        return remote_time == wanted_time
+
+
+def remote_event_matches(remote: dict[str, Any], body: dict[str, Any]) -> bool:
+    """True when the remote event already has every field the PATCH body would send."""
+    for key, wanted in body.items():
+        have = remote.get(key)
+        if key in {"start", "end"}:
+            if not _same_event_time(have, wanted):
+                return False
+        elif key == "extendedProperties":
+            have_private = ((have or {}).get("private") or {}) if isinstance(have, dict) else {}
+            if any(have_private.get(name) != value for name, value in (wanted.get("private") or {}).items()):
+                return False
+        elif isinstance(wanted, str):
+            # The API omits empty strings and empty lists from what it returns.
+            if (have or "") != wanted:
+                return False
+        elif isinstance(wanted, list):
+            if (have or []) != wanted:
+                return False
+        elif have != wanted:
+            return False
+    return True
+
+
 def load_credentials(token_path: Path):
     from google.oauth2.credentials import Credentials
     from google.auth.transport.requests import Request
@@ -286,17 +323,27 @@ class CalendarRestCalendars:
     def __init__(self, token: str):
         self.token = token
 
+    @staticmethod
+    def _url(calendar_id: str) -> str:
+        return "https://www.googleapis.com/calendar/v3/calendars/" + urllib.parse.quote(calendar_id, safe="")
+
+    def get(self, *, calendarId: str) -> CalendarRestRequest:
+        return CalendarRestRequest("GET", self._url(calendarId), self.token)
+
     def patch(self, *, calendarId: str, body: dict[str, Any]) -> CalendarRestRequest:
-        url = "https://www.googleapis.com/calendar/v3/calendars/" + urllib.parse.quote(calendarId, safe="")
-        return CalendarRestRequest("PATCH", url, self.token, body)
+        return CalendarRestRequest("PATCH", self._url(calendarId), self.token, body)
 
 
 def sync_calendar_metadata(service, calendar_id: str, metadata: dict[str, str]) -> bool:
+    """Bring the calendar's name, description and time zone in line; return whether it wrote."""
     body = {
         "summary": metadata.get("calendar_name") or "口琴公開活動",
         "description": metadata.get("purpose") or "",
         "timeZone": metadata.get("timezone") or "Asia/Taipei",
     }
+    current = service.calendars().get(calendarId=calendar_id).execute() or {}
+    if all((current.get(key) or "") == value for key, value in body.items()):
+        return False
     service.calendars().patch(calendarId=calendar_id, body=body).execute()
     return True
 
@@ -380,7 +427,7 @@ def sync_one_calendar(
 ) -> dict[str, Any]:
     calendar_id = metadata["calendar_id"]
     source_events = load_events(metadata_events_path(metadata))
-    sync_calendar_metadata(service, calendar_id, metadata)
+    metadata_updated = sync_calendar_metadata(service, calendar_id, metadata)
     existing = existing_managed_events(service, calendar_id, history_days=history_days)
     wanted_ids = {str(event.get("id") or "") for event in source_events if event.get("id")}
     result: dict[str, Any] = {
@@ -389,9 +436,10 @@ def sync_one_calendar(
         "calendarId": calendar_id,
         "calendarName": metadata.get("calendar_name") or "",
         "eventsPath": str(metadata_events_path(metadata).relative_to(PROJECT_ROOT)),
-        "metadataUpdated": True,
+        "metadataUpdated": metadata_updated,
         "created": 0,
         "updated": 0,
+        "unchanged": 0,
         "deleted": 0,
         "duplicatesDeleted": 0,
         "kept": len(wanted_ids),
@@ -418,12 +466,16 @@ def sync_one_calendar(
                 existing_copies,
                 key=lambda item: (str(item.get("created") or ""), str(item.get("id") or "")),
             )
-            service.events().patch(
-                calendarId=calendar_id,
-                eventId=canonical["id"],
-                body=event_patch_resource(event),
-            ).execute()
-            result["updated"] += 1
+            patch_body = event_patch_resource(event)
+            if remote_event_matches(canonical, patch_body):
+                result["unchanged"] += 1
+            else:
+                service.events().patch(
+                    calendarId=calendar_id,
+                    eventId=canonical["id"],
+                    body=patch_body,
+                ).execute()
+                result["updated"] += 1
             for duplicate in existing_copies:
                 if duplicate.get("id") == canonical.get("id"):
                     continue
@@ -484,6 +536,7 @@ def main() -> int:
         "calendarId": args.calendar_id or "",
         "created": 0,
         "updated": 0,
+        "unchanged": 0,
         "deleted": 0,
         "duplicatesDeleted": 0,
         "kept": 0,
@@ -564,12 +617,13 @@ def run_sync(args, status: dict[str, Any], calendar_metadata_rows: list[dict[str
                     "error": str(exc),
                     "created": 0,
                     "updated": 0,
+                    "unchanged": 0,
                     "deleted": 0,
                     "duplicatesDeleted": 0,
                     "kept": 0,
                 }
             )
-    for field in ("created", "updated", "deleted", "duplicatesDeleted", "kept"):
+    for field in ("created", "updated", "unchanged", "deleted", "duplicatesDeleted", "kept"):
         status[field] = sum(int(result.get(field) or 0) for result in results)
     failures = [result for result in results if result.get("status") != "ok"]
     status["calendars"] = results
@@ -581,7 +635,7 @@ def run_sync(args, status: dict[str, Any], calendar_metadata_rows: list[dict[str
     print(
         "Google Calendar sync completed: "
         f"calendars={len(results) - len(failures)}/{len(results)} "
-        f"created={status['created']} updated={status['updated']} "
+        f"created={status['created']} updated={status['updated']} unchanged={status['unchanged']} "
         f"deleted={status['deleted']} duplicate_deletions={status['duplicatesDeleted']} "
         f"kept={status['kept']}"
     )

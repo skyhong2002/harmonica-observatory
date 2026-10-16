@@ -44,19 +44,28 @@ class FakeEvents:
 
 
 class FakeCalendars:
+    def __init__(self, current=None):
+        self.current = current or {}
+        self.patched = []
+
+    def get(self, **kwargs):
+        return FakeRequest(dict(self.current))
+
     def patch(self, **kwargs):
+        self.patched.append(kwargs)
         return FakeRequest()
 
 
 class FakeService:
-    def __init__(self, existing):
+    def __init__(self, existing, calendar=None):
         self.fake_events = FakeEvents(existing)
+        self.fake_calendars = FakeCalendars(calendar)
 
     def events(self):
         return self.fake_events
 
     def calendars(self):
-        return FakeCalendars()
+        return self.fake_calendars
 
 
 class GoogleCalendarSyncTests(unittest.TestCase):
@@ -171,6 +180,91 @@ class GoogleCalendarSyncTests(unittest.TestCase):
         self.assertEqual([item["eventId"] for item in service.fake_events.deleted], ["newer-copy"])
         self.assertEqual(result["duplicatesDeleted"], 1)
         self.assertEqual(result["deleted"], 1)
+
+    def run_sync_one(self, service, events, metadata=None):
+        with mock.patch.object(sync, "load_events", return_value=events):
+            return sync.sync_one_calendar(
+                service,
+                {
+                    "calendar_id": "calendar@example.test",
+                    "calendar_key": "taiwan",
+                    "calendar_name": "臺灣口琴實體活動",
+                    "purpose": "實際舉辦地點在臺灣的公開口琴實體活動",
+                    "timezone": "Asia/Taipei",
+                    "events_path": "site/api/public-calendar-events.json",
+                    **(metadata or {}),
+                },
+            )
+
+    def remote_copy(self, event, remote_id="remote-1", **overrides):
+        """What the Calendar API returns for an event created from ``event``."""
+        body = sync.event_resource(event)
+        remote = {
+            "id": remote_id,
+            "created": "2026-07-01T00:00:00Z",
+            "status": "confirmed",
+            "htmlLink": "https://calendar.google.com/event?eid=x",
+            **{key: value for key, value in body.items() if value not in ("", [])},
+        }
+        # Google echoes timed events in its own offset form and adds its own fields.
+        for key in ("start", "end"):
+            if "dateTime" in remote[key]:
+                instant = sync.dt.datetime.fromisoformat(remote[key]["dateTime"])
+                remote[key] = {**remote[key], "dateTime": instant.astimezone(sync.dt.timezone.utc).isoformat().replace("+00:00", "Z")}
+        remote.update(overrides)
+        return remote
+
+    def test_unchanged_calendar_and_events_are_not_written(self):
+        timed = {
+            "id": "timed", "eventName": "口琴音樂會", "start": "2026-11-14T19:30:00+08:00",
+            "end": "2026-11-14T21:30:00+08:00", "timezone": "Asia/Taipei", "location": "臺北",
+            "details": "公開演出", "evidenceUrl": "https://example.test/post",
+        }
+        all_day = {"id": "all-day", "eventName": "口琴節", "start": "2026-10-31", "end": "2026-11-01", "allDay": True}
+        service = FakeService(
+            [self.remote_copy(timed, "remote-timed"), self.remote_copy(all_day, "remote-all-day")],
+            calendar={
+                "id": "calendar@example.test",
+                "summary": "臺灣口琴實體活動",
+                "description": "實際舉辦地點在臺灣的公開口琴實體活動",
+                "timeZone": "Asia/Taipei",
+            },
+        )
+        result = self.run_sync_one(service, [timed, all_day])
+
+        self.assertEqual(service.fake_events.patched, [])
+        self.assertEqual(service.fake_calendars.patched, [])
+        self.assertEqual((result["updated"], result["unchanged"]), (0, 2))
+        self.assertFalse(result["metadataUpdated"])
+
+    def test_changed_fields_are_still_patched(self):
+        event = {
+            "id": "timed", "eventName": "口琴音樂會", "start": "2026-11-14T19:30:00+08:00",
+            "end": "2026-11-14T21:30:00+08:00", "timezone": "Asia/Taipei", "location": "臺北",
+        }
+        stale_copies = [
+            self.remote_copy(event, summary="舊名稱"),
+            self.remote_copy(event, location=""),
+            self.remote_copy(event, start={"dateTime": "2026-11-14T20:30:00+08:00", "timeZone": "Asia/Taipei"}),
+            self.remote_copy(event, start={"date": "2026-11-14"}),
+            self.remote_copy(event, end={"dateTime": "2026-11-14T21:30:00+08:00", "timeZone": "Asia/Tokyo"}),
+            self.remote_copy(event, extendedProperties={"private": {sync.PRIVATE_EVENT_ID_KEY: "timed"}}),
+        ]
+        for stale in stale_copies:
+            with self.subTest(stale=stale):
+                service = FakeService([stale], calendar={"summary": "舊日曆"})
+                result = self.run_sync_one(service, [event])
+                self.assertEqual(len(service.fake_events.patched), 1)
+                self.assertEqual((result["updated"], result["unchanged"]), (1, 0))
+                self.assertEqual(len(service.fake_calendars.patched), 1)
+                self.assertTrue(result["metadataUpdated"])
+
+    def test_timed_event_becoming_all_day_is_patched(self):
+        timed = {"id": "e", "eventName": "活動", "start": "2026-10-31T10:00:00+08:00", "end": "2026-10-31T12:00:00+08:00"}
+        all_day = {"id": "e", "eventName": "活動", "start": "2026-10-31", "end": "2026-11-01", "allDay": True}
+        service = FakeService([self.remote_copy(timed)])
+        self.run_sync_one(service, [all_day])
+        self.assertEqual(len(service.fake_events.patched), 1)
 
     def test_sync_refuses_to_empty_a_calendar_when_source_has_no_events(self):
         private = {
