@@ -66,10 +66,11 @@ class ApifyPoolTests(unittest.TestCase):
                 return None
         with concurrent.futures.ThreadPoolExecutor(max_workers=12) as executor:
             rows = list(executor.map(reserve, range(20)))
-        self.assertEqual(sum(bool(row) for row in rows), 5)
-        self.assertEqual(len(set(filter(None, rows))), 5)
-        self.assertAlmostEqual(sum(r["reservedUsd"] for r in pool._read()["runs"]), .5)
-        self.assertEqual(pool.available_budget("facebook", now=self.now), 0)
+        # At noon the two idle platforms still hold half of their thirds.
+        self.assertEqual(sum(bool(row) for row in rows), 6)
+        self.assertEqual(len(set(filter(None, rows))), 6)
+        self.assertAlmostEqual(sum(r["reservedUsd"] for r in pool._read()["runs"]), .6)
+        self.assertLess(pool.available_budget("facebook", now=self.now), .1)
         self.assertGreater(pool.available_budget("instagram", now=self.now), 0)
 
     def test_unknown_run_and_lagging_billing_do_not_restore_budget(self):
@@ -90,7 +91,7 @@ class ApifyPoolTests(unittest.TestCase):
         options = pool.story_run_options(now=self.now)
         self.assertEqual(len(options), 1)
         self.assertEqual(options[0]["resultsLeft"], 3)
-        self.assertAlmostEqual(options[0]["maxRunBudgetUsd"], .23)
+        self.assertAlmostEqual(options[0]["maxRunBudgetUsd"], .646666)
         # The three remaining slots can fund a real smaller run; ten cannot.
         with self.assertRaises(RuntimeError):
             pool.reserve_run("instagram_stories", .05, result_count=10, now=self.now)
@@ -111,8 +112,8 @@ class ApifyPoolTests(unittest.TestCase):
                                   "platform": "instagram_stories", "at": self.now, "reservedUsd": .02,
                                   "reservedResults": 39, "status": "UNKNOWN"})
         options = pool.story_run_options(now=self.now)
-        self.assertEqual(options, [{"maxRunBudgetUsd": .02, "resultsLeft": 40},
-                                   {"maxRunBudgetUsd": .23, "resultsLeft": 1}])
+        self.assertEqual(options, [{"maxRunBudgetUsd": .053333, "resultsLeft": 40},
+                                   {"maxRunBudgetUsd": .646666, "resultsLeft": 1}])
         serialized = json.dumps(options)
         for secret in ["owner-key", "alias", "second-provider", "secret"]:
             self.assertNotIn(secret, serialized)
@@ -132,9 +133,9 @@ class ApifyPoolTests(unittest.TestCase):
         self.assertEqual(result["accountCount"], 2)
         self.assertEqual(result["verifiedAccountCount"], 1)
         self.assertEqual(result["remainingUsd"], 1)
-        pool.reserve_run("facebook", .5, now=self.now)
+        pool.reserve_run("facebook", .6, now=self.now)
         with self.assertRaises(RuntimeError):
-            pool.reserve_run("facebook", .01, now=self.now)
+            pool.reserve_run("facebook", .1, now=self.now)
 
     def test_registration_quota_changes_capacity_without_network_refresh(self):
         account = {"key": "community-key", "token": "community-token", "id": "contribution-id", "community": True,
@@ -190,15 +191,17 @@ class ApifyPoolTests(unittest.TestCase):
         self.assertEqual(events, ["reserve", "save", "post"])
         self.assertEqual(state["runs"][0]["reserved_usd"], .006)
 
-    def test_apify_first_never_calls_direct_without_opt_in(self):
+    def test_disabled_direct_path_never_calls_instagram(self):
         state = {"_use_pool": True}
         source = {"id": "ig_test", "username": "test", "provider": "instagram_public", "name": "Test"}
-        with mock.patch.dict(os.environ, {"HARMONICA_INSTAGRAM_PUBLIC_FALLBACK": "0"}), \
+        with mock.patch.dict(os.environ, {"HARMONICA_INSTAGRAM_PUBLIC_DIRECT": "0"}), \
+             mock.patch.object(instagram.ig_public_host, "wait_turn") as turn, \
              mock.patch.object(pool, "available_budget", return_value=0), \
              mock.patch.object(instagram, "fetch_public_profile") as direct, \
              mock.patch.object(instagram, "run_actor") as actor:
             instagram.collect_profiles_pool(state, [source], "", {}, 0, self.now, lambda: None, set())
         direct.assert_not_called()
+        turn.assert_not_called()
         actor.assert_not_called()
         self.assertEqual(state["profile"]["reason"], "pool_budget_pacing")
         self.assertEqual(state["profile"]["scanned"], 0)
@@ -289,7 +292,8 @@ class ApifyPoolTests(unittest.TestCase):
             if method == "POST":
                 return {"data": {"id": "ig-run", "status": "SUCCEEDED", "defaultDatasetId": "ig-data", "usageTotalUsd": 0}}
             return []
-        with mock.patch.object(pool.time, "time", return_value=self.now), mock.patch.object(instagram, "api", side_effect=remote):
+        with mock.patch.dict(os.environ, {"HARMONICA_INSTAGRAM_PUBLIC_DIRECT": "0"}), \
+             mock.patch.object(pool.time, "time", return_value=self.now), mock.patch.object(instagram, "api", side_effect=remote):
             instagram.collect_profiles_pool(state, [source], "", {}, 0, self.now, lambda: None, set())
         self.assertEqual(state["profile"]["successful"], 0)
         self.assertNotIn("last_success_at", state["sources"]["ig_test"])
@@ -367,7 +371,37 @@ class ApifyPoolTests(unittest.TestCase):
         row = pool._read()["runs"][0]
         self.assertTrue(row["budgetOverrun"])
         self.assertEqual(row["reservedUsd"], .3)
-        self.assertAlmostEqual(pool.available_budget("facebook", now=self.now), .2)
+        self.assertAlmostEqual(pool.available_budget("facebook", now=self.now), 1 - .3 - 1 / 3, places=5)
+
+    def test_platforms_get_equal_thirds_at_day_start(self):
+        start = dt.datetime(2026, 9, 23, tzinfo=dt.timezone.utc).timestamp()
+        with pool._locked() as state:
+            state["accounts"]["owner-key"]["quota"] = {**self.quota, "checkedAt": start}
+        budgets = pool.pool_status(now=start)["platforms"]
+        for platform in ("facebook", "instagram", "instagram_stories"):
+            self.assertAlmostEqual(budgets[platform]["availableTodayUsd"], 1 / 3, places=5)
+            self.assertAlmostEqual(budgets[platform]["dailyShare"], 1 / 3)
+
+    def test_unexpired_share_of_another_platform_cannot_be_taken(self):
+        start = dt.datetime(2026, 9, 23, tzinfo=dt.timezone.utc).timestamp()
+        with pool._locked() as state:
+            state["accounts"]["owner-key"]["quota"] = {**self.quota, "checkedAt": start}
+        pool.reserve_run("facebook", .3, now=start)
+        with self.assertRaises(RuntimeError):
+            pool.reserve_run("facebook", .05, now=start)
+        self.assertAlmostEqual(pool.available_budget("instagram", now=start), 1 / 3, places=5)
+
+    def test_idle_platform_holds_half_its_share_at_noon(self):
+        # By noon half of each idle third has expired and is usable by others.
+        self.assertAlmostEqual(pool.available_budget("facebook", now=self.now), 1 - 2 / 6, places=5)
+        pool.reserve_run("facebook", .6, now=self.now)
+        with self.assertRaises(RuntimeError):
+            pool.reserve_run("facebook", .1, now=self.now)
+        budgets = pool.pool_status(now=self.now)["platforms"]
+        # Each idle platform still holds half its share; the other can use the rest.
+        self.assertAlmostEqual(budgets["instagram_stories"]["availableTodayUsd"], .4 - 1 / 6, places=5)
+        self.assertAlmostEqual(budgets["instagram"]["availableTodayUsd"], .4 - 1 / 6, places=5)
+        self.assertAlmostEqual(budgets["facebook"]["availableTodayUsd"], .4 - 2 / 6, places=5)
 
 
 if __name__ == "__main__":

@@ -26,7 +26,10 @@ ROOT = Path(os.environ.get("HARMONICA_OBSERVE_HOME", Path(__file__).resolve().pa
 STATE_PATH = ROOT / "state/apify_pool.json"
 QUOTA_TTL = 3600
 MIN_RESERVE_USD = 0.02
-PLATFORM_SHARES = {"facebook": 0.5, "instagram": 0.25, "instagram_stories": 0.25}
+# Each platform is guaranteed an equal third of the evenly paced daily amount.
+# An unspent share expires gradually over the UTC day, so the others may use
+# what a platform no longer needs, but never what it could still claim.
+PLATFORM_SHARES = {"facebook": 1 / 3, "instagram": 1 / 3, "instagram_stories": 1 / 3}
 COST_PER_SOURCE = {"facebook": 0.025, "instagram": 0.006, "instagram_stories": 0.005}
 BATCH_SIZES = {"facebook": 24, "instagram": 5, "instagram_stories": 10}
 MIN_RUN_BUDGET = {"facebook": 0.031, "instagram": 0.006, "instagram_stories": 0.0095}
@@ -253,10 +256,13 @@ def _account_view(account, state, now, all_accounts=()):
     spent_today = sum(_number(r.get("reservedUsd")) for r in today)
     days_left = max(1, math.ceil((cycle_end - now) / 86400))
     daily = (remaining + spent_today) / days_left if fresh else 0.0
-    budgets = {}
-    for platform, share in PLATFORM_SHARES.items():
-        spent = sum(_number(r.get("reservedUsd")) for r in today if r.get("platform") == platform)
-        budgets[platform] = max(0.0, min(remaining, daily * share - spent))
+    share = daily / len(PLATFORM_SHARES)
+    elapsed = min(1.0, max(0.0, (now - day_start) / 86400))
+    spent = {p: sum(_number(r.get("reservedUsd")) for r in today if r.get("platform") == p) for p in PLATFORM_SHARES}
+    held = {p: max(0.0, min(share - spent[p], share * (1 - elapsed))) for p in PLATFORM_SHARES}
+    unspent = max(0.0, daily - sum(spent.values()))
+    budgets = {p: max(0.0, min(remaining, unspent - sum(v for o, v in held.items() if o != p)))
+               for p in PLATFORM_SHARES}
     story_results = sum(int(r.get("reservedResults") or 0) for r in today if r.get("platform") == "instagram_stories")
     if story_results >= 40:
         budgets["instagram_stories"] = 0.0

@@ -9,7 +9,7 @@ It never reads the Chumei or Bamboo project's credentials, database or state.
 | Content | Default provider | Fallback |
 | --- | --- | --- |
 | Facebook public posts | `apify/facebook-posts-scraper` | None |
-| Instagram public profiles/posts | `apify/instagram-profile-scraper` | Logged-out Instagram only when `HARMONICA_INSTAGRAM_PUBLIC_FALLBACK=1` |
+| Instagram public profiles/posts | Logged-out Instagram web query, best effort | `apify/instagram-profile-scraper` for sources it does not serve |
 | Instagram stories | `intropix/instagram-stories-scraper` | Opt-in InstaStoriesViewer pilot; see rollout below |
 | Threads / RSS sources | Existing RSSHub/RSS adapters | Existing configured public fallbacks |
 | YouTube | Existing public YouTube adapter | Existing configured behavior |
@@ -62,9 +62,10 @@ largest remaining authorization for that provider is counted at a time.
    contributions retain their explicit lifetime caps. The old global Facebook
    owner-only cap does not erase capacity added by contributors.
 3. US$0.02 per provider account remains protected. Available capacity is spread
-   across remaining cycle days, with 50% for Facebook, 25% for Instagram posts
-   and 25% for stories. Unused daily portions are not borrowed by another
-   platform. This avoids one collector consuming another's entire allowance.
+   across remaining cycle days and split equally between Facebook, Instagram
+   posts and stories. An unspent third expires gradually over the UTC day: by
+   noon an idle platform still holds half of its share and the others may use
+   the rest. No collector can take what another could still claim today.
 4. Under one file lock, the pool rechecks quota, shared reservations, daily
    allowance, and the contributor's atomic SQLite authorization. It reserves
    the full request charge cap **before** making any billable POST.

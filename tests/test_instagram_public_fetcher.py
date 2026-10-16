@@ -1,6 +1,11 @@
 import copy
 import datetime as dt
+import http.cookiejar
+import io
+import json
+import os
 import sys
+import urllib.error
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -296,6 +301,164 @@ class InstagramPublicTests(unittest.TestCase):
         posts = collector.normalize_profile(self.source, {"latestPosts": [{"id": "123", "shortCode": "ABC", "timestamp": collector.iso(self.now), "isPinned": True}]})
         self.assertEqual(posts[0]["key"], "ig_story_test:123")
         self.assertTrue(posts[0]["is_pinned"])
+
+
+def _timeline(*nodes):
+    return {"data": {"xdt_api__v1__feed__user_timeline_graphql_connection": {
+        "edges": [{"node": node} for node in nodes]}}}
+
+
+def _response(body):
+    response = mock.MagicMock()
+    response.__enter__.return_value.read.return_value = body.encode() if isinstance(body, str) else body
+    return response
+
+
+class PublicWebClientTests(unittest.TestCase):
+    def setUp(self):
+        self.source = {"id": "ig_test", "username": "test", "name": "Test", "provider": "instagram_public"}
+        self.client = collector.PublicWebClient()
+        self.requests = []
+        self.replies = []
+
+        def open_(request, timeout):
+            self.requests.append(request)
+            if request.get_method() == "GET":
+                for name in ("csrftoken", "mid"):
+                    self.client.cookies.set_cookie(http.cookiejar.Cookie(
+                        0, name, "anon-" + name, None, False, ".instagram.com", True, True, "/", True,
+                        True, None, False, None, None, {}))
+                return _response('..."LSD",[],{"token":"lsd-token"}...')
+            reply = self.replies.pop(0)
+            if isinstance(reply, Exception):
+                raise reply
+            return _response(json.dumps(reply))
+
+        patcher = mock.patch.object(self.client.opener, "open", side_effect=open_)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_logged_out_query_parses_pinned_carousel_and_avatar(self):
+        user = {"username": "test", "profile_pic_url": "https://cdn.example/small.jpg",
+                "hd_profile_pic_url_info": {"url": "https://cdn.example/avatar.jpg"}}
+        self.replies = [_timeline(
+            {"code": "PINNED", "pk": "1", "taken_at": 1600000000, "timeline_pinned_user_ids": [1], "user": user},
+            {"code": "OLDER", "id": "2_99", "taken_at": 1788000000, "user": user,
+             "image_versions2": {"candidates": [{"url": "https://cdn.example/older.jpg"}]}},
+            {"code": "POST1", "pk": "3", "taken_at": 1788537600, "user": user, "caption": {"text": "Concert"},
+             "carousel_media": [{"image_versions2": {"candidates": [{"url": "https://cdn.example/1.jpg"}]}},
+                                {"display_uri": "https://cdn.example/2.jpg"},
+                                {"display_uri": "https://cdn.example/3.jpg"}]})] * 2
+        posts = collector.fetch_public_profile(self.source, self.client)
+        avatar, _ = collector.parse_public_timeline(self.source, self.replies[0]["data"][
+            "xdt_api__v1__feed__user_timeline_graphql_connection"])
+        collector.fetch_public_profile(self.source, self.client)
+        self.assertEqual(avatar, "https://cdn.example/avatar.jpg")
+        self.assertEqual([p["post_id"] for p in posts], ["3", "2", "1"])
+        self.assertEqual([p["is_pinned"] for p in posts], [False, False, True])
+        self.assertEqual(posts[0]["key"], "ig_test:3")
+        self.assertEqual(posts[0]["url"], "https://www.instagram.com/p/POST1/")
+        self.assertEqual(posts[0]["text"], "Concert")
+        self.assertEqual(posts[0]["images"], ["https://cdn.example/1.jpg", "https://cdn.example/2.jpg"])
+        self.assertEqual(posts[1]["image_url"], "https://cdn.example/older.jpg")
+        self.assertEqual(posts[0]["posted_at"], "2026-09-04T16:00:00+00:00")
+        # One anonymous bootstrap is reused across profiles; no login cookie exists.
+        self.assertEqual([r.get_method() for r in self.requests], ["GET", "POST", "POST"])
+        query = self.requests[1]
+        form = dict(collector.urllib.parse.parse_qsl(query.data.decode()))
+        self.assertEqual(form["lsd"], "lsd-token")
+        self.assertEqual(form["doc_id"], collector.PROFILE_POSTS_DOC_ID)
+        self.assertEqual(json.loads(form["variables"])["username"], "test")
+        self.assertEqual(query.get_header("X-csrftoken"), "anon-csrftoken")
+        self.assertNotIn("sessionid", [cookie.name for cookie in self.client.cookies])
+
+    def test_private_profile_and_rejected_query_raise(self):
+        self.replies = [_timeline({"code": "A", "pk": "1", "taken_at": 1788000000, "user": {"is_private": True}}),
+                        {"errors": [{"message": "execution error"}], "data": None}]
+        with self.assertRaisesRegex(ValueError, "unavailable"):
+            collector.fetch_public_profile(self.source, self.client)
+        with self.assertRaisesRegex(ValueError, "execution error"):
+            collector.fetch_public_profile(self.source, self.client)
+
+    def test_logged_out_block_is_reported_as_rate_limit(self):
+        body = b'{"message": "Please wait a few minutes before you try again.", "require_login": true}'
+        self.replies = [urllib.error.HTTPError("https://www.instagram.com/graphql/query", 401, "Unauthorized",
+                                               {}, io.BytesIO(body))]
+        with self.assertRaises(collector.PublicWebError) as caught:
+            collector.fetch_public_profile(self.source, self.client)
+        self.assertEqual(caught.exception.code, 401)
+        self.assertTrue(collector.is_rate_limited(caught.exception))
+        self.assertTrue(collector.is_rate_limited(ValueError("Please wait a few minutes")))
+        self.assertFalse(collector.is_rate_limited(ValueError("execution error")))
+
+    def test_doc_id_can_be_overridden(self):
+        with mock.patch.dict(os.environ, {"HARMONICA_IG_PROFILE_POSTS_DOC_ID": "123"}):
+            self.assertEqual(collector.PublicWebClient().doc_id, "123")
+
+
+class DirectFirstProfileTests(unittest.TestCase):
+    def setUp(self):
+        self.now = dt.datetime(2026, 9, 18, 12, tzinfo=dt.timezone.utc).timestamp()
+        self.sources = [{"id": f"ig_s{i}", "username": f"s{i}", "name": f"S{i}", "provider": "instagram_public"}
+                        for i in range(4)]
+        self.addCleanup(mock.patch.stopall)
+        mock.patch.dict(os.environ, {"HARMONICA_INSTAGRAM_PUBLIC_DIRECT": "1"}).start()
+        self.turn = mock.patch.object(collector.ig_public_host, "wait_turn", return_value=True).start()
+        self.block = mock.patch.object(collector.ig_public_host, "report_block").start()
+        self.budget = mock.patch.object(collector.apify_pool, "available_budget", return_value=.03).start()
+        self.actor = mock.patch.object(collector, "run_actor", side_effect=lambda state, token, actor, body, *a: (
+            [{"username": u, "latestPosts": []} for u in body["usernames"]], {})).start()
+
+    def collect(self, fetch):
+        mock.patch.object(collector, "fetch_public_profile", side_effect=fetch).start()
+        state = {"_use_pool": True}
+        collector.collect_profiles_pool(state, self.sources, "", {}, 0, self.now, lambda: None, set())
+        return state
+
+    def test_direct_path_serves_sources_without_apify(self):
+        state = self.collect(lambda source, client: [])
+        self.actor.assert_not_called()
+        self.assertEqual(self.turn.call_count, 4)
+        self.assertEqual(state["profile"]["status"], "ok")
+        self.assertEqual(state["profile"]["primary_backend"], "instagram_public")
+        self.assertEqual(state["profile"]["direct_served"], 4)
+        self.assertEqual({e["backend"] for e in state["sources"].values()}, {"instagram_public"})
+
+    def test_rate_limit_blocks_host_and_falls_back_to_apify(self):
+        calls = []
+        def fetch(source, client):
+            calls.append(source["username"])
+            if len(calls) == 2:
+                raise collector.PublicWebError("Instagram public web HTTP 401: Please wait a few minutes", 401)
+            return []
+        state = self.collect(fetch)
+        self.assertEqual(calls, ["s0", "s1"])
+        self.block.assert_called_once_with("harmonica")
+        self.assertEqual(self.actor.call_args.args[3]["usernames"], ["s1", "s2", "s3"])
+        self.assertEqual(state["sources"]["ig_s0"]["backend"], "instagram_public")
+        self.assertEqual(state["sources"]["ig_s3"]["backend"], "apify_public")
+        self.assertEqual(state["profile"]["successful"], 4)
+
+    def test_blocked_host_makes_no_direct_request(self):
+        self.turn.return_value = False
+        self.budget.return_value = .012
+        state = self.collect(lambda source, client: self.fail("direct request while host is blocked"))
+        self.turn.assert_called_once()
+        self.assertEqual(self.actor.call_args.args[3]["usernames"], ["s0", "s1"])
+        # Sources beyond the Apify share stay due for the next round.
+        self.assertNotIn("ig_s2", state["sources"])
+        self.assertEqual(state["profile"]["reason"], "pool_budget_pacing")
+        self.assertEqual(state["profile"]["status"], "degraded")
+
+    def test_repeated_query_failures_stop_direct_for_this_run(self):
+        self.budget.return_value = 0
+        calls = []
+        state = self.collect(lambda source, client: calls.append(1) or (_ for _ in ()).throw(ValueError("execution error")))
+        self.assertEqual(len(calls), collector.DIRECT_MAX_CONSECUTIVE_FAILURES)
+        self.block.assert_not_called()
+        self.actor.assert_not_called()
+        self.assertEqual(state["sources"]["ig_s0"]["error"], "execution error")
+        self.assertNotIn("ig_s3", state["sources"])
 
 
 if __name__ == "__main__":

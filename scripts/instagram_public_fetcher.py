@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
 """Account-independent Instagram collectors, adapted from skyhong2002/chumei.
 
-Stories and profiles use the isolated Harmonica Apify contribution pool.
-The logged-out endpoint is an explicit optional fallback. Shared reservations
-protect contributed authorization across concurrent collectors.
+Stories use the isolated Harmonica Apify contribution pool. Profiles try the
+free logged-out web query first, paced host-wide together with Chumei (see
+``ig_public_host``); what it cannot serve falls back to the same pool. Shared
+reservations protect contributed authorization across concurrent collectors.
 """
 from __future__ import annotations
 
 import argparse
 import datetime as dt
 import hashlib
+import http.cookiejar
 import json
 import math
 import os
+import re
 import shutil
 import statistics
 import subprocess
@@ -25,6 +28,7 @@ from pathlib import Path
 
 from apify_facebook_fetcher import load_json, save_json
 import apify_pool
+import ig_public_host
 from source_priority import affinity_of, event_affinity
 from story_lifecycle import display_expiry
 from run_pipeline import PROJECT_ROOT, load_dotenv, acquire_lock, release_lock
@@ -34,6 +38,13 @@ CONFIG = PROJECT_ROOT / "data/feeds/social_sources.json"
 STORY_ACTOR = "intropix/instagram-stories-scraper"
 PROFILE_ACTOR = "apify/instagram-profile-scraper"
 PROVIDERS = {"apify_stories", "instagram_public"}
+PUBLIC_APP_ID = "936619743392459"
+PUBLIC_USER_AGENT = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36")
+# Logged-out PolarisProfilePostsQuery. Instagram rotates these ids with web
+# releases; HARMONICA_IG_PROFILE_POSTS_DOC_ID overrides it without a deploy.
+PROFILE_POSTS_DOC_ID = "9310670392322965"
+DIRECT_MAX_CONSECUTIVE_FAILURES = 3
 UTC = dt.timezone.utc
 
 
@@ -231,28 +242,109 @@ def story_row(source, item, now):
     return post
 
 
-def fetch_public_profile(source):
-    username = source["username"]
-    url = "https://www.instagram.com/api/v1/users/web_profile_info/?" + urllib.parse.urlencode({"username": username})
-    request = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": "Mozilla/5.0",
-                                                  "X-IG-App-ID": "936619743392459"})
-    with urllib.request.urlopen(request, timeout=25) as response:
-        payload = json.load(response)
-    user = (payload.get("data") or {}).get("user")
-    if not isinstance(user, dict) or user.get("is_private"):
+class PublicWebError(OSError):
+    def __init__(self, message, code=None):
+        super().__init__(message)
+        self.code = code
+
+
+def is_rate_limited(exc):
+    return getattr(exc, "code", None) in {401, 429} or "please wait a few minutes" in str(exc).casefold()
+
+
+class PublicWebClient:
+    """Logged-out instagram.com client; needs no cookie or Instagram login.
+
+    The profile page hands every anonymous visitor an LSD token plus
+    ``csrftoken``/``mid`` cookies. With them, the web app's own profile-posts
+    GraphQL query answers without an account. The older ``web_profile_info``
+    API now answers logged-out server IPs with 401 ``require_login``.
+    """
+
+    def __init__(self, base="https://www.instagram.com", doc_id=None):
+        self.base = base.rstrip("/")
+        self.doc_id = doc_id or os.environ.get("HARMONICA_IG_PROFILE_POSTS_DOC_ID") or PROFILE_POSTS_DOC_ID
+        self.cookies = http.cookiejar.CookieJar()
+        self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(self.cookies))
+        self.lsd = None
+
+    def _cookie(self, name):
+        return next((cookie.value for cookie in self.cookies if cookie.name == name), "")
+
+    def _open(self, request, label):
+        try:
+            with self.opener.open(request, timeout=30) as response:
+                return response.read(5_000_000).decode("utf-8", "replace")
+        except urllib.error.HTTPError as exc:
+            with exc:
+                body = exc.read(500).decode("utf-8", "replace")
+            raise PublicWebError(f"Instagram public web HTTP {exc.code} for {label}: {body[:120]}", exc.code) from None
+
+    def _bootstrap(self, username):
+        page = self._open(urllib.request.Request(f"{self.base}/{username}/", headers={
+            "Accept": "text/html", "Accept-Language": "en", "User-Agent": PUBLIC_USER_AGENT}), f"@{username} page")
+        match = re.search(r'"LSD",\[\],\{"token":"([^"]+)"', page)
+        if not match or not self._cookie("csrftoken"):
+            raise ValueError("Instagram public web page carried no anonymous LSD/csrf token")
+        self.lsd = match.group(1)
+
+    def fetch(self, source, limit=5):
+        username = source["username"]
+        if self.lsd is None:
+            self._bootstrap(username)
+        variables = {"data": {"count": max(12, limit), "include_reel_media_seen_timestamp": True,
+                              "include_relationship_info": True, "latest_besties_reel_media": True,
+                              "latest_reel_media": True},
+                     "username": username,
+                     "__relay_internal__pv__PolarisIsLoggedInrelayprovider": False,
+                     "__relay_internal__pv__PolarisShareSheetV3relayprovider": True}
+        body = urllib.parse.urlencode({"lsd": self.lsd, "doc_id": self.doc_id, "variables": json.dumps(variables)}).encode()
+        text = self._open(urllib.request.Request(f"{self.base}/graphql/query", body, {
+            "Accept": "*/*", "Content-Type": "application/x-www-form-urlencoded", "Origin": self.base,
+            "Referer": f"{self.base}/{username}/", "Sec-Fetch-Site": "same-origin", "User-Agent": PUBLIC_USER_AGENT,
+            "X-CSRFToken": self._cookie("csrftoken"), "X-FB-LSD": self.lsd, "X-IG-App-ID": PUBLIC_APP_ID},
+            method="POST"), f"@{username}")
+        try:
+            payload = json.loads(text)
+        except ValueError:
+            raise ValueError(f"Instagram public web returned no JSON for @{username}") from None
+        connection = (payload.get("data") or {}).get("xdt_api__v1__feed__user_timeline_graphql_connection")
+        if connection is None:
+            errors = "; ".join(str(e.get("message")) for e in payload.get("errors") or [])
+            raise ValueError(f"Instagram public web query failed for @{username}: "
+                             f"{errors or payload.get('message') or 'no timeline'}")
+        return parse_public_timeline(source, connection, limit)
+
+
+def _best_image(media):
+    candidates = (media.get("image_versions2") or {}).get("candidates") or []
+    if candidates and candidates[0].get("url"):
+        return candidates[0]["url"]
+    return media.get("display_uri")
+
+
+def parse_public_timeline(source, connection, limit=5):
+    """Return (avatar, posts) from the logged-out timeline; pinned posts are flagged."""
+    nodes = [edge.get("node") or {} for edge in connection.get("edges") or []]
+    user = next((node.get("user") for node in nodes if node.get("user")), None) or {}
+    if user.get("is_private"):
         raise ValueError("Public Instagram profile unavailable")
     posts = []
-    for edge in (user.get("edge_owner_to_timeline_media") or {}).get("edges", [])[:5]:
-        node = edge.get("node") or {}
-        if not node.get("id") or not node.get("shortcode") or not node.get("taken_at_timestamp"):
+    for node in sorted(nodes, key=lambda node: node.get("taken_at") or 0, reverse=True)[:limit]:
+        ident = str(node.get("pk") or str(node.get("id") or "").split("_")[0])
+        if not node.get("code") or not ident or not node.get("taken_at"):
             continue
-        captions = (node.get("edge_media_to_caption") or {}).get("edges") or []
-        caption = captions[0].get("node", {}).get("text", "") if captions else ""
-        post = post_row(source, node["id"], caption, f"https://www.instagram.com/p/{node['shortcode']}/",
-                        iso(node["taken_at_timestamp"]), [node["display_url"]] if node.get("display_url") else [])
-        post["is_pinned"] = bool(node.get("is_pinned"))
+        images = [url for url in map(_best_image, (node.get("carousel_media") or [node])[:2]) if url]
+        post = post_row(source, ident, (node.get("caption") or {}).get("text") or "",
+                        f"https://www.instagram.com/p/{node['code']}/", iso(node["taken_at"]), images)
+        post["is_pinned"] = bool(node.get("timeline_pinned_user_ids"))
         posts.append(post)
-    return posts
+    avatar = (user.get("hd_profile_pic_url_info") or {}).get("url") or user.get("profile_pic_url")
+    return avatar, posts
+
+
+def fetch_public_profile(source, client=None):
+    return (client or PublicWebClient()).fetch(source)[1]
 
 
 def normalize_profile(source, item):
@@ -484,7 +576,7 @@ def collect_profiles(state, sources, token, limits, cap, now, save, wanted):
 
 
 def collect_profiles_pool(state, sources, token, limits, cap, now, save, wanted):
-    """Apify is primary; direct public requests require an explicit opt-in."""
+    """Logged-out web first, paced host-wide; Apify takes what it cannot serve."""
     section = state.setdefault("profile", {})
     if not wanted and float(section.get("next_run_at") or 0) > now:
         return
@@ -495,12 +587,40 @@ def collect_profiles_pool(state, sources, token, limits, cap, now, save, wanted)
     section.update(checked_at=iso(now), scanned=0, successful=0)
     if not wanted:
         section["next_run_at"] = now + 3 * 3600
-    available = apify_pool.available_budget("instagram", now=now)
-    count = min(len(selected), max(0, math.floor((available + 1e-9) / 0.006)))
-    success = 0
+    section.pop("direct_cooldown_until", None)  # superseded by the host-wide block
+    direct_enabled = os.environ.get("HARMONICA_INSTAGRAM_PUBLIC_DIRECT", "1") != "0"
+    direct = direct_enabled
+    client = PublicWebClient() if direct else None
+    success = failures = 0
     attempted = set()
+    fallback, direct_failed = [], {}
+    for source in selected:
+        if not direct or not ig_public_host.wait_turn():
+            direct = False
+            fallback.append(source)
+            continue
+        try:
+            posts = fetch_public_profile(source, client)
+            record_source(state, source, posts, now, backend="instagram_public")
+            attempted.add(source["id"])
+            success += 1
+            failures = 0
+        except (OSError, ValueError) as exc:
+            fallback.append(source)
+            failures += 1
+            section["direct_error"] = f"Public Instagram unavailable ({getattr(exc, 'code', None) or type(exc).__name__})"
+            if is_rate_limited(exc):
+                # Every collector on this host stops until the block should lift.
+                ig_public_host.report_block("harmonica")
+                direct = False
+            else:
+                direct_failed[source["id"]] = str(exc)[:240]
+                # Repeated failures point at the query itself (e.g. a rotated doc id).
+                direct = failures < DIRECT_MAX_CONSECUTIVE_FAILURES
+    available = apify_pool.available_budget("instagram", now=now)
+    count = min(len(fallback), max(0, math.floor((available + 1e-9) / 0.006)))
     if count:
-        batch = selected[:count]
+        batch = fallback[:count]
         items, _ = run_actor(state, "", PROFILE_ACTOR,
                              {"usernames": [s["username"] for s in batch], "includeAboutSection": False},
                              count, round(count * 0.006, 6), now, save)
@@ -516,24 +636,17 @@ def collect_profiles_pool(state, sources, token, limits, cap, now, save, wanted)
                 success += 1
             except ValueError as exc:
                 record_source(state, source, [], now, error=str(exc), backend="apify_public")
-    allow_direct = os.environ.get("HARMONICA_INSTAGRAM_PUBLIC_FALLBACK", "0") == "1"
-    if allow_direct and float(section.get("direct_cooldown_until") or 0) <= now:
-        for source in selected:
-            if source["id"] in attempted:
-                continue
-            try:
-                posts = fetch_public_profile(source)
-                record_source(state, source, posts, now, backend="instagram_public")
-                success += 1
-                attempted.add(source["id"])
-            except (OSError, ValueError) as exc:
-                section["direct_cooldown_until"] = now + 86400
-                section["direct_error"] = f"Public Instagram unavailable ({getattr(exc, 'code', type(exc).__name__)})"
-                break
+    for source in fallback[count:]:
+        # Rate-limited or never-tried sources stay due for the next round.
+        if source["id"] in direct_failed:
+            attempted.add(source["id"])
+            record_source(state, source, [], now, error=direct_failed[source["id"]], backend="instagram_public")
     section.update(status="ok" if success == len(selected) else "paused" if not attempted else "degraded",
                    scanned=len(attempted), successful=success, available_usd=available,
-                   reason="" if success == len(selected) else "pool_budget_pacing" if not count else "partial_scan",
-                   primary_backend="apify", direct_fallback_enabled=allow_direct)
+                   reason="" if success == len(selected) else "pool_budget_pacing" if len(fallback) > count else "partial_scan",
+                   primary_backend="instagram_public", direct_enabled=direct_enabled,
+                   direct_served=len(selected) - len(fallback))
+    section.pop("direct_fallback_enabled", None)
     if success:
         section["last_success_at"] = iso(now)
     save()

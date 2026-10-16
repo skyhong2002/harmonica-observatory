@@ -557,7 +557,7 @@ def public_instagram_component(state: dict[str, Any], sources: list[dict[str, An
         remaining = pool.get("remainingUsd")
         capacity = f"US${float(remaining):.3f}" if isinstance(remaining, (int, float)) else "尚未驗證"
         details.append(f"Apify 社群池可用授權額度 {capacity}；{pool.get('verifiedAccountCount', 0)} 個已驗證帳戶，{pool.get('unknownAccountCount', 0)} 個額度待確認。")
-        details.append("依帳戶剩餘天數分配 Facebook 50%、Instagram 貼文 25%、限動 25%；完整執行上限先行保留，未確認費用不回補。")
+        details.append("依帳戶剩餘天數平均分配，Facebook、Instagram 貼文與限動各保障三分之一，沒用完的份額會在當天逐步釋出給其他兩項；完整執行上限先行保留，未確認費用不回補。")
         details.append("限動每批最多 10 個來源、10 筆；每個 Apify 帳戶每日最多 40 筆。")
     else:
         remaining = quota.get('remaining_usd')

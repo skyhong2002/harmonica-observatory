@@ -8,9 +8,12 @@ Profile and Story source IDs remain unchanged, preserving deduplication.
 - Stories: `intropix/instagram-stories-scraper`, using only this site's configured
   Apify credential. Only the public organization and professional creator accounts
   already in the directory are targets; mentions are never added as targets.
-- Profiles: the logged-out Instagram endpoint first, with a separate 24-hour
-  cooldown after refusal. A small `apify/instagram-profile-scraper` fallback is
-  available above a US$1 reserve for Stories and Facebook.
+- Profiles: the free logged-out web GraphQL query first (the same one Chumei
+  uses; `HARMONICA_IG_PROFILE_POSTS_DOC_ID` overrides a rotated doc id). From
+  this host Instagram answers very few logged-out queries, often only one before
+  401 "Please wait a few minutes", so `apify/instagram-profile-scraper` remains
+  the workhorse for every source the direct query does not serve.
+  `HARMONICA_INSTAGRAM_PUBLIC_DIRECT=0` disables the direct query.
 - Both collectors run at most once per three hours, even when the fast pipeline
   runs every 30 minutes. Individual sources have adaptive 12–336 hour intervals
   (Stories capped at 168 hours). Never-checked accounts rotate first, ordered by
@@ -31,8 +34,9 @@ reported limit. No code purchases credit or changes the Apify subscription.
 Only this project's configured credential is read; Chumei contributor tokens
 are not imported.
 
-Instagram receives at most half of evenly paced remaining credit each UTC day,
-capped at US$0.20/day. The rest remains available to Facebook. Each Story run
+Instagram posts and Stories each receive a third of the pool's evenly paced
+daily credit, shared with Facebook as described in
+[the Apify pool policy](apify-pool.md#spending-policy). Each Story run
 scans at most 10 accounts, returns at most 10 items and observes a 40-item daily
 limit. A billable request reserves its worst-case cost and result count on disk
 before submission and sets Apify's `maxTotalChargeUsd`. Unknown outcomes keep
@@ -44,6 +48,17 @@ and partial scans. Unattempted accounts remain due. Daily allowance denial
 retries after UTC midnight; provider capacity denial retries after one hour.
 Images are cached immediately; videos receive a cached first-frame preview.
 Expired Stories are filtered before ingest and again by the homepage.
+
+## Host-wide Instagram pacing
+
+Chumei and Harmonica share this server's IP, so logged-out queries from both
+take turns through `scripts/ig_public_host.py` (state in
+`~/.cache/observe-instagram-public.json`; Chumei keeps an identical copy).
+Queries are spaced at least 10 seconds apart. On the first refusal (HTTP
+401/429 or "Please wait a few minutes") the collector records a host block and
+every collector on the host stops direct queries for `BLOCK_SECONDS` (two
+hours), so neither project keeps the IP blocked. Three consecutive other
+failures stop the direct query for the current run only.
 
 ## Operations
 
