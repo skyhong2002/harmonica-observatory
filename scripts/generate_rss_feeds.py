@@ -35,6 +35,9 @@ SITE_DATA = SITE_ROOT / "data" / "site-data.js"
 CANDIDATES = PROJECT_ROOT / "data" / "feeds" / "social_candidates.jsonl"
 SOCIAL_SOURCES = PROJECT_ROOT / "data" / "feeds" / "social_sources.json"
 SOURCE_PROFILES_CACHE = PROJECT_ROOT / "data" / "feeds" / "source_profiles.json"
+# Sources whose feed and page expose no usable avatar (blocked Instagram routes,
+# pages without og:image) are fetched again only after this delay, not every run.
+PROFILE_AVATAR_RETRY_AFTER = dt.timedelta(hours=24)
 UPDATES_OUT = SITE_ROOT / "feeds" / "updates.xml"
 SOURCES_OUT = SITE_ROOT / "feeds" / "sources.xml"
 UPDATES_JSON_OUT = SITE_ROOT / "feeds" / "updates.json"
@@ -1007,6 +1010,9 @@ def build_source_profiles(
         for source_id, profile in (cache.get("profiles") or {}).items()
         if isinstance(profile, dict)
     }
+    raw_attempts = cache.get("avatarAttempts") if isinstance(cache.get("avatarAttempts"), dict) else {}
+    avatar_attempts: dict[str, str] = {str(key): str(value) for key, value in raw_attempts.items()}
+    now = dt.datetime.now(dt.timezone.utc)
 
     row_profiles: dict[str, dict[str, str]] = {}
     for row in rows:
@@ -1029,9 +1035,17 @@ def build_source_profiles(
         avatar_source_override = (avatar_source_overrides or {}).get(source_id, "").strip()
         if avatar_source_override:
             profile["avatar_source_url"] = avatar_source_override
-        if not profile.get("avatar_source_url") or not usable_profile_avatar_source(str(profile.get("avatar_source_url") or "")):
-            fetched = fetch_source_profile(source)
-            profile = merge_profile(profile, fetched)
+        if not usable_profile_avatar_source(str(profile.get("avatar_source_url") or "")):
+            last_attempt = parse_time(avatar_attempts.get(source_id))
+            if last_attempt is None or now - last_attempt >= PROFILE_AVATAR_RETRY_AFTER:
+                profile = merge_profile(profile, fetch_source_profile(source))
+                if usable_profile_avatar_source(str(profile.get("avatar_source_url") or "")):
+                    avatar_attempts.pop(source_id, None)
+                else:
+                    avatar_attempts[source_id] = now.isoformat()
+                changed = True
+        elif avatar_attempts.pop(source_id, None) is not None:
+            changed = True
         if ensure_profile_avatar_url(profile):
             changed = True
         if profiles.get(source_id) != profile:
@@ -1042,8 +1056,9 @@ def build_source_profiles(
         write_json(
             SOURCE_PROFILES_CACHE,
             {
-                "updatedAt": dt.datetime.now(dt.timezone.utc).isoformat(),
+                "updatedAt": now.isoformat(),
                 "profiles": profiles,
+                "avatarAttempts": dict(sorted(avatar_attempts.items())),
             },
         )
     return {source_id: profiles.get(source_id, {}) for source_id in needed_ids}
