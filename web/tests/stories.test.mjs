@@ -99,6 +99,24 @@ for (const locale of ['en', 'zh-Hant', 'ja', 'ko']) test(`empty-state refresh pr
   cleanup(); dom.window.close();
 });
 
+for (const locale of ['en', 'zh-Hant', 'ja', 'ko']) test(`empty-to-live refresh transfers focused status link to strip in ${locale}`, async () => {
+  setLocale(locale);
+  const data = { ...catalog, stories: [] };
+  const { dom, root, doc } = refreshingStoryDom(data);
+  const strip = root.querySelector('.ob-story-strip');
+  const draft = root.querySelector('#draft');
+  const cleanup = bindStories(root, { catalog: data, refreshCatalog: async () => ({ ...catalog, stories: [story] }) });
+  root.querySelector('.ob-story-empty a').focus();
+  assert.equal(doc.activeElement, root.querySelector('.ob-story-empty a'));
+  doc.dispatchEvent(new dom.window.Event('visibilitychange'));
+  await settle();
+  assert.equal(root.querySelector('.ob-story-empty'), null);
+  assert.equal(root.querySelectorAll('.ob-story-card').length, 1);
+  assert.equal(doc.activeElement, strip);
+  assert.equal(root.querySelector('#draft'), draft);
+  cleanup(); dom.window.close();
+});
+
 test('expiry removes only expired cards, keeps live playback nodes, and preserves archive data', async () => {
   setLocale('en');
   const expires = { ...story, id: 'ending', expiresAt: new Date(Date.now() + 60).toISOString() };

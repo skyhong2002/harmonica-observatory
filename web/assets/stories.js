@@ -93,7 +93,12 @@ export function bindStories(root, { catalog, refreshCatalog, onRefresh, refreshO
           if (focused) strip.focus({ preventScroll: true });
         }
       }
-      if (live.length) strip.querySelector('.ob-story-empty')?.remove();
+      if (live.length) {
+        const empty = strip.querySelector('.ob-story-empty');
+        const focused = empty?.contains(owner.activeElement);
+        empty?.remove();
+        if (focused) strip.focus({ preventScroll: true });
+      }
       for (let i = 0; i < live.length; i++) {
         const story = live[i], id = String(story.id || story.url || '');
         const kept = existing.get(id);
