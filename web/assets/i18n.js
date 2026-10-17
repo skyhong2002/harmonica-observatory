@@ -461,6 +461,7 @@ const rows = {
   checkedCoverage: ["Sources checked in 24h", "24 小時內成功檢查來源", "24時間以内に確認できた提供元", "24시간 내 확인된 출처"],
   configuredSources: ["Configured sources", "設定來源數", "設定済みの提供元", "설정된 출처"],
   lastSourceCheck: ["Last successful source check", "最近成功檢查來源", "提供元の最終確認成功", "최근 출처 확인 성공"],
+  coverageUnknown: ["Unknown (source checks unconfirmed)", "未知（來源檢查尚未確認）", "不明（提供元の確認結果が未確定）", "알 수 없음 (출처 확인 결과 미확정)"],
   budgetDeferred: ["Collection deferred by budget or batch limits", "因預算或批次限制延後抓取", "予算やバッチ制限により収集を延期", "예산 또는 배치 제한으로 수집 연기"],
   collectionScheduled: ["Waiting for the next scheduled collection", "等待下一次排程抓取", "次回の収集予定まで待機中", "다음 수집 일정 대기 중"],
   storyCollectionPaused: ["Story collection is paused or deferred. Existing posts remain available.", "限動抓取已暫停或延後；既有貼文仍可瀏覽。", "ストーリーの収集は一時停止または延期中です。収集済みの投稿は閲覧できます。", "스토리 수집이 일시 중지 또는 연기되었습니다. 기존 게시물은 계속 볼 수 있습니다."],

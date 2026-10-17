@@ -24,6 +24,18 @@ test('status distinguishes a fresh snapshot from zero collection coverage and bu
     assert.ok(document.body.textContent.includes(t('snapshotNote')));
   }
 });
+test('unconfirmed coverage is unknown rather than zero successful checks in four locales', () => {
+  for (const locale of ['en', 'zh-Hant', 'ja', 'ko']) {
+    setLocale(locale);
+    document.body.innerHTML = statusView({ status: { services: [{ id: 'facebook', count: 2,
+      status: 'degraded', coverage: { checkedSources24h: null, totalSources: 2, lastSuccessAt: '' },
+    }] } });
+    const coverage = document.querySelector('tbody tr').children[3];
+    assert.ok(coverage.textContent.includes(t('coverageUnknown')));
+    assert.doesNotMatch(coverage.textContent, /[02] \/ 2/);
+    assert.equal(coverage.querySelector('time'), null);
+  }
+});
 test('directory sorting uses real post counts and remains independent of locale and following',()=>{
  setLocale('en');
  assert.deepEqual(sortSources(sources,'posts',true,catalog).map(s=>s.id),['b','a']);

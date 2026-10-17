@@ -11,6 +11,15 @@ import global_catalog as catalog
 
 
 class CatalogTests(unittest.TestCase):
+    def test_unknown_source_coverage_survives_public_catalog(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            coverage = {"windowHours": 24, "checkedSources24h": None, "totalSources": 2, "lastSuccessAt": ""}
+            (root / "status.json").write_text(json.dumps({"generatedAt": "2026-10-18T00:00:00Z",
+                "watchSources": {"platformRows": [{"platform": "facebook", "coverage": coverage}]}}))
+            result = catalog.build_catalog(root, now=datetime(2026, 10, 18, tzinfo=timezone.utc))["status"]
+            self.assertEqual(result["services"][0]["coverage"], coverage)
+
     def test_collection_status_keeps_coverage_and_safe_story_pause_details(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

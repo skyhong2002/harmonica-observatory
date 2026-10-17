@@ -210,7 +210,8 @@ export function statusView(catalog, community) {
   const services = (status.services || []).map(service => {
     const coverage = service.coverage || {};
     const checked = Number.isFinite(coverage.checkedSources24h) && Number.isFinite(coverage.totalSources)
-      ? `${number(coverage.checkedSources24h)} / ${number(coverage.totalSources)}` : "—";
+      ? `${number(coverage.checkedSources24h)} / ${number(coverage.totalSources)}`
+      : coverage.checkedSources24h === null ? t("coverageUnknown") : "—";
     const reason = service.reasonCode === "budget_deferred" ? "budgetDeferred"
       : ["scheduled", "no_sources_due"].includes(service.reasonCode) ? "collectionScheduled" : "";
     return `<tr><td>${esc(platformName(service.name || service.id))}</td><td><span class="status-pill ${label(service.status) === "healthy" ? "is-ok" : ""}">${t(label(service.status))}</span>${reason ? `<p>${esc(t(reason))}</p>` : ""}</td><td>${number(service.count)}</td><td>${checked}<br><small>${t("lastSourceCheck")}: ${timestamp(coverage.lastSuccessAt)}</small></td><td>${number(service.errors)}</td></tr>`;

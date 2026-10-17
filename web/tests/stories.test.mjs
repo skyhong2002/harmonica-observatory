@@ -76,19 +76,25 @@ test('empty story surfaces explain a budget pause consistently in all four local
   }
 });
 
-test('refresh updates an empty strip from budget pause to scheduled without replacing unrelated nodes', async () => {
-  setLocale('en');
+for (const locale of ['en', 'zh-Hant', 'ja', 'ko']) test(`empty-state refresh preserves focused status link in ${locale}`, async () => {
+  setLocale(locale);
+  const { t } = await import('../assets/i18n.js');
   const data = { stories: [], status: { stories: { status: 'paused', reasonCode: 'pool_budget_pacing' } } };
   const { dom, root, doc } = refreshingStoryDom(data);
   const draft = root.querySelector('#draft');
   const cleanup = bindStories(root, { catalog: data, refreshCatalog: async () => ({
     stories: [], status: { stories: { status: 'paused', reasonCode: 'no_sources_due' } },
   }) });
-  assert.match(root.querySelector('.ob-story-empty').textContent, /budget/);
+  const link = root.querySelector('.ob-story-empty a');
+  link.focus();
+  assert.equal(doc.activeElement, link);
+  assert.ok(root.querySelector('.ob-story-empty').textContent.includes(t('budgetDeferred')));
   doc.dispatchEvent(new dom.window.Event('visibilitychange'));
   await settle();
-  assert.match(root.querySelector('.ob-story-empty').textContent, /next scheduled collection/);
-  assert.doesNotMatch(root.querySelector('.ob-story-empty').textContent, /budget or batch/);
+  assert.ok(root.querySelector('.ob-story-empty').textContent.includes(t('collectionScheduled')));
+  assert.ok(!root.querySelector('.ob-story-empty').textContent.includes(t('budgetDeferred')));
+  assert.equal(doc.activeElement, root.querySelector('.ob-story-empty a'));
+  assert.equal(doc.activeElement.getAttribute('href'), `/status/?lang=${locale}`);
   assert.equal(root.querySelector('#draft'), draft);
   cleanup(); dom.window.close();
 });

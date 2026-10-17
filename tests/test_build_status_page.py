@@ -43,10 +43,45 @@ class CollectionStatusTests(unittest.TestCase):
                                                   facebook, {"sources": {"yt": {"last_success_at": stale}}}, now=now)
         self.assertEqual(result["website"]["checkedSources24h"], 1)
         self.assertEqual(result["website"]["totalSources"], 3)
-        self.assertEqual(result["facebook"]["checkedSources24h"], 1)
+        self.assertIsNone(result["facebook"]["checkedSources24h"])
+        self.assertEqual(result["facebook"]["lastSuccessAt"], fresh)
         self.assertEqual(result["instagram"]["checkedSources24h"], 1)
         self.assertEqual(result["youtube"]["checkedSources24h"], 0)
         self.assertEqual(result["youtube"]["lastSuccessAt"], stale)
+
+    def test_unconfirmed_legacy_facebook_run_has_unknown_coverage(self):
+        now = dt.datetime(2026, 10, 18, tzinfo=dt.timezone.utc)
+        fresh = (now - dt.timedelta(hours=2)).isoformat()
+        sources = [{"id": sid, "platform": "facebook", "type": "facebook_page_posts"}
+                   for sid in ("fb_a", "fb_b")]
+        legacy = {"finished_at": fresh, "status": "SUCCEEDED", "error_count": 1,
+                  "source_ids": ["fb_a", "fb_b"]}
+        for extra in ({}, {"error_count": 0}, {"confirmed_source_ids": []},
+                      {"confirmed_source_ids": None}, {"confirmed_source_ids": "fb_a,fb_b"}):
+            with self.subTest(extra=extra):
+                result = build_status_page.source_coverage(sources, {}, {}, {"runs": [{**legacy, **extra}]},
+                                                          {}, now=now)["facebook"]
+                self.assertIsNone(result["checkedSources24h"])
+                self.assertEqual(result["totalSources"], 2)
+                self.assertEqual(result["lastSuccessAt"], "")
+
+    def test_confirmed_facebook_checks_survive_unconfirmed_runs_regardless_of_order(self):
+        now = dt.datetime(2026, 10, 18, tzinfo=dt.timezone.utc)
+        fresh = (now - dt.timedelta(hours=2)).isoformat()
+        stale = (now - dt.timedelta(days=2)).isoformat()
+        future = (now + dt.timedelta(hours=2)).isoformat()
+        source = [{"id": "fb", "platform": "facebook", "type": "facebook_page_posts"}]
+        legacy = {"finished_at": fresh, "status": "SUCCEEDED", "error_count": 1, "source_ids": ["fb"]}
+        for stamp, status, expected, last in ((fresh, "SUCCEEDED", 1, fresh),
+                                            (stale, "SUCCEEDED", None, stale),
+                                            (future, "SUCCEEDED", None, ""),
+                                            (fresh, "FAILED", None, "")):
+            confirmed = {**legacy, "finished_at": stamp, "status": status, "confirmed_source_ids": ["fb"]}
+            for runs in ([legacy, confirmed], [confirmed, legacy]):
+                with self.subTest(stamp=stamp, status=status, runs=runs):
+                    result = build_status_page.source_coverage(source, {}, {}, {"runs": runs}, {}, now=now)["facebook"]
+                    self.assertEqual(result["checkedSources24h"], expected)
+                    self.assertEqual(result["lastSuccessAt"], last)
 
     def build_fixture(self, *, offline=False):
         now = dt.datetime.now(dt.timezone.utc).isoformat()

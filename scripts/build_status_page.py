@@ -598,10 +598,28 @@ def source_coverage(
     youtube_ledger: dict[str, Any], *, now: dt.datetime,
 ) -> dict[str, dict[str, Any]]:
     """Count successful source checks, never snapshot builds or selected plans."""
-    from apify_facebook_fetcher import source_run_stats
+    from apify_facebook_fetcher import ledger_runs
 
-    facebook = source_run_stats(facebook_ledger)
+    # Scheduling's legacy stats infer success from selection. Public coverage
+    # needs explicit per-source evidence, even when the actor itself succeeded.
+    facebook: dict[str, dt.datetime] = {}
+    unconfirmed_facebook: set[str] = set()
+    for run in ledger_runs(facebook_ledger):
+        finished = parse_time(run.get("finished_at") or run.get("started_at"))
+        if run.get("status") != "SUCCEEDED" or finished is None or finished > now:
+            continue
+        confirmed = run.get("confirmed_source_ids")
+        confirmed = confirmed if isinstance(confirmed, list) else []
+        for source_id in run.get("source_ids") or []:
+            sid = str(source_id or "")
+            if not sid:
+                continue
+            if sid in confirmed:
+                facebook[sid] = max(facebook.get(sid, finished), finished)
+            elif now - finished <= dt.timedelta(hours=24):
+                unconfirmed_facebook.add(sid)
     result: dict[str, dict[str, Any]] = {}
+    unknown_platforms: set[str] = set()
     for source in sources:
         platform = str(source.get("platform") or "unknown")
         row = result.setdefault(platform, {"windowHours": 24, "checkedSources24h": 0,
@@ -613,7 +631,9 @@ def source_coverage(
         if source.get("provider") in {"instagram_public", "apify_stories"}:
             success = parse_time(instagram_state.get("sources", {}).get(sid, {}).get("last_success_at"))
         elif source.get("type") == "facebook_page_posts":
-            success = facebook.get(sid, {}).get("last_successful_at")
+            success = facebook.get(sid)
+            if sid in unconfirmed_facebook and (success is None or now - success > dt.timedelta(hours=24)):
+                unknown_platforms.add(platform)
         elif source.get("type") == "youtube_ytdlp":
             success = parse_time(youtube_ledger.get("sources", {}).get(sid, {}).get("last_success_at"))
         if success is None or success > now:
@@ -622,6 +642,9 @@ def source_coverage(
             row["checkedSources24h"] += 1
         stamp = success.isoformat(timespec="seconds")
         row["lastSuccessAt"] = max(row["lastSuccessAt"], stamp)
+    for platform in unknown_platforms:
+        # Missing evidence is unknown, not a claim that no sources succeeded.
+        result[platform]["checkedSources24h"] = None
     return result
 
 

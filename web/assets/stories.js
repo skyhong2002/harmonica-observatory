@@ -70,7 +70,11 @@ export function bindStories(root, { catalog, refreshCatalog, onRefresh, refreshO
       }
       if (!strip.querySelector('.ob-story-card')) {
         const empty = storyEmptyMarkup(catalog);
-        if (strip.innerHTML !== empty) strip.innerHTML = empty;
+        if (strip.innerHTML !== empty) {
+          const focusedLink = strip.querySelector('.ob-story-empty a') === owner.activeElement;
+          strip.innerHTML = empty;
+          if (focusedLink) strip.querySelector('.ob-story-empty a')?.focus({ preventScroll: true });
+        }
       }
     }
     root.querySelectorAll('[data-story-observed]').forEach(node => { node.innerHTML = observedContent(catalog); });
