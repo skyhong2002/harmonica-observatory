@@ -1,8 +1,10 @@
 import json
 import sys
+import tempfile
 import unittest
 import urllib.parse
 from pathlib import Path
+from unittest.mock import patch
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -134,7 +136,12 @@ class ReportLinkTests(unittest.TestCase):
         self.assertIn('<span class="entry-id" aria-label="來源 ID 777">ID 777</span><h3>', rendered)
 
     def test_source_index_uses_content_version_for_directory_data(self):
-        rendered = generate_seo_pages.generate_source_index_base_page()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'data').mkdir()
+            (root / 'data/site-data.js').write_text('window.SITE_DATA = {"entries": []};')
+            with patch.object(generate_seo_pages, 'SITE_ROOT', root):
+                rendered = generate_seo_pages.generate_source_index_base_page()
         self.assertRegex(rendered, r'/data/site-data\.js\?data=[0-9a-f]{12}')
         self.assertNotIn(
             f'/data/site-data.js?v={generate_seo_pages.ASSET_VERSION}', rendered

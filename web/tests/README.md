@@ -30,3 +30,12 @@ pinned development dependency used only for DOM integration tests.
 
 These tests do not validate CSS layout or a browser's native dialog rendering.
 Use the separately authorized browser acceptance workflow for those checks.
+
+`stories.test.mjs` also checks that empty story surfaces explain paused and
+budget-deferred collection in all four languages, and update that explanation
+after a snapshot refresh. `views.test.mjs` distinguishes build timestamps from
+successful source checks and keeps paused status visible at zero coverage.
+
+Run Python fixtures with `.venv/bin/python tests/run_offline.py`. The offline CI
+workflow uses this guarded runner and the same frontend tests, without ingestion,
+inference, credentials, calendar synchronization or deployment.

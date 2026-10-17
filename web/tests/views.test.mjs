@@ -4,10 +4,26 @@ import { JSDOM } from 'jsdom';
 const dom = new JSDOM('<html><body></body></html>', { url: 'http://localhost/' });
 globalThis.document = dom.window.document;
 globalThis.localStorage = dom.window.localStorage;
-const { setLocale } = await import('../assets/i18n.js');
-const { sourceCard, sortSources, postCard, togglePostExpansion } = await import('../assets/views.js');
+const { setLocale, t } = await import('../assets/i18n.js');
+const { sourceCard, sortSources, postCard, togglePostExpansion, statusView } = await import('../assets/views.js');
 const sources = [{ id:'a',name:'Alpha',countryCode:'JP',url:'/source/alpha/',updatedAt:'2026-01-01',avatar:'/assets/avatar.webp' },{id:'b',name:'Beta',countryCode:'KR',url:'/source/beta/',updatedAt:'2026-02-01'}];
 const catalog = {posts:[{sourceId:'b'},{sourceId:'b'},{sourceId:'a'}]};
+test('status distinguishes a fresh snapshot from zero collection coverage and budget deferral in four locales', () => {
+  for (const locale of ['en', 'zh-Hant', 'ja', 'ko']) {
+    setLocale(locale);
+    document.body.innerHTML = statusView({ generatedAt: '2026-10-18T00:00:00Z', status: {
+      overall: 'paused', updatedAt: '2026-10-18T00:00:00Z', services: [{ id: 'facebook', count: 73,
+        status: 'paused', reasonCode: 'budget_deferred', errors: 0,
+        coverage: { checkedSources24h: 0, totalSources: 73, lastSuccessAt: '' } }],
+    } });
+    assert.equal(document.querySelector('.status-hero h2').textContent, t('paused'));
+    assert.equal(document.querySelector('.status-orb.ok'), null);
+    assert.ok(document.querySelector('tbody').textContent.includes(t('budgetDeferred')));
+    assert.ok(document.querySelector('thead').textContent.includes(t('checkedCoverage')));
+    assert.match(document.querySelector('tbody').textContent, /0 \/ 73/);
+    assert.ok(document.body.textContent.includes(t('snapshotNote')));
+  }
+});
 test('directory sorting uses real post counts and remains independent of locale and following',()=>{
  setLocale('en');
  assert.deepEqual(sortSources(sources,'posts',true,catalog).map(s=>s.id),['b','a']);

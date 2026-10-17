@@ -11,6 +11,29 @@ import global_catalog as catalog
 
 
 class CatalogTests(unittest.TestCase):
+    def test_collection_status_keeps_coverage_and_safe_story_pause_details(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            status = {'generatedAt': '2026-10-18T00:00:00Z', 'overall': {'status': 'paused'},
+                      'watchSources': {'platformRows': [{'platform': 'facebook', 'status': 'paused',
+                          'reasonCode': 'budget_deferred', 'sources': 4, 'coverage': {
+                              'windowHours': 24, 'checkedSources24h': 0, 'totalSources': 4,
+                              'lastSuccessAt': '', 'secret': 'PRIVATE'}}]},
+                      'components': [{'id': 'instagram', 'stories': {'status': 'paused',
+                          'reasonCode': 'pool_budget_pacing', 'checkedSources24h': 2, 'totalSources': 9,
+                          'reason': 'PRIVATE', 'error': 'PRIVATE', 'nextRunAt': '2026-10-18T01:00:00Z'}}]}
+            (root / 'status.json').write_text(json.dumps(status))
+            result = catalog.build_catalog(root, now=datetime(2026, 10, 18, tzinfo=timezone.utc))['status']
+            self.assertEqual(result['services'][0]['coverage']['checkedSources24h'], 0)
+            self.assertEqual(result['services'][0]['reasonCode'], 'budget_deferred')
+            self.assertEqual(result['stories']['reasonCode'], 'pool_budget_pacing')
+            self.assertNotIn('PRIVATE', json.dumps(result))
+            stale = catalog.build_catalog(root, now=datetime(2026, 10, 19, tzinfo=timezone.utc))['status']
+            self.assertEqual(stale['overall'], 'unknown')
+            self.assertEqual(stale['services'][0]['status'], 'unknown')
+            self.assertEqual(stale['services'][0]['reasonCode'], '')
+            self.assertEqual(stale['stories']['status'], 'unknown')
+
     def test_event_translations_are_bound_to_exact_record_and_preserve_original(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -213,7 +236,8 @@ class CatalogTests(unittest.TestCase):
             self.assertEqual(result['events'][0]['start'], event['start'])
             self.assertEqual(result['events'][1]['countryCode'], 'ONLINE')
             self.assertNotIn('NEVER-EXPOSE', json.dumps(result))
-            self.assertEqual(result['status']['services'][0]['status'], 'paused')
+            self.assertEqual(result['status']['services'][0]['status'], 'unknown')
+            self.assertEqual(result['status']['services'][0]['lastKnownStatus'], 'paused')
 
     def test_calendar_embed_metadata_is_allowlisted_and_tracks_snapshot_changes(self):
         with tempfile.TemporaryDirectory() as directory:

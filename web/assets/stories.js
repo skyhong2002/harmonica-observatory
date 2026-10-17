@@ -41,9 +41,17 @@ function observedContent(catalog) {
 export function storyObservedMarkup(catalog) {
   return `<span class="home-updated" data-story-observed>${observedContent(catalog)}</span>`;
 }
+export function storyEmptyMarkup(catalog) {
+  const status = catalog.status?.stories || {};
+  const reason = ['credit_budget', 'daily_result_limit', 'user_daily_exhausted', 'free_capacity_exhausted', 'pool_budget_pacing', 'public_unavailable_credit_reserve'].includes(status.reasonCode)
+    ? 'budgetDeferred' : status.reasonCode === 'no_sources_due' ? 'collectionScheduled' : '';
+  const detail = status.status === 'paused' || status.status === 'deferred' ? 'storyCollectionPaused'
+    : status.status === 'degraded' || status.status === 'error' ? 'storyCollectionAttention' : '';
+  return `<p class="ob-story-empty story-empty" role="status">${esc(word('empty'))}${detail ? `<br>${esc(t(detail))}${reason ? `<br>${esc(t(reason))}` : ''}` : ''} <a href="/status/?lang=${encodeURIComponent(getLocale())}">${esc(t('status'))}</a></p>`;
+}
 export function storiesView(catalog) {
   const stories = activeStories(catalog);
-  return `<section class="ob-stories" aria-label="${esc(t('stories'))}"><div class="ob-story-strip" tabindex="0" role="region" aria-label="${esc(word('browse'))}">${stories.length ? stories.map(story => storyCard(story, catalog.sources || [])).join('') : `<p class="ob-story-empty" role="status">${esc(word('empty'))}</p>`}</div></section>`;
+  return `<section class="ob-stories" aria-label="${esc(t('stories'))}"><div class="ob-story-strip" tabindex="0" role="region" aria-label="${esc(word('browse'))}">${stories.length ? stories.map(story => storyCard(story, catalog.sources || [])).join('') : storyEmptyMarkup(catalog)}</div></section>`;
 }
 
 export function bindStories(root, { catalog, refreshCatalog, onRefresh, refreshOnMount = false, refreshInterval = 60000, refreshTimeout = 15000 } = {}) {
@@ -60,8 +68,9 @@ export function bindStories(root, { catalog, refreshCatalog, onRefresh, refreshO
         if (expiry <= Date.now()) { const focused = card.contains(owner.activeElement); card.remove(); if (focused) strip.focus({ preventScroll: true }); }
         else next = Math.min(next, expiry);
       }
-      if (!strip.querySelector('.ob-story-card') && !strip.querySelector('.ob-story-empty')) {
-        strip.innerHTML = `<p class="ob-story-empty" role="status">${esc(word('empty'))}</p>`;
+      if (!strip.querySelector('.ob-story-card')) {
+        const empty = storyEmptyMarkup(catalog);
+        if (strip.innerHTML !== empty) strip.innerHTML = empty;
       }
     }
     root.querySelectorAll('[data-story-observed]').forEach(node => { node.innerHTML = observedContent(catalog); });
@@ -116,6 +125,7 @@ export function bindStories(root, { catalog, refreshCatalog, onRefresh, refreshO
       if (disposed || request.signal.aborted) return;
       if (!next || !Array.isArray(next.stories)) throw new Error('invalid_stories');
       catalog.stories = next.stories;
+      if (next.status) catalog.status = next.status;
       onRefresh?.(next);
       patch(next);
     } catch (error) {

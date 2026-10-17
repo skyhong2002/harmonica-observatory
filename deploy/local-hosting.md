@@ -54,6 +54,12 @@ launchctl kickstart -k gui/$(id -u)/tw.observe.harmonica.web
 
 詳見 [Apify 池](apify-pool.md)。所有新 actor 請求先預留完整上限；不明結果保留預留，不能以重試繞過額度。社群貢獻上限為累計授權，不會在換月自動重置。
 
+網站來源失敗（包含連線逾時）後，重試間隔以該來源的 `interval_hours` 為下限，隨連續失敗次數倍增，加入依來源及嘗試時間決定的 jitter，最多等候 48 小時。若原本間隔超過 48 小時，仍保留原本間隔。成功後清除錯誤次數並恢復既有分散時段排程；不調高單次連線逾時，也不更動 IG pacing、共用鎖或監看名單。
+
+狀態頁把公開快照產生時間與來源檢查分開呈現。24 小時涵蓋率只計入已記錄的成功來源檢查（成功但沒有新貼文也計入）；選入批次、失敗嘗試或重新建置不算成功。Facebook 有到期來源卻未選入批次時顯示暫停／延後，不因 token 檢查成功就顯示正常。離線建置未探測的服務與超過六小時的服務狀態保留為未知；舊時間與涵蓋數據仍可供參考。
+
+可在隔離 checkout 執行 `.venv/bin/python tests/run_offline.py` 驗證。此測試入口使用暫存社群／推論狀態，封鎖外部 socket 連線，以及非 Node fixture 的真實子程序（例如 Keychain、curl、Git 與服務命令）。既有 pipeline、日曆、推送與付費收集測試使用 mock，不會執行實際操作。CI 只執行這些測試與四語 UI fixture 測試，不建置或部署服務，也不使用 secrets。
+
 ## AI 閘道推論
 
 預設 `HARMONICA_LLM_PROVIDER=gateway`：維護者的抓取／整理與投稿審核流程以 OpenAI 相容 Chat Completions 呼叫本機中央閘道（CLIProxyAPI，政策見 `~/Projects/ai-gateway`）。專案只請求語意別名，具體模型由閘道政策決定。沒有公開 inference endpoint；訪客只讀快取資料與隨程式附帶的四語文字。

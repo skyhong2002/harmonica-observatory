@@ -1261,6 +1261,8 @@ def record_webpage_attempt(
         return
     source_id = source_identity(source)
     interval_hours = max(0.5, float(source.get("interval_hours") or 12.0))
+    entry = fetch_state.setdefault("sources", {}).setdefault(source_id, {})
+    consecutive_errors = int(entry.get("consecutive_errors") or 0) + 1
     if status == "ok":
         # Each watcher keeps its own phase of the interval, so watchers fetched in
         # the same run spread out instead of all coming due together again. The
@@ -1272,8 +1274,16 @@ def record_webpage_attempt(
             interval_hours=interval_hours,
         )
     else:
-        next_due_at = now + dt.timedelta(hours=min(interval_hours, 1.0))
-    entry = fetch_state.setdefault("sources", {}).setdefault(source_id, {})
+        # Never retry a failed website faster than its normal interval. Bounded,
+        # deterministic jitter spreads retries without changing on each build.
+        # Long custom intervals remain the lower bound, even above the 48h cap.
+        cap_hours = max(interval_hours, 48.0)
+        delay_hours = min(cap_hours, interval_hours * 2 ** min(consecutive_errors - 1, 16))
+        floor_hours = max(interval_hours, delay_hours * 0.8)
+        ceiling_hours = min(cap_hours, delay_hours * 1.2)
+        seed = f"webpage:{source_id}:{consecutive_errors}:{utc_iso(now)}"
+        fraction = int(hashlib.sha256(seed.encode()).hexdigest()[:8], 16) / 0xffffffff
+        next_due_at = now + dt.timedelta(hours=floor_hours + (ceiling_hours - floor_hours) * fraction)
     entry.update(
         {
             "source_type": "webpage_watch",
@@ -1288,10 +1298,11 @@ def record_webpage_attempt(
         entry["last_success_at"] = utc_iso(now)
         entry["consecutive_errors"] = 0
         entry.pop("last_error", None)
-    elif error:
+        entry.pop("last_error_at", None)
+    else:
         entry["last_error_at"] = utc_iso(now)
         entry["last_error"] = compact_text(error, 500)
-        entry["consecutive_errors"] = int(entry.get("consecutive_errors") or 0) + 1
+        entry["consecutive_errors"] = consecutive_errors
 
 
 def rss_backoff_applies(source: dict[str, Any]) -> bool:

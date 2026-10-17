@@ -375,7 +375,11 @@ def build_catalog(api_root: Path | str = API_ROOT, *, now: datetime | None = Non
         'overall': (raw_status.get('overall') or {}).get('status', 'unknown') if isinstance(raw_status.get('overall'), dict) else str(raw_status.get('overall') or 'unknown'),
         'updatedAt': raw_status.get('generatedAt'),
         'services': [{'id': r.get('platform'), 'name': r.get('platform'),
-                      'status': r.get('status', 'unknown'), 'count': r.get('sources', 0),
+                      'status': r.get('status', 'unknown') if snapshot_state == 'current' else 'unknown',
+                      'lastKnownStatus': r.get('status', 'unknown'), 'count': r.get('sources', 0),
+                      'coverage': {k: v for k, v in _dict(r.get('coverage')).items()
+                                   if k in ('windowHours', 'checkedSources24h', 'totalSources', 'lastSuccessAt')},
+                      'reasonCode': r.get('reasonCode') if snapshot_state == 'current' and r.get('reasonCode') in ('budget_deferred', 'no_sources_due', 'scheduled') else '',
                       'errors': r.get('currentErrors', 0)} for r in platform_rows if isinstance(r, dict)],
         'provider': 'mixed', 'scheduler': 'unknown', 'schedulerVerified': False,
         'providers': [
@@ -394,6 +398,19 @@ def build_catalog(api_root: Path | str = API_ROOT, *, now: datetime | None = Non
     status['lastKnownOverall'] = status['overall']
     if snapshot_state != 'current':
         status['overall'] = 'unknown'
+    instagram = next((c for c in _list(raw_status.get('components'))
+                      if isinstance(c, dict) and c.get('id') == 'instagram'), {})
+    story_status = _dict(instagram.get('stories'))
+    status['stories'] = {
+        'status': story_status.get('status', 'unknown') if snapshot_state == 'current' else 'unknown',
+        'reasonCode': story_status.get('reasonCode') if story_status.get('reasonCode') in {
+            'credit_budget', 'daily_result_limit', 'user_daily_exhausted', 'free_capacity_exhausted',
+            'pool_budget_pacing', 'no_sources_due', 'partial_scan', 'public_unavailable_credit_reserve',
+        } else '',
+        **{k: v for k, v in story_status.items() if k in {
+            'lastSuccessAt', 'checkedSources24h', 'totalSources', 'nextRunAt',
+        }},
+    }
     calendar_sync = snapshots['public-calendar-sync.json']
     calendars = []
     seen_calendars = set()

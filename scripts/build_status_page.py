@@ -552,6 +552,7 @@ def public_instagram_component(state: dict[str, Any], sources: list[dict[str, An
         active = sum(1 for e in successful for p in e.get("posts", [])
                      if (expiry := parse_time(p.get("story_expires_at"))) and expiry > now) if kind == "story" else 0
         sections[kind] = {"status": status, "reason": reason, "lastSuccessAt": latest,
+                          "reasonCode": str(row.get("reason") or ""),
                           "checkedSources24h": fresh, "totalSources": len(selected), "activeStories": active,
                           "nextRunAt": dt.datetime.fromtimestamp(float(row.get("next_run_at") or 0), dt.timezone.utc).isoformat()}
         details.append(f"{title}：24 小時內成功檢查 {fresh}/{len(selected)} 個來源；最後成功 {time_label(parse_time(latest))}。")
@@ -577,6 +578,50 @@ def public_instagram_component(state: dict[str, Any], sources: list[dict[str, An
     result = component("instagram", "Instagram 擷取", overall,
                        f"免登入分批抓取；目前可顯示 {sections['story']['activeStories']} 筆限動。", details)
     result.update(stories=sections["story"], profiles=sections["profile"])
+    return result
+
+
+def facebook_plan_status(plan: dict[str, Any]) -> tuple[str, str]:
+    """Availability of a collection plan is independent of successful coverage."""
+    if not plan.get("ok") or not plan.get("has_token"):
+        return "degraded", "provider_unavailable"
+    if int(plan.get("sources_selected_count") or 0) == 0:
+        return "paused", "budget_deferred" if int(plan.get("sources_due_count") or 0) > 0 else "no_sources_due"
+    if plan.get("cadence_ready") is False:
+        return "paused", "scheduled"
+    return "ok", ""
+
+
+def source_coverage(
+    sources: list[dict[str, Any]], fetch_state: dict[str, Any],
+    instagram_state: dict[str, Any], facebook_ledger: dict[str, Any],
+    youtube_ledger: dict[str, Any], *, now: dt.datetime,
+) -> dict[str, dict[str, Any]]:
+    """Count successful source checks, never snapshot builds or selected plans."""
+    from apify_facebook_fetcher import source_run_stats
+
+    facebook = source_run_stats(facebook_ledger)
+    result: dict[str, dict[str, Any]] = {}
+    for source in sources:
+        platform = str(source.get("platform") or "unknown")
+        row = result.setdefault(platform, {"windowHours": 24, "checkedSources24h": 0,
+                                           "totalSources": 0, "lastSuccessAt": ""})
+        row["totalSources"] += 1
+        sid = str(source.get("id") or "")
+        entry = fetch_state.get("sources", {}).get(sid, {})
+        success = parse_time(entry.get("last_success_at"))
+        if source.get("provider") in {"instagram_public", "apify_stories"}:
+            success = parse_time(instagram_state.get("sources", {}).get(sid, {}).get("last_success_at"))
+        elif source.get("type") == "facebook_page_posts":
+            success = facebook.get(sid, {}).get("last_successful_at")
+        elif source.get("type") == "youtube_ytdlp":
+            success = parse_time(youtube_ledger.get("sources", {}).get(sid, {}).get("last_success_at"))
+        if success is None or success > now:
+            continue
+        if now - success <= dt.timedelta(hours=24):
+            row["checkedSources24h"] += 1
+        stamp = success.isoformat(timespec="seconds")
+        row["lastSuccessAt"] = max(row["lastSuccessAt"], stamp)
     return result
 
 
@@ -792,7 +837,7 @@ def build_status(*, offline: bool = False) -> dict[str, Any]:
 
     latest_apify_run = apify_ledger.get("last_run") or (apify_ledger.get("runs") or [None])[-1] if isinstance(apify_ledger, dict) else None
     apify_errors = current_error_types.get("apify", 0)
-    apify_status = "ok"
+    apify_status, apify_reason = facebook_plan_status(apify)
     apify_summary = f"{watch_platforms.get('facebook', 0)} 個 Facebook 來源。"
     apify_details = []
     if isinstance(latest_apify_run, dict):
@@ -817,15 +862,18 @@ def build_status(*, offline: bool = False) -> dict[str, Any]:
                 f"規劃單次預算：{format_usd(apify.get('planned_run_budget_usd'))}",
             ]
         )
-        if selected == 0 and minimum and due < minimum:
+        if selected == 0:
             apify_status = "paused"
-            apify_summary += " 目前依預算 pacing 暫停開 run，等待 due 來源累積。"
+            apify_summary += " 來源已到期，因預算或批次限制延後抓取。" if due else " 依排程等待來源到期。"
+        elif apify_status == "paused":
+            apify_summary += " 依排程等待下一輪抓取。"
         else:
             apify_summary += " Apify token/quota check 正常。"
     if apify_errors:
         apify_status = "degraded"
         apify_summary += f" 最新抓取批次有 {apify_errors} 個 Apify 錯誤。"
     components.append(component("facebook-apify", "Facebook Apify", apify_status, apify_summary, apify_details))
+    components[-1]["reasonCode"] = apify_reason
 
     latest_youtube_run = youtube_ledger.get("last_run") or (youtube_ledger.get("runs") or [None])[-1] if isinstance(youtube_ledger, dict) else None
     youtube_errors = current_error_types.get("youtube_ytdlp", 0)
@@ -865,12 +913,25 @@ def build_status(*, offline: bool = False) -> dict[str, Any]:
         )
     )
 
+    if offline:
+        for item in components:
+            if item["id"] in {"rsshub", "facebook-apify"}:
+                item.update(status="unknown", label=STATUS_LABELS["unknown"], reasonCode="offline_build",
+                            summary="Offline build: live availability and provider quota were not checked.", details=[])
+    coverage = source_coverage(sources, social_fetch_state, instagram_public_state,
+                               apify_ledger, youtube_ledger, now=now)
     degraded_components = [item for item in components if item["status"] in {"down", "degraded"}]
     paused_components = [item for item in components if item["status"] == "paused"]
     if degraded_components:
         overall_status = "degraded"
         degraded_names = "、".join(item["name"] for item in degraded_components)
-        overall_summary = f"核心 pipeline 有產出；需要注意：{degraded_names}。"
+        overall_summary = f"需要注意：{degraded_names}。公開快照時間不代表來源已重新抓取。"
+    elif paused_components:
+        overall_status = "paused"
+        overall_summary = "部分抓取依排程或預算暫停；既有公開資料仍可瀏覽。"
+    elif any(item["status"] == "unknown" for item in components):
+        overall_status = "unknown"
+        overall_summary = "部分服務尚未檢查；公開快照時間不代表來源已重新抓取。"
     else:
         overall_status = "ok"
         overall_summary = "核心資料抓取與公開 API 正常。"
@@ -884,12 +945,16 @@ def build_status(*, offline: bool = False) -> dict[str, Any]:
         platform_status = "degraded" if error_count else "ok"
         if platform == "instagram":
             platform_status = next(c["status"] for c in components if c["id"] == "instagram")
+        elif platform == "facebook":
+            platform_status = next(c["status"] for c in components if c["id"] == "facebook-apify")
         platform_rows.append(
             {
                 "platform": platform,
                 "sources": count,
                 "currentErrors": error_count,
                 "status": platform_status,
+                "coverage": coverage[platform],
+                "reasonCode": apify_reason if platform == "facebook" and not offline else "",
             }
         )
 
@@ -925,10 +990,6 @@ def build_status(*, offline: bool = False) -> dict[str, Any]:
     if offline:
         status["probeMode"] = "offline"
         status["crawlFrequency"] = {"available": False, "estimate": True, "platforms": {}, "reason": "offline_build"}
-        for item in status["components"]:
-            if item["id"] in {"rsshub", "facebook-apify"}:
-                item.update(status="unknown", label=STATUS_LABELS["unknown"],
-                                 summary="Offline build: live availability and provider quota were not checked.", details=[])
         return status
     try:
         from apify_pool import crawl_schedule_snapshot

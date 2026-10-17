@@ -185,13 +185,76 @@ class SocialFeedWatchdogWebpageTests(unittest.TestCase):
         second_due = watchdog.parse_datetime(state["sources"]["web_249"]["next_due_at"])
         self.assertEqual(second_due - first_due, dt.timedelta(hours=12))
 
-    def test_webpage_error_still_retries_within_an_hour(self):
+    def test_webpage_errors_back_off_with_jitter_and_recover_to_normal_phase(self):
         state = {"version": 1, "sources": {}}
         now = dt.datetime(2026, 8, 20, 3, 0, tzinfo=dt.timezone.utc)
-        watchdog.record_webpage_attempt(state, self.source, now=now, status="error", error="HTTP 500")
-        entry = state["sources"]["web_249"]
-        self.assertEqual(watchdog.parse_datetime(entry["next_due_at"]), now + dt.timedelta(hours=1))
-        self.assertEqual(entry["consecutive_errors"], 1)
+        for count, low, high in ((1, 12, 14.4), (2, 19.2, 28.8), (3, 38.4, 48), (4, 38.4, 48)):
+            watchdog.record_webpage_attempt(state, self.source, now=now, status="error", error="timed out")
+            entry = state["sources"]["web_249"]
+            delay = watchdog.parse_datetime(entry["next_due_at"]) - now
+            self.assertGreaterEqual(delay.total_seconds(), low * 3600 - 1)
+            self.assertLessEqual(delay.total_seconds(), high * 3600)
+            self.assertEqual(entry["consecutive_errors"], count)
+            self.assertFalse(watchdog.webpage_due_info(self.source, state, now=now + dt.timedelta(hours=1))[0])
+            self.assertTrue(watchdog.webpage_due_info(self.source, state, now=now, force=True)[0])
+            now += delay
+        watchdog.record_webpage_attempt(state, self.source, now=now, status="ok")
+        self.assertEqual(entry["consecutive_errors"], 0)
+        self.assertNotIn("last_error", entry)
+        self.assertNotIn("last_error_at", entry)
+        self.assertGreaterEqual(watchdog.parse_datetime(entry["next_due_at"]), now + dt.timedelta(hours=6))
+        self.assertLess(watchdog.parse_datetime(entry["next_due_at"]), now + dt.timedelta(hours=18))
+
+    def test_webpage_backoff_caps_large_streaks_and_preserves_long_intervals(self):
+        now = dt.datetime(2026, 10, 18, tzinfo=dt.timezone.utc)
+        for interval in (0.5, 12, 24, 72):
+            source = {**self.source, "interval_hours": interval}
+            state = {"sources": {source["id"]: {"consecutive_errors": 1000}}}
+            watchdog.record_webpage_attempt(state, source, now=now, status="error")
+            entry = state["sources"][source["id"]]
+            delay = (watchdog.parse_datetime(entry["next_due_at"]) - now).total_seconds() / 3600
+            self.assertGreaterEqual(delay, interval)
+            self.assertLessEqual(delay, max(48, interval))
+            self.assertEqual(entry["consecutive_errors"], 1001)
+
+    def test_timeout_sources_get_distinct_persisted_retry_times(self):
+        now = dt.datetime(2026, 10, 18, tzinfo=dt.timezone.utc)
+        state = {"sources": {}}
+        for sid in ("web_270", "web_32"):
+            source = {**self.source, "id": sid}
+            with mock.patch.object(watchdog.urllib.request, "urlopen", side_effect=socket.timeout("timed out")) as request:
+                with self.assertRaises(TimeoutError):
+                    watchdog.fetch_webpage(source)
+            self.assertEqual(request.call_args.kwargs["timeout"], watchdog.REQUEST_TIMEOUT)
+            watchdog.record_webpage_attempt(state, source, now=now, status="error", error="timed out")
+        self.assertNotEqual(state["sources"]["web_270"]["next_due_at"], state["sources"]["web_32"]["next_due_at"])
+
+    def test_timeout_is_persisted_and_next_run_skips_until_recovery(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config = root / "config.json"
+            config.write_text(json.dumps({"sources": [self.source], "keywords": []}))
+            argv = ["watchdog", "--config", str(config), "--no-llm-tags"]
+            for flag, name in (("--seen", "seen.json"), ("--fetch-state", "state.json"),
+                               ("--candidates", "candidates.jsonl"), ("--errors", "errors.jsonl"),
+                               ("--progress", "progress.json")):
+                argv.extend([flag, str(root / name)])
+            with (mock.patch.object(sys, "argv", argv),
+                  mock.patch.object(watchdog, "fetch_source", side_effect=[socket.timeout("timed out"), []]) as fetch,
+                  mock.patch.object(watchdog.time, "sleep")):
+                self.assertEqual(watchdog.main(), 0)
+                self.assertEqual(watchdog.main(), 0)
+                self.assertEqual(fetch.call_count, 1)
+                entry = json.loads((root / "state.json").read_text())["sources"][self.source["id"]]
+                self.assertEqual(entry["consecutive_errors"], 1)
+                self.assertEqual(len((root / "errors.jsonl").read_text().splitlines()), 1)
+                argv.append("--baseline")
+                self.assertEqual(watchdog.main(), 0)
+                self.assertEqual(fetch.call_count, 2)
+                recovered = json.loads((root / "state.json").read_text())["sources"][self.source["id"]]
+                self.assertEqual(recovered["consecutive_errors"], 0)
+                self.assertIn("last_success_at", recovered)
+                self.assertNotIn("last_error", recovered)
 
 
 class SocialFeedWatchdogThreadsTests(unittest.TestCase):

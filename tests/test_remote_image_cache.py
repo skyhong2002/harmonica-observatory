@@ -148,7 +148,8 @@ class RemoteImageCacheTests(unittest.TestCase):
             mock.patch.object(generate_rss_feeds, "convert_image_bytes_to_webp", return_value=False),
         ):
             first = self.cache(url)
-        with mock.patch("urllib.request.urlopen", side_effect=AssertionError("network forbidden")):
+        with (mock.patch("urllib.request.urlopen", side_effect=AssertionError("network forbidden")),
+              mock.patch.object(generate_rss_feeds, "convert_image_bytes_to_webp", return_value=False)):
             self.assertEqual(self.cache(url), first)
 
 

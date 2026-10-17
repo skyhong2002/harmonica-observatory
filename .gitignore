@@ -3,6 +3,7 @@ __pycache__/
 .DS_Store
 .env
 .venv/
+web/node_modules/
 private/
 
 # Runtime logs and fetch state.

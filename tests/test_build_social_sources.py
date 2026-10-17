@@ -1,7 +1,10 @@
 import importlib.util
+import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,7 +19,12 @@ import build_public_data
 
 class BuildSocialSourcesWebpageTests(unittest.TestCase):
     def test_every_current_public_entry_has_update_source(self):
-        entries = build_public_data.build_entries()
+        # Build the registry fixture from tracked CSVs, not a private runtime file.
+        with tempfile.TemporaryDirectory() as directory:
+            config = Path(directory) / 'sources.json'
+            config.write_text(json.dumps({'sources': builder.generated_sources()}))
+            with patch.object(build_public_data, 'SOCIAL_SOURCES', config):
+                entries = build_public_data.build_entries()
 
         self.assertGreaterEqual(len(entries), 318)
         self.assertEqual(

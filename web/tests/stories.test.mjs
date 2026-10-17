@@ -58,6 +58,41 @@ test('empty state describes retrieval status without claiming sources published 
   }
 });
 
+test('empty story surfaces explain a budget pause consistently in all four locales', async () => {
+  const { storyStrip } = await import('../assets/river.js');
+  const { t } = await import('../assets/i18n.js');
+  for (const locale of ['en', 'zh-Hant', 'ja', 'ko']) {
+    setLocale(locale);
+    const data = { stories: [], status: { stories: { status: 'paused', reasonCode: 'pool_budget_pacing' } } };
+    for (const render of [storiesView, storyStrip]) {
+      const dom = new JSDOM(render(data));
+      const empty = dom.window.document.querySelector('[role="status"]');
+      assert.ok(empty.textContent.includes(t('storyCollectionPaused')));
+      assert.ok(empty.textContent.includes(t('budgetDeferred')));
+      assert.equal(empty.querySelector('a').getAttribute('href'), `/status/?lang=${locale}`);
+      dom.window.close();
+    }
+    assert.ok(!storiesView({ ...data, status: { stories: { status: 'unknown' } } }).includes(t('budgetDeferred')));
+  }
+});
+
+test('refresh updates an empty strip from budget pause to scheduled without replacing unrelated nodes', async () => {
+  setLocale('en');
+  const data = { stories: [], status: { stories: { status: 'paused', reasonCode: 'pool_budget_pacing' } } };
+  const { dom, root, doc } = refreshingStoryDom(data);
+  const draft = root.querySelector('#draft');
+  const cleanup = bindStories(root, { catalog: data, refreshCatalog: async () => ({
+    stories: [], status: { stories: { status: 'paused', reasonCode: 'no_sources_due' } },
+  }) });
+  assert.match(root.querySelector('.ob-story-empty').textContent, /budget/);
+  doc.dispatchEvent(new dom.window.Event('visibilitychange'));
+  await settle();
+  assert.match(root.querySelector('.ob-story-empty').textContent, /next scheduled collection/);
+  assert.doesNotMatch(root.querySelector('.ob-story-empty').textContent, /budget or batch/);
+  assert.equal(root.querySelector('#draft'), draft);
+  cleanup(); dom.window.close();
+});
+
 test('expiry removes only expired cards, keeps live playback nodes, and preserves archive data', async () => {
   setLocale('en');
   const expires = { ...story, id: 'ending', expiresAt: new Date(Date.now() + 60).toISOString() };

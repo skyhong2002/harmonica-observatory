@@ -1,6 +1,7 @@
 import { t, getLocale, locales, countryName } from './i18n.js';
 import { esc, icon, link, number, textMatch, platformName, sourceType, pastEvent, image, safeUrl, date } from './utils.js';
 import { postCard, eventCard } from './views.js';
+import { storyEmptyMarkup } from './stories.js';
 
 // Keep this storage namespace compatible with preferences from the previous UI.
 export const COLUMN_KEY = 'atlas-columns';
@@ -12,7 +13,6 @@ const words = {
   remove: ['Remove column', '移除河道', 'カラムを削除', '열 삭제'],
   previous: ['Previous column', '上一條河道', '前のカラム', '이전 열'],
   next: ['Next column', '下一條河道', '次のカラム', '다음 열'],
-  noStories: ['No active stories right now', '目前沒有有效限時動態', '現在公開中のストーリーはありません', '현재 공개 중인 스토리가 없습니다'],
   preview: ['Story preview', '限動預覽', 'ストーリープレビュー', '스토리 미리보기'],
   video: ['Video story', '影片限動', '動画ストーリー', '동영상 스토리'],
   unavailablePreview: ['Preview unavailable', '預覽目前無法載入', 'プレビューを読み込めません', '미리보기를 불러올 수 없습니다'],
@@ -87,7 +87,7 @@ export function storyStrip(catalog) {
     const media = video ? `<video class="story-preview story-video" controls playsinline preload="none" ${safeUrl(p.image) ? `poster="${esc(safeUrl(p.image))}"` : ''} aria-label="${esc(name + ' · ' + r('video'))}"><source src="${esc(video)}">${esc(r('video'))}</video>` : link(p.url, `${preview}<span class="story-preview-missing">${icon('layers')}<span>${esc(r(preview ? 'unavailablePreview' : 'noPreview'))}</span></span>`, 'story-media-link', `aria-label="${esc(name + ' · ' + t('original'))}"`);
     const expiry = p.expiresAt && Number.isFinite(Date.parse(p.expiresAt)) ? `<time datetime="${esc(p.expiresAt)}">${esc(r('expires'))} ${esc(date(p.expiresAt, { year: undefined, hour: '2-digit', minute: '2-digit' }))}</time>` : `<span>${esc(r('expiryUnknown'))}</span>`;
     return `<article class="story-item" data-story-id="${esc(p.id || p.url || '')}"><div class="story-media">${media}</div><div class="story-caption"><strong class="story-name" title="${esc(name)}">${esc(name)}</strong><div class="story-expiry">${expiry}</div>${link(p.url, esc(t('original')), 'story-original')}</div></article>`;
-  }).join('') : `<p class="story-empty">${r('noStories')}</p>`}</section>`;
+  }).join('') : storyEmptyMarkup(catalog)}</section>`;
 }
 function title(col) { return col.mode === 'events' ? t('upcoming') : col.followed || col.kind === 'following' ? t('following') : col.country ? countryName(col.country) : r('worldwide'); }
 function options(rows, value) { return rows.map(([key, label]) => `<option value="${esc(key)}" ${key === value ? 'selected' : ''}>${esc(label)}</option>`).join(''); }
