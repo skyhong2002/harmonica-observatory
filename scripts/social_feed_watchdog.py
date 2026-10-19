@@ -1560,8 +1560,27 @@ def normalize_threads_graphql_posts(
     *,
     source_feed_url: str,
 ) -> list[dict[str, Any]]:
-    media_data = (payload.get("data") or {}).get("mediaData") or {}
-    edges = media_data.get("edges") if isinstance(media_data, dict) else []
+    # Only an explicit empty edges list proves an empty timeline. Reject a
+    # malformed nonempty edge even when another edge contains usable posts.
+    if not isinstance(payload, dict) or payload.get("errors"):
+        raise ValueError("Threads timeline shape unavailable")
+    data = payload.get("data")
+    media_data = data.get("mediaData") if isinstance(data, dict) else None
+    edges = media_data.get("edges") if isinstance(media_data, dict) else None
+    if not isinstance(edges, list):
+        raise ValueError("Threads timeline shape unavailable")
+    for edge in edges:
+        node = edge.get("node") if isinstance(edge, dict) else None
+        items = node.get("thread_items") if isinstance(node, dict) else None
+        if not isinstance(items, list) or not items:
+            raise ValueError("Threads timeline edge unavailable")
+        for item in items:
+            post = item.get("post") if isinstance(item, dict) else None
+            if not isinstance(post, dict):
+                raise ValueError("Threads timeline post unavailable")
+            identity = post.get("pk") or post.get("id") or post.get("code")
+            if type(identity) not in (str, int) or not str(identity).strip():
+                raise ValueError("Threads timeline post identity unavailable")
     username = str(source.get("username") or "").strip().strip("@")
     posts: list[dict[str, Any]] = []
     seen_ids: set[str] = set()
