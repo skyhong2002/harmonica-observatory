@@ -15240,6 +15240,40 @@
           "재즈"
         ]
       }
+    },
+    "watchlist-368": {
+      "sourceName": "琴天娃娃｜Harmonica X Anime",
+      "sourceNameEn": "Harmonica X Anime",
+      "sourceSummary": "Instagram account of a Taichung Girls' Senior High School student who covers anime songs on harmonica, from Attack on Titan, Jujutsu Kaisen and Frieren to YOASOBI, and shares chord-harmonica accompaniment from ensemble playing.",
+      "summaryLanguage": "en",
+      "summaries": {
+        "zh-Hant": "臺中女中學生的口琴動漫歌曲翻奏帳號。以口琴重新演繹《進擊的巨人》、《咒術迴戰》、《葬送的芙莉蓮》與 YOASOBI 等動漫歌曲，也分享在合奏中擔任和弦口琴伴奏的演出。",
+        "en": "Instagram account of a Taichung Girls' Senior High School student who covers anime songs on harmonica, from Attack on Titan, Jujutsu Kaisen and Frieren to YOASOBI, and shares chord-harmonica accompaniment from ensemble playing.",
+        "ja": "台中女子高級中学の学生によるハーモニカでのアニメソングカバーのアカウント。『進撃の巨人』『呪術廻戦』『葬送のフリーレン』やYOASOBIなどの楽曲をハーモニカで演奏し、合奏でのコードハーモニカ伴奏も紹介している。",
+        "ko": "타이중여자고등학교 학생이 하모니카로 애니메이션 노래를 커버하는 계정. 〈진격의 거인〉, 〈주술회전〉, 〈장송의 프리렌〉과 YOASOBI 등의 곡을 하모니카로 연주하며, 합주에서 맡는 코드 하모니카 반주도 소개한다."
+      },
+      "sourceTags": [
+        "演奏者",
+        "和弦"
+      ],
+      "tags": {
+        "zh-Hant": [
+          "演奏者",
+          "和弦"
+        ],
+        "en": [
+          "Performers",
+          "Chord harmonica"
+        ],
+        "ja": [
+          "演奏家",
+          "コードハーモニカ"
+        ],
+        "ko": [
+          "연주자",
+          "코드 하모니카"
+        ]
+      }
     }
   }
 }
