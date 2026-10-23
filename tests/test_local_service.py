@@ -20,7 +20,17 @@ class LocalServiceTests(unittest.TestCase):
         root = Path(self.temp.name)
         (root / 'web/assets').mkdir(parents=True)
         (root / 'site/detail').mkdir(parents=True)
-        (root / 'web/index.html').write_text('multilingual shell')
+        (root / 'web/index.html').write_text('<html><head></head><body>multilingual shell</body></html>')
+        (root / 'data/sources').mkdir(parents=True)
+        (root / 'data/sources/source-url-aliases.csv').write_text(
+            'source_path,target_path,status_code,target_source_id,match_basis,notes,last_verified_at\n'
+            '/source/club-8-fcu-harmonica/,/source/189-fcu-harmonica/,301,189,sameAs,,\n'
+            '/source/club-8/,/source/189-fcu-harmonica/,301,189,sameAs,,\n'
+            '/source/watchlist-2%2Bwatchlist-75-thmf/,/source/2-thmf/,301,2,sameAs,,\n'
+            '/source/watchlist-9-renamed/,/source/9-old-name/,301,9,sameAs,,\n')
+        (root / 'data/sources/source-url-aliases-served.csv').write_text(
+            'source_path,evidence,verified_at\n/source/club-8-fcu-harmonica/,,\n'
+            '/source/watchlist-2+watchlist-75-thmf/,,\n/source/watchlist-9-renamed/,,\n')
         (root / 'web/assets/app.js').write_text('console.log("app")')
         (root / 'site/detail/index.html').write_text('<script>legacy()</script>')
         (root / 'secret.txt').write_text('must never be public')
@@ -29,7 +39,11 @@ class LocalServiceTests(unittest.TestCase):
         self.server = serve.Server(('127.0.0.1', 0), root=root, public_origin='https://atlas.example', trust_proxy=True)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
-        self.catalog = patch.object(serve, 'catalog', return_value={'sources': [{'id': 'real', 'countryCode': 'JP'}], 'posts': [], 'events': [], 'padding': 'X' * 2000})
+        sources = [{'id': 'real', 'countryCode': 'JP'},
+                   {'id': 'watchlist-189', 'publicId': '189', 'url': '/source/189-fcu-harmonica/'},
+                   {'id': 'watchlist-2', 'publicId': '2', 'url': '/source/2-thmf/'},
+                   {'id': 'watchlist-9', 'publicId': '9', 'url': '/source/9-new-name/'}]
+        self.catalog = patch.object(serve, 'catalog', return_value={'sources': sources, 'posts': [], 'events': [], 'padding': 'X' * 2000})
         self.catalog.start()
         self.schedule = patch.object(serve, 'crawl_snapshot', return_value={'available': False})
         self.schedule.start()
@@ -90,6 +104,31 @@ class LocalServiceTests(unittest.TestCase):
             self.assertEqual(status, 308)
             self.assertEqual(headers['Location'], new + '?lang=ja&country=JP')
             self.assertEqual(raw, b'')
+
+    def test_served_source_aliases_move_permanently_and_others_stay_missing(self):
+        for old, new in (('/source/club-8-fcu-harmonica/', '/source/189-fcu-harmonica/'),
+                         ('/source/club-8-fcu-harmonica', '/source/189-fcu-harmonica/'),
+                         ('/source/watchlist-2%2Bwatchlist-75-thmf/', '/source/2-thmf/'),
+                         ('/source/watchlist-2+watchlist-75-thmf/', '/source/2-thmf/')):
+            status, headers, raw = self.request('GET', old)
+            self.assertEqual((status, headers.get('Location')), (301, 'https://atlas.example' + new), old)
+            self.assertEqual(raw, b'')
+        status, headers, _ = self.request('HEAD', '/source/club-8-fcu-harmonica/?lang=ja')
+        self.assertEqual((status, headers['Location']), (301, 'https://atlas.example/source/189-fcu-harmonica/?lang=ja'))
+        # Registry rows not listed as served, and served rows whose target is
+        # no longer that ID's page, are not guessed.
+        for path in ('/source/club-8/', '/source/watchlist-9-renamed/', '/feeds/sources/84728e2c079cfc9a'):
+            self.assertEqual(self.request('GET', path)[0], 404, path)
+
+    def test_bare_url_is_english_regardless_of_accept_language(self):
+        status, _, raw = self.request('GET', '/source/189-fcu-harmonica/', headers={'Accept-Language': 'zh-TW,zh;q=0.9'})
+        self.assertEqual(status, 200)
+        self.assertIn(b'<html lang="en">', raw)
+        self.assertIn(b'<link rel="canonical" href="https://atlas.example/source/189-fcu-harmonica/">', raw)
+        status, _, raw = self.request('GET', '/source/189-fcu-harmonica/?lang=zh-Hant')
+        self.assertIn(b'<link rel="canonical" href="https://atlas.example/source/189-fcu-harmonica/?lang=zh-Hant">', raw)
+        status, _, raw = self.request('GET', '/source/189-fcu-harmonica/?lang=en')
+        self.assertIn(b'<link rel="canonical" href="https://atlas.example/source/189-fcu-harmonica/">', raw)
 
     def test_host_origin_and_csrf_checks(self):
         self.assertEqual(self.request('GET', '/', headers={'Host': 'attacker.example'})[0], 421)

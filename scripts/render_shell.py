@@ -10,6 +10,9 @@ import re
 from urllib.parse import urlencode, urlsplit, urlunsplit
 
 LOCALES = ('zh-Hant', 'en', 'ja', 'ko')
+# The bare URL is the English page and x-default; other languages add ?lang=.
+# Sitemap URLs carry no query, so they stay self-canonical.
+DEFAULT_LOCALE = 'en'
 WORDS = {
     'en': {'brand': 'Harmonica Observatory', 'home': 'Home', 'events': 'Events', 'post': 'Posts', 'source': 'Sources', 'scores': 'Scores', 'feeds': 'Subscribe', 'status': 'System status', 'contribute': 'Contribute API capacity', 'submit': 'Suggest a source', 'about': 'About', 'privacy': 'Privacy', 'description': 'Discover public harmonica events, artists, ensembles, clubs and scores around the world. Browse original sources across countries and languages.', 'original': 'Original sources', 'latest': 'Latest public posts', 'all': 'Browse all sources'},
     'zh-Hant': {'brand': '口琴觀測站', 'home': '首頁', 'events': '活動', 'post': '貼文', 'source': '來源', 'scores': '樂譜', 'feeds': '訂閱', 'status': '系統狀態', 'contribute': '貢獻 API 額度', 'submit': '回報來源', 'about': '關於', 'privacy': '隱私', 'description': '探索全球公開口琴活動、演奏者、樂團、社團與樂譜資訊，跨越國家與語言瀏覽原始來源，保留原文與活動時區。', 'original': '原始來源', 'latest': '最新公開貼文', 'all': '瀏覽所有來源'},
@@ -81,6 +84,10 @@ def normalize_locale(value: str) -> str:
     return 'en'
 
 
+def localized_path(path: str, locale: str) -> str:
+    return path if locale == DEFAULT_LOCALE else path + '?' + urlencode({'lang': locale})
+
+
 def e(value: object) -> str:
     return html.escape(str(value or ''), quote=True)
 
@@ -146,16 +153,15 @@ def render_document(template: str, path: str, catalog: dict, origin: str, locale
     if score_guide:
         page, description = SCORE_GUIDE[locale]
     title = page + ' · ' + words['brand']
-    canonical = origin.rstrip('/') + canonical_path
-    canonical += '?' + urlencode({'lang': locale})
+    canonical = origin.rstrip('/') + localized_path(canonical_path, locale)
     document = re.sub(r'<html\b[^>]*>', '<html lang="' + locale + '">', template, count=1)
     document = re.sub(r'<title>.*?</title>', lambda _: '<title>' + e(title) + '</title>', document, count=1, flags=re.S)
     document = re.sub(r'<meta\s+name=["\']description["\'][^>]*>', '', document, flags=re.I)
     document = re.sub(r'<link\s+rel=["\']canonical["\'][^>]*>', '', document, flags=re.I)
     head = '\n<meta name="description" content="' + e(description) + '">\n'
     head += '<link rel="canonical" href="' + e(canonical) + '">\n'
-    for language in LOCALES:
-        href = origin.rstrip('/') + canonical_path + '?' + urlencode({'lang': language})
+    for language in LOCALES + ('x-default',):
+        href = origin.rstrip('/') + localized_path(canonical_path, language if language in LOCALES else DEFAULT_LOCALE)
         head += '<link rel="alternate" hreflang="' + language + '" href="' + e(href) + '">\n'
     head += '<meta property="og:site_name" content="' + e(words['brand']) + '">\n'
     head += '<meta property="og:title" content="' + e(title) + '">\n'
@@ -167,7 +173,7 @@ def render_document(template: str, path: str, catalog: dict, origin: str, locale
             head += '<meta property="og:image" content="' + e(share_image) + '">\n'
             head += '<meta property="og:image:alt" content="' + e(source_name(source, locale)) + '">\n'
     document = document.replace('</head>', head + '</head>', 1)
-    nav = ' · '.join('<a href="/' + slug + '/?lang=' + locale + '">' + e(words[slug]) + '</a>'
+    nav = ' · '.join('<a href="' + e(localized_path('/' + slug + '/', locale)) + '">' + e(words[slug]) + '</a>'
                      for slug in ('events', 'post', 'source', 'scores', 'feeds', 'contribute'))
     content = '<section class="server-content" aria-label="' + e(page) + '"><nav>' + nav + '</nav><h1>' + e(page) + '</h1><p>' + e(description) + '</p>'
     if source:
@@ -185,8 +191,8 @@ def render_document(template: str, path: str, catalog: dict, origin: str, locale
             + e(row.get('title') or row.get('name')) + '</a> · ' + e(row.get('name')) + '</li>'
             for row in catalog.get('scoreSources', [])[:24]) + '</ul>'
     else:
-        content += '<ul>' + ''.join('<li><a href="' + e(s.get('url') or '/source/') + '?lang=' + locale + '">' + e(source_name(s, locale)) + '</a></li>' for s in catalog.get('sources', [])[:24]) + '</ul>'
-    content += '<a href="/source/?lang=' + locale + '">' + e(words['all']) + '</a></section>'
+        content += '<ul>' + ''.join('<li><a href="' + e(localized_path(s.get('url') or '/source/', locale)) + '">' + e(source_name(s, locale)) + '</a></li>' for s in catalog.get('sources', [])[:24]) + '</ul>'
+    content += '<a href="' + e(localized_path('/source/', locale)) + '">' + e(words['all']) + '</a></section>'
     if '<!--SERVER_CONTENT-->' in document:
         document = document.replace('<!--SERVER_CONTENT-->', content)
     else:

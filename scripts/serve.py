@@ -9,6 +9,7 @@ trusted. The repository, state directory and credentials are never served.
 from __future__ import annotations
 import argparse
 from collections import defaultdict, deque
+import csv
 import gzip
 import hmac
 from http.cookies import SimpleCookie
@@ -45,6 +46,30 @@ def catalog():
         if _CATALOG_CACHE.get('version') != version:
             _CATALOG_CACHE.update(version=version, value=build_catalog())
         return _CATALOG_CACHE['value']
+
+
+def source_redirects(root, sources):
+    """Retired /source/ paths that answer 301, keyed by decoded path.
+
+    Only registry rows listed in the served file are used, because an old
+    watchlist-N path may now belong to a different source. A row is skipped
+    when its target is no longer that public ID's current page.
+    """
+    registry_path = root / 'data/sources/source-url-aliases.csv'
+    served_path = root / 'data/sources/source-url-aliases-served.csv'
+    if not served_path.is_file() or not registry_path.is_file():
+        return {}
+    with served_path.open(newline='', encoding='utf-8') as handle:
+        served = {unquote(row['source_path']) for row in csv.DictReader(handle)}
+    pages = {str(s.get('publicId')): s.get('url') for s in sources}
+    redirects = {}
+    with registry_path.open(newline='', encoding='utf-8-sig') as handle:
+        for row in csv.DictReader(handle):
+            old = unquote(row['source_path'])
+            if (old in served and row['status_code'] == '301'
+                    and pages.get(row['target_source_id']) == row['target_path']):
+                redirects[old] = row['target_path']
+    return redirects
 
 
 def crawl_snapshot(*, now=None):
@@ -222,20 +247,33 @@ class Handler(BaseHTTPRequestHandler):
             known = any(str(s.get('id')) == route_id or s.get('url') == path or s.get('path') == path or s.get('detailUrl') == path or (path.startswith('/post/source/') and str(s.get('url', '')).rstrip('/').rsplit('/', 1)[-1] == route_id) for s in sources)
             if known:
                 return self._shell(path)
+            target = source_redirects(self.server.root, sources).get(path.rstrip('/') + '/')
+            if target:
+                return self._moved(target)
         for prefix in ('/web/assets/', '/web-assets/'):
             if path.startswith(prefix):
                 return self._safe_file(self.server.root / 'web/assets', path[len(prefix):])
         # Only the generated public site is exposed. Never fall back to repo root.
         return self._safe_file(self.server.root / 'site', path.lstrip('/'))
 
+    def _moved(self, target):
+        query = urlsplit(self.path).query
+        origin = self.server.public_origin or self._origin()[0]
+        self.send_response(301)
+        self.send_header('Location', origin + target + ('?' + query if query else ''))
+        self.send_header('Content-Length', '0')
+        self.send_header('Cache-Control', 'public, max-age=3600')
+        self.end_headers()
+
     def _shell(self, path):
-        from render_shell import normalize_locale, render_document
+        from render_shell import DEFAULT_LOCALE, normalize_locale, render_document
         template_path = self.server.root / 'web/index.html'
         if not template_path.is_file():
             return self._error('not_found', 'Application assets are missing.', 404)
         params = parse_qs(urlsplit(self.path).query)
-        language = params.get('lang', [self.headers.get('Accept-Language', 'en').split(',')[0].split(';')[0]])[0]
-        locale = normalize_locale(language)
+        # No Accept-Language negotiation: the bare URL is always the default
+        # locale so each URL has one language for crawlers and canonicals.
+        locale = normalize_locale(params.get('lang', [DEFAULT_LOCALE])[0])
         origin = self.server.public_origin or self._origin()[0]
         document = render_document(template_path.read_text(encoding='utf-8'), path, catalog(), origin, locale)
         body = document.encode('utf-8')

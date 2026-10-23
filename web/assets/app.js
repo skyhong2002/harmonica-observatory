@@ -282,11 +282,14 @@ function updateMetadata() {
   const descriptionText = source && sourceSummaryText(source) || t("aboutBody");
   const canonical = document.querySelector('link[rel="canonical"]');
   const base = canonical ? new URL(canonical.href).origin : location.origin;
-  const href = base + path() + "?lang=" + getLocale();
+  // Matches render_shell: English is the bare URL and x-default.
+  const page = source?.url || path();
+  const localized = (locale) => base + page + (locale === "en" ? "" : "?lang=" + locale);
+  const href = localized(getLocale());
   if (canonical) canonical.href = href;
   document
     .querySelectorAll("link[hreflang]")
-    .forEach((node) => (node.href = base + path() + "?lang=" + node.hreflang));
+    .forEach((node) => (node.href = localized(node.hreflang === "x-default" ? "en" : node.hreflang)));
   for (const [property, value] of [
     ["og:title", document.title],
     ["og:site_name", t("brand")],

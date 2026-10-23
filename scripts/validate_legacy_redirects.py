@@ -34,12 +34,10 @@ EXPECTED_FIELDS = [
     "notes",
     "last_verified_at",
 ]
-LIVE_REPRESENTATIVES = [
-    ("/source/watchlist-182/", "/source/179-mundharmonika-live/"),
-    ("/source/watchlist-182-mundharmonika-live/", "/source/179-mundharmonika-live/"),
-    ("/source/watchlist-34-yen-hua-wang/", "/source/34-yen-hua-wang/"),
-    ("/source/watchlist-27%2Bwatchlist-94-peacetones-harmonica/", "/source/27-peacetones-harmonica/"),
-]
+# Rows the local service answers with 301 (scripts/serve.py). The registry
+# also records Cloudflare-era aliases that are not served; some old watchlist-N
+# IDs now belong to different sources, so each served row is checked first.
+SERVED_CSV = PROJECT_ROOT / "data" / "sources" / "source-url-aliases-served.csv"
 
 
 def clean(value: str | None) -> str:
@@ -98,6 +96,13 @@ def local_file_for_path(path: str) -> Path:
     return SITE_ROOT / decoded / "index.html"
 
 
+def read_served() -> list[str]:
+    if not SERVED_CSV.exists():
+        return []
+    with SERVED_CSV.open(newline="", encoding="utf-8") as handle:
+        return [clean(row.get("source_path")) for row in csv.DictReader(handle)]
+
+
 def validate_local() -> list[str]:
     rows, errors = read_aliases()
     id_to_path, canonical_paths, source_errors = read_sources()
@@ -139,6 +144,14 @@ def validate_local() -> list[str]:
         if status_code == "410" and target_path:
             errors.append(f"line {index}: 410 row must leave target_path empty")
 
+    registry = {urllib.parse.unquote(clean(row.get("source_path"))): row for row in rows}
+    for source_path in read_served():
+        row = registry.get(urllib.parse.unquote(source_path))
+        if not row or clean(row.get("status_code")) != "301":
+            errors.append(f"served alias is not a 301 row in the registry: {source_path}")
+        elif urllib.parse.quote(urllib.parse.unquote(source_path), safe="/") in canonical_paths:
+            errors.append(f"served alias collides with a current canonical path: {source_path}")
+
     if rows and not REDIRECTS_CSV.exists():
         errors.append(f"missing generated Cloudflare bulk redirects: {REDIRECTS_CSV.relative_to(PROJECT_ROOT)}")
     elif REDIRECTS_CSV.exists():
@@ -174,34 +187,28 @@ def fetch_no_redirect(path: str) -> tuple[int | str, str]:
 
 def validate_live() -> list[str]:
     rows, errors = read_aliases()
-    alias_by_path = {clean(row.get("source_path")): row for row in rows}
-    for source_path, target_path in LIVE_REPRESENTATIVES:
-        row = alias_by_path.get(source_path)
+    alias_by_path = {urllib.parse.unquote(clean(row.get("source_path"))): row for row in rows}
+    for source_path in read_served():
+        row = alias_by_path.get(urllib.parse.unquote(source_path))
         if not row:
-            errors.append(f"live representative missing from alias registry: {source_path}")
+            errors.append(f"served alias missing from alias registry: {source_path}")
             continue
-        status, location = fetch_no_redirect(source_path)
+        target_path = clean(row.get("target_path"))
+        status, location = fetch_no_redirect(urllib.parse.quote(urllib.parse.unquote(source_path), safe="/"))
         expected_location = PUBLIC_BASE_URL + target_path
         if status != 301 or location != expected_location:
             errors.append(
                 f"{source_path}: expected 301 -> {expected_location}, got {status} -> {location or '-'}"
             )
-
-    gone_path = next(
-        (clean(row.get("source_path")) for row in rows if clean(row.get("status_code")) == "410"),
-        "",
-    )
-    if gone_path:
-        status, location = fetch_no_redirect(gone_path)
-        if status != 410:
-            errors.append(f"{gone_path}: expected 410 Gone, got {status} -> {location or '-'}")
+        elif fetch_no_redirect(target_path)[0] != 200:
+            errors.append(f"{source_path}: redirect target {target_path} is not 200")
     return errors
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--local", action="store_true", help="Validate local alias registry and generated files.")
-    parser.add_argument("--live", action="store_true", help="Validate live Cloudflare responses.")
+    parser.add_argument("--live", action="store_true", help="Validate live 301 responses for served aliases.")
     args = parser.parse_args()
 
     run_local = args.local or not args.live

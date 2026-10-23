@@ -57,10 +57,24 @@ class RenderShellTests(unittest.TestCase):
             document = render_shell.render_document(TEMPLATE, '/source/', self.catalog(), ORIGIN, locale)
             self.assertIn('<html lang="' + locale + '">', document)
             self.assertIn(html.escape(render_shell.WORDS[locale]['source']), document)
-            self.assertEqual(document.count('hreflang='), 4)
+            self.assertEqual(document.count('hreflang='), 5)
             self.assertNotIn('https://old.example/', document)
             self.assertNotIn('content="old"', document)
-            self.assertIn('rel="canonical" href="' + ORIGIN + '/source/?lang=' + locale + '"', document)
+            expected = ORIGIN + '/source/' + ('' if locale == 'en' else '?lang=' + locale)
+            self.assertIn('rel="canonical" href="' + expected + '"', document)
+            self.assertIn('hreflang="' + locale + '" href="' + expected + '"', document)
+
+    def test_english_is_the_bare_self_canonical_url_and_x_default(self):
+        document = render_shell.render_document(TEMPLATE, '/source/tokyo-42/', self.catalog(), ORIGIN, 'en')
+        self.assertIn('<link rel="canonical" href="' + ORIGIN + '/source/tokyo-42/">', document)
+        self.assertIn('<meta property="og:url" content="' + ORIGIN + '/source/tokyo-42/">', document)
+        self.assertIn('hreflang="x-default" href="' + ORIGIN + '/source/tokyo-42/"', document)
+        self.assertIn('hreflang="en" href="' + ORIGIN + '/source/tokyo-42/"', document)
+        self.assertIn('hreflang="zh-Hant" href="' + ORIGIN + '/source/tokyo-42/?lang=zh-Hant"', document)
+        self.assertNotIn('lang=en', document)
+        japanese = render_shell.render_document(TEMPLATE, '/source/tokyo-42/', self.catalog(), ORIGIN, 'ja')
+        self.assertIn('<link rel="canonical" href="' + ORIGIN + '/source/tokyo-42/?lang=ja">', japanese)
+        self.assertIn('<a href="/events/?lang=ja">', japanese)
 
     def test_brand_is_localized_consistently_in_page_and_open_graph_titles(self):
         brands = {'en': 'Harmonica Observatory', 'zh-Hant': '口琴觀測站',
@@ -154,7 +168,8 @@ class RenderShellTests(unittest.TestCase):
         for locale in render_shell.LOCALES:
             name = source['names'].get(locale, source['name'])
             document = render_shell.render_document(TEMPLATE, '/source/', catalog, ORIGIN, locale)
-            self.assertIn('href="/source/tokyo-42/?lang=' + locale + '">' + html.escape(name) + '</a>', document)
+            href = render_shell.localized_path('/source/tokyo-42/', locale)
+            self.assertIn('href="' + href + '">' + html.escape(name) + '</a>', document)
             self.assertNotIn('<literal>', document)
 
     def test_only_synthetic_instagram_story_titles_are_localized(self):
@@ -194,7 +209,8 @@ class RenderShellTests(unittest.TestCase):
         self.assertIn('<h1>Tokyo ensemble</h1>', document)
         self.assertIn('rel="canonical" href="' + ORIGIN + '/source/tokyo-42/?lang=ko"', document)
         for locale in render_shell.LOCALES:
-            self.assertIn('hreflang="' + locale + '" href="' + ORIGIN + '/source/tokyo-42/?lang=' + locale, document)
+            query = '"' if locale == 'en' else '?lang=' + locale + '"'
+            self.assertIn('hreflang="' + locale + '" href="' + ORIGIN + '/source/tokyo-42/' + query, document)
 
     def test_unrecognized_locale_falls_back_to_english(self):
         document = render_shell.render_document(TEMPLATE, '/', self.catalog(), ORIGIN, 'fr-CA')

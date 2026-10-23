@@ -277,6 +277,7 @@ test("application DOM journey across languages, routing, filters and community f
     );
     click('.site-nav a[href="/source/"]');
     change("#language-select", "en");
+    assert.equal($("link[rel=canonical]").href, "http://localhost:8330/source/");
   });
   await t.test(
     "IME input stays connected until committed and search then filters",
