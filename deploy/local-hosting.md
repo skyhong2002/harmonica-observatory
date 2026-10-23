@@ -14,6 +14,8 @@ python3 -m venv .venv
 
 開啟 <http://localhost:8330/>。語言可使用 `?lang=zh-Hant`、`en`、`ja`、`ko`。國家條件與語言無關。
 
+無參數 URL 固定為英文版、自我 canonical 與 `x-default`（不依 Accept-Language）；`?lang=en` 的 canonical 指回無參數 URL，其他語言以 `?lang=` 自我 canonical。Sitemap 只列無參數 URL。已停用的 `/source/` 網址只有列在 `data/sources/source-url-aliases-served.csv` 且目標仍有效時才回 301，詳見 [GSC-20261023](seo-gsc-20261023.md)。
+
 `build_local.py` 只重建本機已有的 CSV／抓取快照，不啟動 Apify actor、不呼叫 AI 閘道、不寫 Google Calendar、不 push。全新 clone 尚無歷史貼文／抓取圖片屬正常；來源目錄與指定曲可由追蹤的 CSV 建出。既有安裝的 `state/`、`data/feeds/` 與 `site/assets/` 是 runtime 資料，遷移時需另行備份。
 
 ## macOS 常駐
