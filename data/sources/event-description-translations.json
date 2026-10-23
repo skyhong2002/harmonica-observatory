@@ -502,6 +502,42 @@
         "ko": "KHS 음악센터 8층 (타이베이시 보아이로 115호 8층)"
       },
       "displayTranslationKind": "reference"
+    },
+    "3be1b4f4c97a8e01": {
+      "title": "神戸ライブ",
+      "sourceUrl": "https://x.com/minami_risa/status/2105121542292328757",
+      "sourceDescription": "主辦／演出者：南里沙。南里沙がゲスト出演。11月3日15:30開場、16:00開演。料金は4,000円＋1ドリンク、定員25名。",
+      "descriptionLanguage": "ja",
+      "descriptions": {
+        "zh-Hant": "主辦／演出者：南里沙。南里沙擔任客座演出。11月3日15:30開場、16:00開演。票價4,000日圓＋1杯飲料，限額25名。",
+        "en": "Organizer/performer: Risa Minami. Risa Minami appears as a guest performer. November 3: doors open at 15:30 and the show starts at 16:00. Admission: JPY 4,000 plus one drink. Limited to 25 people.",
+        "ja": "主辦／演出者：南里沙。南里沙がゲスト出演。11月3日15:30開場、16:00開演。料金は4,000円＋1ドリンク、定員25名。",
+        "ko": "주최·출연: 미나미 리사. 미나미 리사가 게스트로 출연한다. 11월 3일 15:30 입장, 16:00 공연 시작. 요금은 4,000엔+1드링크이며 정원은 25명이다."
+      }
+    },
+    "df272fcd32deee56": {
+      "title": "《拾光》－2026天狼星口琴樂團音樂會",
+      "sourceUrl": "https://www.instagram.com/p/DeeCiC7mY9a/",
+      "sourceDescription": "主辦／演出者：黃冠誌。天狼星口琴樂團年度音樂會，演出流行、爵士、拉丁、探戈等曲目與新編曲；可透過 OPENTIX 購票及查詢完整演出資訊。",
+      "descriptionLanguage": "zh-Hant",
+      "descriptions": {
+        "zh-Hant": "主辦／演出者：黃冠誌。天狼星口琴樂團年度音樂會，演出流行、爵士、拉丁、探戈等曲目與新編曲；可透過 OPENTIX 購票及查詢完整演出資訊。",
+        "en": "Organizer/performer: 黃冠誌. The Sirius Harmonica Ensemble's annual concert, featuring pop, jazz, Latin and tango repertoire along with new arrangements. Tickets and full concert details are available on OPENTIX.",
+        "ja": "主催・出演：黃冠誌。天狼星口琴樂團（Sirius Harmonica Ensemble）の年次コンサート。ポップス、ジャズ、ラテン、タンゴなどの楽曲と新たな編曲を演奏。チケット購入と公演の詳細はOPENTIXで確認できる。",
+        "ko": "주최·출연: 黃冠誌. 천랑성 하모니카 앙상블(Sirius Harmonica Ensemble)의 연례 음악회로, 팝·재즈·라틴·탱고 등의 곡과 새 편곡을 연주한다. OPENTIX에서 티켓 구매와 전체 공연 정보를 확인할 수 있다."
+      }
+    },
+    "7eda34630c242047": {
+      "title": "《拾光》－2026天狼星口琴樂團音樂會",
+      "sourceUrl": "https://www.instagram.com/p/DeeCiC7mY9a/",
+      "sourceDescription": "主辦／演出者：黃冠誌。天狼星口琴樂團年度音樂會，演出曲目涵蓋流行、爵士、拉丁與探戈等風格。2026年11月28日19:30演出，OPENTIX售票。",
+      "descriptionLanguage": "zh-Hant",
+      "descriptions": {
+        "zh-Hant": "主辦／演出者：黃冠誌。天狼星口琴樂團年度音樂會，演出曲目涵蓋流行、爵士、拉丁與探戈等風格。2026年11月28日19:30演出，OPENTIX售票。",
+        "en": "Organizer/performer: 黃冠誌. The Sirius Harmonica Ensemble's annual concert, with a programme spanning pop, jazz, Latin and tango. Performance on November 28, 2026 at 19:30; tickets are sold on OPENTIX.",
+        "ja": "主催・出演：黃冠誌。天狼星口琴樂團（Sirius Harmonica Ensemble）の年次コンサート。ポップス、ジャズ、ラテン、タンゴなど幅広いスタイルの曲目を演奏。2026年11月28日19:30公演、チケットはOPENTIXで販売。",
+        "ko": "주최·출연: 黃冠誌. 천랑성 하모니카 앙상블(Sirius Harmonica Ensemble)의 연례 음악회로, 팝·재즈·라틴·탱고 등 다양한 장르의 곡을 연주한다. 2026년 11월 28일 19:30 공연이며 OPENTIX에서 티켓을 판매한다."
+      }
     }
   }
 }
