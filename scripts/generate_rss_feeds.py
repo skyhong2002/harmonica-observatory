@@ -1715,7 +1715,7 @@ def add_update_item(channel: ET.Element, public_row: dict[str, Any]) -> None:
     item = ET.SubElement(channel, "item")
     add_text(item, "title", str(public_row["title"]))
     add_text(item, "link", str(public_row["link"]))
-    add_text(item, "guid", str(public_row["key"]))
+    add_text(item, "guid", str(public_row["key"])).set("isPermaLink", "false")
     if public_row.get("posted_at"):
         add_text(item, "pubDate", rss_time(str(public_row["posted_at"]), dt.datetime.now(dt.timezone.utc)))
     description = "\n".join(
@@ -2992,7 +2992,9 @@ def generate_sources(limit: int) -> int:
         item = ET.SubElement(channel, "item")
         add_text(item, "title", name)
         add_text(item, "link", str(first_link))
-        add_text(item, "guid", item_guid("sources", name + str(first_link)))
+        # An identifier, not a page: without isPermaLink="false" readers and
+        # crawlers treat /feeds/sources/<hash> as a URL, which has never existed.
+        add_text(item, "guid", item_guid("sources", name + str(first_link))).set("isPermaLink", "false")
         add_text(item, "pubDate", rss_time(str(data.get("generatedAt") or ""), now))
         summary = compact(str(entry.get("summary") or entry.get("type") or ""), 500)
         source_tags = "、".join(str(tag) for tag in (entry.get("sourceTags") or []) if str(tag).strip())
