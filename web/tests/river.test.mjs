@@ -198,17 +198,38 @@ test('active stories expose actual image/video previews, source labels, expiry a
   window.close();
 });
 
-test('active story tile disappears at actual expiry while its archive remains in post data',async()=>{
+test('active story tile disappears at actual expiry while its archive remains in post data',async t=>{
   const window=dom(),root=document.querySelector('main');
   const {storyStrip}=await import('../assets/river.js');
+  // A controlled clock: rendering speed on CI must not decide the outcome.
+  t.mock.timers.enable({apis:['setTimeout','Date'],now:Date.parse('2026-10-23T00:00:00Z')});
   setLocale('en');
   const data={...catalog,stories:[{...catalog.stories[0],expiresAt:new Date(Date.now()+150).toISOString()}]};
   root.innerHTML=`<div class="home-stories">${storyStrip(data)}</div>${riverView(data,{},new Set(),{stories:false})}`;
   const cleanup=bindRiver(root,{catalog:data});
   assert.equal(root.querySelectorAll('.story-item').length,1);
-  await new Promise(resolve=>setTimeout(resolve,230));
+  t.mock.timers.tick(149);
+  assert.equal(root.querySelectorAll('.story-item').length,1,'still active just before expiry');
+  t.mock.timers.tick(1+25);
   assert.equal(root.querySelectorAll('.story-item').length,0);
   assert.ok(root.querySelector('.story-empty').textContent.includes('No active stories'));
   assert.equal(data.posts.find(p=>p.isStory).storyState,'expired');
+  cleanup();window.close();
+});
+
+test('a tile that expired between rendering and binding is removed at bind time',async t=>{
+  const window=dom(),root=document.querySelector('main');
+  const {storyStrip}=await import('../assets/river.js');
+  t.mock.timers.enable({apis:['setTimeout','Date'],now:Date.parse('2026-10-23T00:00:00Z')});
+  setLocale('en');
+  const data={...catalog,stories:[{...catalog.stories[0],expiresAt:new Date(Date.now()+150).toISOString()},
+    {...catalog.stories[0],id:'later',expiresAt:new Date(Date.now()+60000).toISOString()}]};
+  root.innerHTML=`<div class="home-stories">${storyStrip(data)}</div>${riverView(data,{},new Set(),{stories:false})}`;
+  assert.equal(root.querySelectorAll('.story-item').length,2);
+  t.mock.timers.tick(150);
+  const cleanup=bindRiver(root,{catalog:data});
+  assert.deepEqual([...root.querySelectorAll('.story-item')].map(node=>node.dataset.storyId),['later']);
+  t.mock.timers.tick(60000-150+25);
+  assert.equal(root.querySelectorAll('.story-item').length,0);
   cleanup();window.close();
 });

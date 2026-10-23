@@ -275,22 +275,30 @@ export function bindRiver(root, { catalog, following = new Set(), onStateChange 
   // Remove tiles at their real expiry even when a page is left open. Never
   // rebuild live video previews on a polling interval or include archived posts.
   let storyExpiryTimer;
+  function refreshStoryStrips() {
+    for (const strip of root.querySelectorAll('.story-strip')) {
+      const left = strip.scrollLeft;
+      const replacement = document.createElement('div');
+      replacement.innerHTML = storyStrip(catalog);
+      const updated = replacement.firstElementChild;
+      strip.replaceWith(updated);
+      updated.scrollLeft = left;
+    }
+    updateCount();
+  }
   function scheduleStoryExpiry() {
     clearTimeout(storyExpiryTimer);
-    const expiries = activeStories(catalog).map(p => Date.parse(p.expiresAt)).filter(Number.isFinite);
+    const active = activeStories(catalog);
+    // A tile can expire between rendering and binding (slow load, old
+    // snapshot). No future expiry would remove it, so refresh now.
+    const ids = new Set(active.map(p => String(p.id || p.url || '')));
+    if ([...root.querySelectorAll('.story-strip .story-item')].some(node => !ids.has(node.dataset.storyId))) refreshStoryStrips();
+    const expiries = active.map(p => Date.parse(p.expiresAt)).filter(Number.isFinite);
     if (!expiries.length) return;
     const delay = Math.min(Math.max(Math.min(...expiries) - Date.now() + 25, 25), 2147483647);
     storyExpiryTimer = setTimeout(() => {
-      for (const strip of root.querySelectorAll('.story-strip')) {
-        const left = strip.scrollLeft;
-        const replacement = document.createElement('div');
-        replacement.innerHTML = storyStrip(catalog);
-        const updated = replacement.firstElementChild;
-        strip.replaceWith(updated);
-        updated.scrollLeft = left;
-      }
+      refreshStoryStrips();
       scheduleStoryExpiry();
-      updateCount();
     }, delay);
   }
   scheduleStoryExpiry();
