@@ -206,8 +206,7 @@ test('active story tile disappears at actual expiry while its archive remains in
   root.innerHTML=`<div class="home-stories">${storyStrip(data)}</div>${riverView(data,{},new Set(),{stories:false})}`;
   const cleanup=bindRiver(root,{catalog:data});
   assert.equal(root.querySelectorAll('.story-item').length,1);
-  // Poll rather than sleep a fixed margin: busy CI runners delay timers.
-  for(let waited=0;root.querySelector('.story-item')&&waited<2000;waited+=20)await new Promise(resolve=>setTimeout(resolve,20));
+  await new Promise(resolve=>setTimeout(resolve,230));
   assert.equal(root.querySelectorAll('.story-item').length,0);
   assert.ok(root.querySelector('.story-empty').textContent.includes('No active stories'));
   assert.equal(data.posts.find(p=>p.isStory).storyState,'expired');
