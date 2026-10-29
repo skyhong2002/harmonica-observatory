@@ -336,17 +336,16 @@ def request_publish() -> tuple[bool, str]:
     try:
         run(["git", "fetch", "origin", "main"])
         run(["git", "merge", "--ff-only", "origin/main"])
-        run(
-            [
-                "launchctl",
-                "kickstart",
-                "-k",
-                f"gui/{os.getuid()}/{PIPELINE_LABEL}",
-            ]
-        )
+        if sys.platform == "darwin":
+            run(["launchctl", "kickstart", "-k", f"gui/{os.getuid()}/{PIPELINE_LABEL}"])
+        else:
+            # The host path unit starts the singleton pipeline without exposing
+            # the Docker socket or systemd control inside this container.
+            request = PROJECT_ROOT / "state" / "pipeline-requested"
+            request.touch(mode=0o600)
     except IntakeError as exc:
         return False, str(exc)
-    return True, "launchd pipeline kickstarted"
+    return True, "pipeline publish requested"
 
 
 def live_contains(result: dict[str, Any]) -> bool:
