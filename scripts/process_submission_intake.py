@@ -335,7 +335,7 @@ def request_publish() -> tuple[bool, str]:
         return False, "pipeline is currently running"
     try:
         run(["git", "fetch", "origin", "main"])
-        run(["git", "merge", "--ff-only", "origin/main"])
+        run(["git", "merge", "--ff-only" if sys.platform == "darwin" else "--no-edit", "origin/main"])
         if sys.platform == "darwin":
             run(["launchctl", "kickstart", "-k", f"gui/{os.getuid()}/{PIPELINE_LABEL}"])
         else:
