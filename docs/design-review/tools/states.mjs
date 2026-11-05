@@ -68,7 +68,10 @@ export const STATES = [
 
 // Reference sites: photographed once and reused in every round.
 export const REFERENCES = [
-  { id: 'luma-discover', url: 'https://luma.com/discover' },
+  // Fixed from brief v2 on: what this site's visitors actually compare it with,
+  // all reachable without a login or verification page.
+  { id: 'accupass-home', url: 'https://www.accupass.com/', locale: 'zh-TW' },
+  { id: 'accupass-search-harmonica', url: 'https://www.accupass.com/search?q=%E5%8F%A3%E7%90%B4', locale: 'zh-TW' },
   { id: 'luma-city-calendar', url: 'https://luma.com/taipei' },
   { id: 'bandsintown-home', url: 'https://www.bandsintown.com/' },
   { id: 'bandsintown-artist', url: 'https://www.bandsintown.com/a/15521707-the-search' },

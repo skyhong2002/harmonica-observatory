@@ -1,3 +1,4 @@
+import { isRedesign, setRedesign, initializeRedesign } from "./redesign.js";
 import { bindDirectoryColumns } from "./directory-columns.js";
 import { sourceDisplayName, sourceSummaryText } from "./source-names.js";
 import { observatoryHome } from "./home.js";
@@ -195,7 +196,7 @@ function listView(kind, data) {
       : kind === "sources"
         ? link("/submit/", t("submit") + icon("plus"), "button button-outline")
         : "";
-  return `${pageHeading(kind, bodyKey, extra)}${kind === "sources" ? followTabs("sources") : ""}${filterBar(state, catalog, kind, following)}<div class="results-bar"><p role="status">${t("results", { count: number(sorted.length) })}</p>${kind === "sources" && state.followed && sorted.length ? `<span>${t("followHint")}</span>` : ""}</div>${kind === "sources" && sorted.length ? directoryHeader(state.sort, state.descending) : ""}<div class="${cls}">${sorted.length ? sorted.slice(0, limit).map(card).join("") : emptySources()}</div>${sorted.length > limit ? `<div class="pagination"><p>${t("showing", { shown: number(limit), total: number(sorted.length) })}</p><button class="button button-outline" data-action="more">${t("loadMore")}${icon("plus")}</button></div>` : ""}`;
+  return `${pageHeading(kind, bodyKey, extra)}${kind === "sources" && isRedesign() ? followTabs("sources") : ""}${filterBar(state, catalog, kind, following)}<div class="results-bar"><p role="status">${t("results", { count: number(sorted.length) })}</p>${kind === "sources" && state.followed && sorted.length ? `<span>${t("followHint")}</span>` : ""}</div>${kind === "sources" && sorted.length ? directoryHeader(state.sort, state.descending) : ""}<div class="${cls}">${sorted.length ? sorted.slice(0, limit).map(card).join("") : emptySources()}</div>${sorted.length > limit ? `<div class="pagination"><p>${t("showing", { shown: number(limit), total: number(sorted.length) })}</p><button class="button button-outline" data-action="more">${t("loadMore")}${icon("plus")}</button></div>` : ""}`;
 }
 // "All / Following" tabs so the personal view is not hidden in a dropdown.
 function followTabs(kind) {
@@ -220,6 +221,8 @@ function sourceForPath() {
   return catalog?.sources.find(source => source.id === slug || source.publicId === slug || source.url === path() || source.url?.split("/").filter(Boolean).at(-1) === slug);
 }
 function body() {
+  if (!catalog && !isRedesign())
+    return `<div class="initial-loading" ${loadFailed ? "" : 'aria-busy="true"'}>${icon(loadFailed ? "info" : "globe")}<h1>${t(loadFailed ? "loadError" : "loading")}</h1>${loadFailed ? `<p>${t("loadErrorBody")}</p><button class="button button-primary" data-action="retry">${t("retry")}</button>` : '<div class="loading-dots"><i></i><i></i><i></i></div>'}</div>`;
   if (!catalog && loadFailed)
     return `<div class="load-error"><h1 class="sr-only">${t("loadError")}</h1>${empty({ filtered: false, symbol: "info", title: t("loadError"), body: t("loadErrorBody"), actions: `<button class="button button-primary" data-action="retry">${t("retry")}</button>${link("/status/", t("status"), "button button-outline")}` })}</div>`;
   if (!catalog)
@@ -227,7 +230,7 @@ function body() {
   const key = routes[path()];
   const data = filtered();
   if (key === "discover") return observatoryHome(catalog, state, following, limit);
-  if (key === "posts") return pageHeading("posts", null) + followTabs("posts") + timelineView(catalog, state, following, limit);
+  if (key === "posts") return pageHeading("posts", null) + (isRedesign() ? followTabs("posts") : "") + timelineView(catalog, state, following, limit);
   if (key === "scores") return scoresView(catalog, state, limit);
   if (key === "scoreSources") return scoreSourcesView(catalog, state, limit);
   if (key === "events") return eventsView(catalog, state, following, limit);
@@ -300,7 +303,7 @@ function render({ focus = false } = {}) {
 // Phones: fold three or more filter controls under one "Filter (n)" toggle so
 // results start on the first screen. Open while any filter is applied.
 function collapseFilters(root) {
-  if (!window.matchMedia?.("(max-width: 640px)").matches) return;
+  if (!isRedesign() || !window.matchMedia?.("(max-width: 640px)").matches) return;
   for (const bar of root.querySelectorAll(".filter-bar")) {
     const controls = [...bar.children].filter(node => node.matches("label:not(.search-label), .clear-filter"));
     if (controls.filter(node => node.matches("label")).length < 3) continue;
@@ -426,6 +429,7 @@ async function load() {
     }
   }
 }
+initializeRedesign();
 initializeShell();
 if (path() === '/') {
   const authError = new URLSearchParams(location.search).get('auth_error');
@@ -434,6 +438,15 @@ if (path() === '/') {
 app.addEventListener("click", (event) => {
   const googleAuth = event.target.closest('[data-google-auth]');
   if (googleAuth) { handleGoogleAuth(googleAuth, render); return; }
+  const redesignToggle = event.target.closest("[data-redesign-toggle]");
+  if (redesignToggle) {
+    setRedesign(!isRedesign());
+    const scroll = window.scrollY;
+    render();
+    window.scrollTo(0, scroll);
+    document.querySelector("[data-redesign-toggle]")?.focus({ preventScroll: true });
+    return;
+  }
   if (handleShellClick(event)) return;
   const expand = event.target.closest("[data-expand-post]");
   if (expand) { togglePostExpansion(expand); return; }

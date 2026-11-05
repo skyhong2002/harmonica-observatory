@@ -1,3 +1,4 @@
+import { isRedesign } from './redesign.js';
 import { t, getLocale, locales } from './i18n.js';
 import { esc, safeUrl, image, link, initials, timestamp } from './utils.js';
 
@@ -19,6 +20,26 @@ export function activeStories(catalog, now = Date.now()) {
 }
 
 function storyCard(story, sources) {
+  return isRedesign() ? redesignedStoryCard(story, sources) : legacyStoryCard(story, sources);
+}
+// Original version, shown while the "new interface" switch is off.
+function legacyStoryCard(story, sources) {
+  const source = sources.find(item => item.id === story.sourceId);
+  const name = story.sourceName || source?.name || t('source');
+  const label = `${name} · ${word('preview')}`;
+  const video = safeUrl(story.videoUrl), poster = safeUrl(story.image);
+  const picture = image(poster, 'ob-story-image', label);
+  const media = video
+    ? `<video class="ob-story-image" controls playsinline preload="none" ${poster ? `poster="${esc(poster)}"` : ''} aria-label="${esc(label)}"><source src="${esc(video)}"></video>`
+    : link(story.url, picture, 'ob-story-media-link', `aria-label="${esc(name + ' · ' + t('original'))}"`);
+  const published = Number.isFinite(Date.parse(story.publishedAt))
+    ? timestamp(story.publishedAt) : '';
+  // Prefer the catalog's cached avatar to an expiring social-CDN address.
+  const avatar = image(source?.avatar || story.avatar, '', '');
+  return `<article class="ob-story-card" data-story-id="${esc(story.id || story.url || '')}" data-story-expires="${esc(story.expiresAt)}"><div class="ob-story-thumb">${media}<span class="ob-story-fallback" role="status" ${poster || video ? 'hidden' : ''}>${esc(word('missing'))}</span><span class="ob-story-rule" aria-hidden="true"></span><div class="ob-story-header"><span class="ob-story-avatar"><span aria-hidden="true">${esc(initials(name))}</span>${avatar}</span><div class="ob-story-identity"><strong title="${esc(name)}">${esc(name)}</strong>${published}</div></div><div class="ob-story-footer"><span>${esc(word('expires'))} ${timestamp(story.expiresAt)}</span>${link(story.url, esc(t('original')), 'ob-story-original')}</div></div></article>`;
+}
+// "New interface" version.
+function redesignedStoryCard(story, sources) {
   const source = sources.find(item => item.id === story.sourceId);
   const name = story.sourceName || source?.name || t('source');
   const label = `${name} · ${word('preview')}`;

@@ -1,3 +1,4 @@
+import { isRedesign } from './redesign.js';
 import { getLocale, locales } from './i18n.js';
 import { esc, link } from './utils.js';
 
@@ -30,7 +31,7 @@ export function calendarTimeZone() {
 }
 // Wide screens get Google's month grid beside the native "Coming up" list;
 // phones keep the agenda, which reads better in a narrow frame.
-const preferredMode = () => globalThis.matchMedia?.('(min-width: 901px)').matches ? 'MONTH' : 'AGENDA';
+const preferredMode = () => isRedesign() && globalThis.matchMedia?.('(min-width: 901px)').matches ? 'MONTH' : 'AGENDA';
 export function googleCalendarUrl(calendars, {locale=getLocale(),timeZone=calendarTimeZone(),mode=preferredMode()} = {}) {
   if (!calendars.length) return '';
   const url = new URL('https://calendar.google.com/calendar/embed');

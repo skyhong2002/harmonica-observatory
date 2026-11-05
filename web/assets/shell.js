@@ -1,3 +1,4 @@
+import { isRedesign } from './redesign.js';
 import { t, getLocale, locales, languageNames } from './i18n.js';
 import { esc, icon, link } from './utils.js';
 
@@ -11,6 +12,10 @@ const labels = {
   home: ['Home', '首頁', 'ホーム', '홈'],
   participate: ['Community & resources', '參與與訂閱', '参加・リソース', '참여 및 자료'],
   preferences: ['Preferences', '瀏覽設定', '閲覧設定', '보기 설정'],
+  redesign: ['New interface', '新版介面', '新しい表示', '새 인터페이스'],
+  redesignNote: ['Beta · saved in this browser', 'Beta・只存在這個瀏覽器', 'ベータ・このブラウザーに保存', '베타 · 이 브라우저에 저장'],
+  tryRedesign: ['Try the new interface (beta)', '試用新版介面（Beta）', '新しい表示を試す（ベータ）', '새 인터페이스 써 보기(베타)'],
+  leaveRedesign: ['Back to the original interface', '回到原版介面', '元の表示に戻す', '원래 인터페이스로 돌아가기'],
 };
 const text = (key) => labels[key][Math.max(0, locales.indexOf(getLocale()))];
 // One-line labels for the phone tab bar (Directory, Sheet music and the like wrap).
@@ -87,6 +92,7 @@ export function navigation(current = location.pathname, routes = {}, session = n
           <section class="nav-preferences" aria-labelledby="nav-preferences-title"><h2 class="nav-section-title" id="nav-preferences-title">${text('preferences')}</h2>
             <div class="nav-language-row"><label for="language-select">${t('language')}</label><select id="language-select">${locales.map(locale=>`<option value="${locale}" ${locale===getLocale()?'selected':''}>${languageNames[locale]}</option>`).join('')}</select></div>
             <fieldset class="nav-theme-field"><legend>${text('appearance')}</legend><div class="appear-seg">${['light','dark','system'].map(theme=>`<button type="button" data-theme-choice="${theme}" aria-pressed="${theme===storedTheme()}">${glyph(theme)}<span>${text(theme)}</span></button>`).join('')}</div></fieldset>
+            <div class="nav-redesign-row"><span id="nav-redesign-label"><strong>${text('redesign')}</strong><small>${text('redesignNote')}</small></span><button type="button" class="redesign-switch" role="switch" aria-checked="${isRedesign()}" aria-labelledby="nav-redesign-label" data-redesign-toggle><span aria-hidden="true"></span></button></div>
           </section>
           <footer class="nav-info-links">${info.map(entry=>menuLink(entry,false)).join('')}</footer>
         </div>
@@ -94,7 +100,7 @@ export function navigation(current = location.pathname, routes = {}, session = n
     </nav>${accountNavigation(session)}</header>`;
 }
 export function footer() {
-  return `<footer class="site-footer"><div class="footer-links">${[['/about/', 'about'], ['/privacy/', 'privacy'], ['/status/', 'status'], ['/feeds/', 'feeds'], ['/submit/', 'submit'], ['/scores/sources/', 'scoreSources']].map(([url, key]) => link(url, t(key))).join('')}</div><div class="footer-bottom"><span>© ${new Date().getFullYear()} ${esc(t('brand'))}</span>${link('https://github.com/skyhong2002/chumei', t('credit'))}${link('/api/v1/catalog', t('dataLink'))}</div></footer>`;
+  return `<footer class="site-footer"><div class="footer-links">${[['/about/', 'about'], ['/privacy/', 'privacy'], ['/status/', 'status'], ['/feeds/', 'feeds'], ['/submit/', 'submit'], ['/scores/sources/', 'scoreSources']].map(([url, key]) => link(url, t(key))).join('')}</div><div class="footer-bottom"><span>© ${new Date().getFullYear()} ${esc(t('brand'))}</span>${link('https://github.com/skyhong2002/chumei', t('credit'))}${link('/api/v1/catalog', t('dataLink'))}<button type="button" class="footer-redesign" data-redesign-toggle aria-pressed="${isRedesign()}">${text(isRedesign() ? 'leaveRedesign' : 'tryRedesign')}</button></div></footer>`;
 }
 export function initializeShell() {
   applyTheme(storedTheme());

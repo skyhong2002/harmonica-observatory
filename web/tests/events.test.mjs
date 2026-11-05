@@ -1,3 +1,4 @@
+import { isRedesign } from '../assets/redesign.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
@@ -94,12 +95,12 @@ test('playable original video uses its poster once and never autoplays', () => {
   assert.equal(document.querySelector('.event-poster'), null); window.close();
 });
 
-test('events stay in one dated list at every width, without masonry spans', async () => {
+test('events use masonry on wide screens in the original interface and one dated list in the new one', async () => {
   const window = setup(); const root = document.querySelector('main'); root.innerHTML = eventsView(catalog, {});
   const card = root.querySelector('.rich-event-card'); let height = 400; card.getBoundingClientRect = () => ({ height });
   const callbacks = []; window.ResizeObserver = class { constructor(callback) { callbacks.push(callback); } observe() {} disconnect() {} };
-  const cleanup = bindEvents(root); assert.equal(card.style.gridRowEnd, '');
-  height = 800; callbacks[0](); await new Promise(resolve => setTimeout(resolve, 30)); assert.equal(card.style.gridRowEnd, '');
+  const cleanup = bindEvents(root); assert.equal(card.style.gridRowEnd, isRedesign() ? '' : 'span 53');
+  height = 800; callbacks[0](); await new Promise(resolve => setTimeout(resolve, 30)); assert.equal(card.style.gridRowEnd, isRedesign() ? '' : 'span 103');
   window.innerWidth = 390; window.dispatchEvent(new window.Event('resize')); await new Promise(resolve => setTimeout(resolve, 30));
   assert.equal(card.style.gridRowEnd, ''); assert.equal(root.querySelector('.events-masonry'), null); cleanup(); window.close();
 });
@@ -148,11 +149,11 @@ test('event cards omit repeated declarations without hiding snapshot status, tim
  const window=setup();document.querySelector('main').innerHTML=eventsView(catalog,{});
  assert.equal(document.querySelector('.results-bar').children.length,1);
  assert.equal(document.querySelector('.event-reference-label'),null);
- // One action row per single-post event: follow, the original post, share and report.
- assert.ok(document.querySelector('.rich-event-actions a[href]'));
+ // The new interface keeps one action row per single-post event.
+ assert.ok(document.querySelector(isRedesign() ? '.rich-event-actions a[href]' : '.event-reference-actions a[href]'));
  assert.match(document.querySelector('.rich-event-zone').textContent,/America\/Los_Angeles/);
  document.querySelector('main').innerHTML=richEventCard({...event,url:post.url,sourceUrl:post.url},{...catalog,posts:[{...post,contentKind:'website_snapshot',publishedAt:null}]});
  assert.match(document.querySelector('.event-reference-label').textContent,/website/i);
- assert.equal(document.querySelectorAll('.rich-event-actions a[href="'+post.url+'"]').length,1);
+ assert.equal(document.querySelectorAll('.rich-event-actions a[href="'+post.url+'"]').length,isRedesign() ? 1 : 0);
  window.close();
 });

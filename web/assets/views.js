@@ -1,3 +1,4 @@
+import { isRedesign } from './redesign.js';
 import { eventText, eventOriginalMarkup } from './event-localization.js';
 import { sourceDisplayName, sourceNamesMarkup, sourceTypesMarkup, sourceAlternativesMarkup, sourceSummaryMarkup, sourceSummaryText, sourceTags } from "./source-names.js";
 import { reportLink } from "./reporting.js";
@@ -64,7 +65,7 @@ export function sortSources(rows, sort = "name", descending = false, catalog = {
 }
 export function sourceCard(s, following = new Set(), catalog) {
   const followed = following.has(s.id), count = sourcePostCount(s, catalog);
-  return `<article class="source-card src-row"><div class="src-c-name"><h3>${link(sourceHref(s), avatar(s) + `<span class="src-name">${sourceNamesMarkup(s)}</span><span class="src-country-mobile" title="${esc(countryName(s.countryCode, s.country))}">${esc(countryName(s.countryCode, s.country))}</span>`, "source-avatar-link", `title="${esc(s.name)}"`)}</h3>${sourceSummaryText(s) ? `<p class="src-summary">${esc(sourceSummaryText(s))}</p>` : ""}</div><span class="src-country">${esc(countryName(s.countryCode, s.country))}</span><div class="src-c-chips"><span class="src-country-inline">${esc(countryName(s.countryCode, s.country))}</span>${sourceTypesMarkup(s)}</div><div class="src-links">${(s.links || []).map(sourceIconLink).join("")}${reportLink(s, sourceHref(s), {iconOnly:true})}</div><span class="src-count" title="${esc(t("posts"))}" data-label="${esc(t("posts"))}">${count === undefined ? "—" : number(count)}</span><span class="src-upd" data-label="${esc(vl("updated"))}">${s.updatedAt ? compactDate(s.updatedAt) : "—"}</span><button class="follow-button src-c-follow ${followed ? "is-following" : ""}" data-follow="${esc(s.id)}" aria-pressed="${followed}" aria-label="${esc(t(followed ? "unfollow" : "follow") + " " + s.name)}">${icon(followed ? "check" : "heart")}<span>${t(followed ? "following" : "follow")}</span></button></article>`;
+  return `<article class="source-card src-row"><div class="src-c-name"><h3>${link(sourceHref(s), avatar(s) + `<span class="src-name">${sourceNamesMarkup(s)}</span><span class="src-country-mobile" title="${esc(countryName(s.countryCode, s.country))}">${esc(countryName(s.countryCode, s.country))}</span>`, "source-avatar-link", `title="${esc(s.name)}"`)}</h3>${sourceSummaryText(s) ? `<p class="src-summary">${esc(sourceSummaryText(s))}</p>` : ""}</div><span class="src-country">${esc(countryName(s.countryCode, s.country))}</span><div class="src-c-chips"><span class="src-country-inline">${esc(countryName(s.countryCode, s.country))}</span>${sourceTypesMarkup(s)}</div><div class="src-links">${(s.links || []).map(sourceIconLink).join("")}${reportLink(s, sourceHref(s), {iconOnly:true})}</div><span class="src-count" title="${esc(t("posts"))}" data-label="${esc(t("posts"))}">${count === undefined ? "—" : number(count)}</span><span class="src-upd" data-label="${esc(vl("updated"))}">${s.updatedAt ? (isRedesign() ? compactDate(s.updatedAt) : timestamp(s.updatedAt, { dateOnly: true })) : "—"}</span><button class="follow-button src-c-follow ${followed ? "is-following" : ""}" data-follow="${esc(s.id)}" aria-pressed="${followed}" aria-label="${esc(t(followed ? "unfollow" : "follow") + " " + s.name)}">${icon(followed ? "check" : "heart")}<span>${t(followed ? "following" : "follow")}</span></button></article>`;
 }
 export function togglePostExpansion(button) {
   const expanded = button.getAttribute("aria-expanded") !== "true";
@@ -154,7 +155,7 @@ export function filterBar(state, catalog, kind, following = new Set()) {
       )
       .join(
         "",
-      )}</select></label><label>${t("postKind")}<select data-filter="kind"><option value="">${t("allPosts")}</option><option value="stories" ${state.kind === "stories" ? "selected" : ""}>${t("stories")}</option></select></label>`;
+      )}</select></label><label>${t("postKind")}<select data-filter="kind"><option value="">${t("allPosts")}</option><option value="stories" ${state.kind === "stories" ? "selected" : ""}>${t("stories")}</option>${isRedesign() ? "" : `<option value="following" ${state.kind === "following" ? "selected" : ""}>${t("following")}</option>`}</select></label>`;
   if (kind === "events")
     extra = `<label>${t("eventPeriod")}<select data-filter="period">${["upcoming", "past", "allEvents"].map((v) => `<option value="${v}" ${state.period === v ? "selected" : ""}>${t(v)}</option>`).join("")}</select></label>`;
   if (kind === "sources")
@@ -168,7 +169,7 @@ export function filterBar(state, catalog, kind, following = new Set()) {
       )
       .join(
         "",
-      )}</select></label>`;
+      )}</select></label>${isRedesign() ? "" : `<label class="checkbox-filter"><input type="checkbox" data-filter="followed" ${state.followed ? "checked" : ""}> ${t("following")}</label>`}`;
   if (kind === "scores")
     extra = `<label>${t("year")}<select data-filter="year"><option value="">${t("allYears")}</option>${[
       ...new Set(catalog.scores.map((s) => s.year).filter(Boolean)),
@@ -203,6 +204,14 @@ export function sourceDetail(source, catalog, following, limit = 24) {
   }</div>${posts.length > limit ? `<div class="pagination"><p>${t("showing", { shown: number(limit), total: number(posts.length) })}</p><button class="button button-outline" data-action="more">${t("loadMore")}${icon("plus")}</button></div>` : ""}</div>`;
 }
 export function feedsView(catalog) {
+  return isRedesign() ? redesignedFeedsView(catalog) : legacyFeedsView(catalog);
+}
+// Original version, shown while the "new interface" switch is off.
+function legacyFeedsView(catalog) {
+  return `${pageHeading("feeds", "feedBody")}<div class="feed-grid">${catalog.feeds.map((f) => `<article class="feed-card"><span class="feed-icon">${icon(String(f.format).toLowerCase().includes("ics") ? "calendar" : "rss")}</span><span class="tag">${esc(f.format || "RSS")}</span><h2>${t("feed_" + (f.id || f.title))}</h2><div class="feed-actions">${link(f.url, t("openFeed"), "text-link")}<button class="copy-button" data-copy="${esc(f.url)}">${t("copy")}</button></div></article>`).join("")}</div>`;
+}
+// "New interface" version.
+function redesignedFeedsView(catalog) {
   const card = (f) => `<article class="feed-card"><span class="feed-icon">${icon(String(f.format).toLowerCase().includes("ics") ? "calendar" : "rss")}</span><span class="tag">${esc(f.format || "RSS")}</span><h2>${t("feed_" + (f.id || f.title))}</h2><div class="feed-actions">${link(f.url, t("openFeed"), "text-link")}<button class="copy-button" data-copy="${esc(f.url)}">${t("copy")}</button></div></article>`;
   const kind = (f) => { const format = String(f.format || "RSS").toUpperCase(); return format.includes("ICS") ? "Ics" : format.includes("JSON") ? "Data" : "Rss"; };
   const groups = ["Rss", "Ics", "Data"].map((key) => [key, catalog.feeds.filter((f) => kind(f) === key)]).filter(([, rows]) => rows.length);

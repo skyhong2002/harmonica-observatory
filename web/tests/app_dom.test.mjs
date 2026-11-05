@@ -1,3 +1,4 @@
+import { isRedesign } from '../assets/redesign.js';
 /** Actual DOM/event integration; no browser, network, credentials or runtime writes. */
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -316,12 +317,14 @@ test("application DOM journey across languages, routing, filters and community f
       ["tokyo"],
     );
     assert.equal($("[data-follow=tokyo]").getAttribute("aria-pressed"), "true");
-    // The All / Following tabs replace the old checkbox.
-    click('.follow-tab[href*="followed=1"]');
+    // The new interface replaces the checkbox with All / Following tabs.
+    if (isRedesign()) click('.follow-tab[href*="followed=1"]');
+    else change("[data-filter=followed]", true);
     assert.equal(window.document.querySelectorAll(".source-card").length, 1);
     click("[data-follow=tokyo]");
     assert.equal(window.document.querySelectorAll(".source-card").length, 0);
-    click('.follow-tab:not([href*="followed=1"])');
+    if (isRedesign()) click('.follow-tab:not([href*="followed=1"])');
+    else click("[data-action=reset]");
   });
   await t.test(
     "contribution capacity includes operator pool and API errors clear token",
@@ -502,7 +505,7 @@ test("application DOM journey across languages, routing, filters and community f
   });
   await t.test("home composes stories, Google calendar and a unified timeline while posts opens the same full timeline", async () => {
     click('.brand');
-    assert.deepEqual([...$(".observatory-home").children].filter(node => node.tagName === "SECTION").map(node => node.classList[0]), ["home-intro", "home-stories", "home-calendar", "home-posts"]);
+    assert.deepEqual([...$(".observatory-home").children].filter(node => node.tagName === "SECTION").map(node => node.classList[0]), [...(isRedesign() ? ["home-intro"] : []), "home-stories", "home-calendar", "home-posts"]);
     assert.equal(window.document.querySelectorAll(".ob-stories").length, 1);
     assert.ok($("[data-google-calendar-embed]"));
     assert.equal($(".calendar-grid"), null);

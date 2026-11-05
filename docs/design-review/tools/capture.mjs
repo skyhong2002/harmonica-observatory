@@ -68,6 +68,10 @@ if (mode === 'site') {
         isMobile: !!size.isMobile, hasTouch: !!size.hasTouch, colorScheme: state.theme === 'dark' ? 'dark' : 'light',
         locale: state.lang === 'zh-Hant' ? 'zh-TW' : state.lang, timezoneId: 'Asia/Taipei', reducedMotion: 'reduce',
       });
+      // REDESIGN=on|off photographs one side of the "new interface" switch.
+      if (process.env.REDESIGN) await context.addInitScript((value) => {
+        try { if (value === 'on') localStorage.setItem('observatory-redesign', 'on'); else localStorage.removeItem('observatory-redesign'); } catch {}
+      }, process.env.REDESIGN);
       const page = await context.newPage();
       await page.clock.setFixedTime(new Date(NOW));
       await page.route('**/api/v1/catalog', async (route) => {
@@ -101,7 +105,7 @@ if (mode === 'site') {
     for (const ref of REFERENCES.filter((r) => !process.argv[4] || r.id.includes(process.argv[4]))) {
       const context = await browser.newContext({
         viewport: { width: size.width, height: size.height }, deviceScaleFactor: size.deviceScaleFactor,
-        isMobile: !!size.isMobile, hasTouch: !!size.hasTouch, locale: 'en-US', timezoneId: 'Asia/Taipei',
+        isMobile: !!size.isMobile, hasTouch: !!size.hasTouch, locale: ref.locale || 'en-US', timezoneId: 'Asia/Taipei',
         userAgent: size.isMobile
           ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1'
           : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
