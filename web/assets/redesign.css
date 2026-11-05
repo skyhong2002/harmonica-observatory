@@ -39,10 +39,18 @@
 .source-profile .profile-avatar .avatar { width: 96px; height: 96px; }
 .source-profile > div:not(.profile-avatar) { max-width: 52rem; }
 .source-profile > .button { grid-column: 3; grid-row: 1; justify-self: end; align-self: start; }
+/* Phones: only the avatar sits beside the country and name; the summary,
+   tags, links and follow button use the full width below. */
 @media (max-width: 699px) {
-  .source-profile { grid-template-columns: 64px minmax(0, 1fr); gap: 14px; }
+  .source-profile { grid-template-columns: 64px minmax(0, 1fr); gap: 0 14px; }
+  .source-profile .profile-avatar { grid-column: 1; grid-row: 1 / span 2; align-self: center; }
   .source-profile .profile-avatar .avatar { width: 64px; height: 64px; }
-  .source-profile > .button { grid-column: 2; grid-row: auto; justify-self: start; }
+  .source-profile > div:not(.profile-avatar) { display: contents; }
+  .source-profile > div:not(.profile-avatar) > * { grid-column: 1 / -1; min-width: 0; }
+  .source-profile > div:not(.profile-avatar) > .eyebrow { grid-column: 2; align-self: end; margin: 0 0 2px; }
+  .source-profile > div:not(.profile-avatar) > h1 { grid-column: 2; align-self: start; margin: 0; }
+  .source-profile > div:not(.profile-avatar) > h1 + * { margin-top: 12px; }
+  .source-profile > .button { grid-column: 1 / -1; grid-row: auto; justify-self: stretch; margin-top: 14px; }
 }
 
 
@@ -87,12 +95,19 @@
 .ob-story-caption .ob-story-identity strong { color: var(--color-text-primary); font-size: .92rem; font-weight: 700; line-height: 1.4; }
 .ob-story-caption .ob-story-identity time { color: var(--color-text-muted); font-size: .8rem; line-height: 1.4; }
 .ob-story-caption .ob-story-footer { position: static; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px 10px; padding: 6px 0 0; color: var(--color-text-muted); font-size: .78rem; text-shadow: none; background: none; border-top: 1px solid var(--color-border-subtle); pointer-events: auto; }
-.ob-story-caption .ob-story-footer time { text-shadow: none; }
+.ob-story-caption .ob-story-footer time { text-shadow: none; white-space: nowrap; }
+.ob-story-caption .ob-story-footer { flex-direction: column; flex-wrap: nowrap; align-items: flex-start; justify-content: flex-start; gap: 0; }
+.ob-story-caption .ob-story-expiry { max-width: 100%; white-space: nowrap; }
+/* Narrow cards (phones): if the line cannot fit, the date and time move down together. */
+@container (max-width: 200px) { .ob-story-caption .ob-story-expiry { white-space: normal; } }
+.ob-story-caption .ob-story-original { display: inline-flex; align-items: center; }
 .ob-story-caption .ob-story-original { min-height: 32px; color: var(--color-text-brand); font-weight: 700; }
 .ob-story-caption .ob-story-original:hover { color: var(--color-text-primary); }
 .ob-story-caption .ob-story-original:focus-visible { outline-color: var(--color-focus-ring); }
 .ob-story-card { flex-basis: clamp(150px, 42vw, 260px); }
 .ob-story-thumb { border-radius: 12px; background: #141814; }
+.ob-story-empty .ob-story-status-link { display: block; width: fit-content; margin-top: 8px; padding-top: 8px; color: var(--color-text-brand); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.ob-story-empty .ob-story-status-link:hover { color: var(--color-text-primary); }
 .ob-story-empty, .google-calendar-empty { max-width: 40rem; padding: 18px 20px; color: var(--color-text-secondary); line-height: 1.7; background: var(--color-surface); border: 1px dashed var(--color-border-strong); border-radius: var(--radius-md); }
 
 /* Events: lead with a calendar date block, then title, time and place. */
@@ -117,20 +132,44 @@
   .event-date-block strong { font-size: 1.45rem; }
 }
 
-/* Loading: a skeleton of the page instead of a lone spinner. */
-.skeleton { display: grid; gap: 14px; padding: 36px 0 24px; }
-.skeleton-label { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; color: var(--color-text-secondary); font-size: 1rem; font-weight: 600; }
+/* Loading: the outline of the home page instead of a lone spinner — title,
+   key numbers, then tall story posters beside a short list of events. */
+.skeleton { display: grid; gap: 14px; padding: 44px 0 24px; }
+.skeleton-label { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--color-text-secondary); font-size: 1rem; font-weight: 600; }
 .skeleton-label svg { width: 20px; height: 20px; color: var(--color-text-brand); }
+.skeleton-body { display: grid; gap: 14px; }
 .skeleton-bar, .skeleton-media { border-radius: 8px; background: linear-gradient(90deg, var(--color-surface-soft) 25%, color-mix(in srgb, var(--color-surface-soft) 55%, var(--color-surface)) 50%, var(--color-surface-soft) 75%); background-size: 200% 100%; animation: skeleton-shine 1.4s ease-in-out infinite; }
 .skeleton-bar { height: 14px; }
-.skeleton-title { width: min(26rem, 70%); height: 30px; }
+.skeleton-title { width: min(30rem, 80%); height: clamp(1.7rem, 2.4vw, 2.5rem); }
 .skeleton-text { width: min(40rem, 90%); }
-.skeleton-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 18px; }
-.skeleton-card { display: grid; gap: 10px; padding: 14px; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); }
-.skeleton-media { height: 180px; }
 .skeleton-short { width: 60%; }
+.skeleton-stats { display: flex; gap: 32px; margin-top: 8px; }
+.skeleton-stat { display: grid; gap: 8px; }
+.skeleton-stat-value { width: 4.5rem; height: 26px; }
+.skeleton-stat-label { width: 5.5rem; height: 12px; }
+.skeleton-now { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 26rem); gap: 32px 48px; align-items: start; margin-top: 28px; }
+.skeleton-heading { width: 9rem; height: 22px; margin-bottom: 14px; }
+.skeleton-strip { display: flex; gap: 12px; overflow: hidden; }
+.skeleton-story { display: grid; flex: 0 0 clamp(150px, 42vw, 260px); gap: 8px; }
+.skeleton-story .skeleton-media { aspect-ratio: 9 / 16; border-radius: 12px; }
+.skeleton-events { display: grid; gap: 10px; }
+.skeleton-events .skeleton-heading { margin-bottom: 4px; }
+.skeleton-row { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 12px; align-items: center; padding: 14px; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); }
+.skeleton-date { height: 56px; border-radius: 12px; }
+.skeleton-row-copy { display: grid; gap: 8px; }
 @media (prefers-reduced-motion: reduce) { .skeleton-bar, .skeleton-media { animation: none; } }
-@media (max-width: 640px) { .skeleton-grid { grid-template-columns: 1fr; } .skeleton-grid > :nth-child(n+2) { display: none; } }
+@media (max-width: 1100px) { .skeleton-now { grid-template-columns: 1fr; } }
+@media (max-width: 640px) {
+  .skeleton { padding-top: 26px; }
+  .skeleton-title { height: 1.6rem; }
+  .skeleton-stats { gap: 14px; margin-top: 2px; }
+  .skeleton-stat-value { width: 3rem; height: 20px; }
+  .skeleton-stat-label { width: 3.5rem; }
+  .skeleton-now { gap: 24px; margin-top: 14px; }
+  .skeleton-story { flex: 1 1 0; }
+  .skeleton-story:nth-child(n+3) { display: none; }
+  .skeleton-row:nth-child(n+5), .skeleton-text { display: none; }
+}
 .load-error { padding: 32px 0; }
 
 /* Density: larger text in the directory, scores and subscription lists. */
@@ -308,7 +347,7 @@
 @media (max-width: 699px) { .src-links { flex-wrap: nowrap; overflow: hidden; } }
 
 /* About and privacy: reading column plus a contact card. */
-.info-layout { display: grid; grid-template-columns: minmax(0, 46rem) minmax(260px, 22rem); gap: 32px 56px; align-items: start; }
+.info-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 24rem); gap: 32px 56px; align-items: start; }
 .info-layout .prose, .info-layout .faq-section, .about-layout.info-layout { max-width: none; }
 .contact-card { position: sticky; top: 96px; padding: 20px 22px; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-lg); }
 .contact-card h2 { margin: 0 0 6px; font-size: 1.1rem; }
@@ -361,10 +400,9 @@
 /* Events: two lines of the original post, still visible; cards use the full width. */
 .rich-events-grid { max-width: none; }
 .event-reference .feed-text { -webkit-line-clamp: 2; }
-/* Phones: one-line short tab labels. */
+/* Phones: the same page names as on desktop, each on one line. */
 @media (max-width: 640px) {
-  .legacy-site-header.nav-refresh .site-nav .nav-label { display: none; }
-  .legacy-site-header.nav-refresh .site-nav .nav-label-short { display: block; font-size: .74rem; white-space: nowrap; }
+  .legacy-site-header.nav-refresh .site-nav .nav-label { display: block; max-width: 100%; font-size: .72rem; white-space: nowrap; overflow-wrap: normal; letter-spacing: -.01em; }
 }
 /* Very wide screens: a wider page and larger secondary text. */
 @media (min-width: 2200px) { & { --page-width: min(1560px, calc(100% - 160px)); } }
@@ -375,5 +413,23 @@
   .src-column-resize::after { background: transparent; }
   .src-head:hover .src-column-resize::after { background: var(--color-border-subtle); }
 }
+
+/* Secondary text: darker muted colour (about 6:1 on the cream canvas) and at
+   least ~13px for meta lines, labels, dates and table notes. */
+& { --color-text-muted: #556055; }
+&[data-theme="dark"] { --color-text-muted: #a5b19f; }
+@media (prefers-color-scheme: dark) { &:not([data-theme="light"]) { --color-text-muted: #a5b19f; } }
+.observatory-timeline .timeline-meta, .feed-meta, .feed-time, .eyebrow, .filter-bar label, .follow-count,
+.event-date-month, .event-date-weekday, .status-table small, .status-table td p,
+.score-row-meta .score-country, .score-notes > summary, .score-tab span { font-size: max(.8rem, 13px); }
+.observatory-timeline .timeline-meta, .feed-meta { line-height: 1.5; }
+
+/* Keyboard focus: a clear ring on every link and control. */
+:is(a, button, summary, input, select, textarea, [tabindex]):focus-visible { outline: 3px solid var(--color-focus-ring); outline-offset: 2px; }
+.ob-story-caption .ob-story-original:focus-visible { outline: 3px solid var(--color-focus-ring); }
+
+/* Headings: balanced lines, no orphaned last character; Japanese breaks at phrases. */
+:is(h1, h2, h3) { text-wrap: balance; }
+:is(h1, h2, h3):lang(ja) { word-break: auto-phrase; }
 
 }

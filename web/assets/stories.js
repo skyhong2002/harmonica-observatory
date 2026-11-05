@@ -52,7 +52,7 @@ function redesignedStoryCard(story, sources) {
     ? timestamp(story.publishedAt) : '';
   // Prefer the catalog's cached avatar to an expiring social-CDN address.
   const avatar = image(source?.avatar || story.avatar, '', '');
-  return `<article class="ob-story-card" data-story-id="${esc(story.id || story.url || '')}" data-story-expires="${esc(story.expiresAt)}"><div class="ob-story-thumb">${media}<span class="ob-story-fallback" role="status" ${poster || video ? 'hidden' : ''}>${esc(word('missing'))}</span><span class="ob-story-rule" aria-hidden="true"></span></div><div class="ob-story-caption"><div class="ob-story-header"><span class="ob-story-avatar"><span aria-hidden="true">${esc(initials(name))}</span>${avatar}</span><div class="ob-story-identity"><strong title="${esc(name)}">${esc(name)}</strong>${published}</div></div><div class="ob-story-footer"><span>${esc(word('expires'))} ${timestamp(story.expiresAt)}</span>${link(story.url, esc(t('original')), 'ob-story-original')}</div></div></article>`;
+  return `<article class="ob-story-card" data-story-id="${esc(story.id || story.url || '')}" data-story-expires="${esc(story.expiresAt)}"><div class="ob-story-thumb">${media}<span class="ob-story-fallback" role="status" ${poster || video ? 'hidden' : ''}>${esc(word('missing'))}</span><span class="ob-story-rule" aria-hidden="true"></span></div><div class="ob-story-caption"><div class="ob-story-header"><span class="ob-story-avatar"><span aria-hidden="true">${esc(initials(name))}</span>${avatar}</span><div class="ob-story-identity"><strong title="${esc(name)}">${esc(name)}</strong>${published}</div></div><div class="ob-story-footer"><span class="ob-story-expiry">${esc(word('expires'))} ${timestamp(story.expiresAt)}</span>${link(story.url, esc(t('original')), 'ob-story-original')}</div></div></article>`;
 }
 
 function observedContent(catalog) {
@@ -68,7 +68,7 @@ export function storyEmptyMarkup(catalog) {
     ? 'budgetDeferred' : status.reasonCode === 'no_sources_due' ? 'collectionScheduled' : '';
   const detail = status.status === 'paused' || status.status === 'deferred' ? 'storyCollectionPaused'
     : status.status === 'degraded' || status.status === 'error' ? 'storyCollectionAttention' : '';
-  return `<p class="ob-story-empty story-empty" role="status">${esc(word('empty'))}${detail ? `<br>${esc(t(detail))}${reason ? `<br>${esc(t(reason))}` : ''}` : ''} <a href="/status/?lang=${encodeURIComponent(getLocale())}">${esc(t('status'))}</a></p>`;
+  return `<p class="ob-story-empty story-empty" role="status">${esc(word('empty'))}${detail ? `<br>${esc(t(detail))}${reason ? `<br>${esc(t(reason))}` : ''}` : ''} <a ${isRedesign() ? 'class="ob-story-status-link" ' : ''}href="/status/?lang=${encodeURIComponent(getLocale())}">${esc(t('status'))}</a></p>`;
 }
 export function storiesView(catalog) {
   const stories = activeStories(catalog);

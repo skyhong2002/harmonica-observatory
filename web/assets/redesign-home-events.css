@@ -1,4 +1,60 @@
 /* "New interface" home and event styles (only with <html data-redesign>). */
 
 :root[data-redesign] {
+
+/* Event list: a poster thumbnail column on the left, details filling the rest
+   of the row. Cards without a usable poster use the full width. */
+.rich-event-header h2 { text-wrap: balance; }
+.rich-event-card { grid-template-columns: minmax(0, 1fr); grid-template-areas: "header" "copy" "gallery"; }
+.rich-event-card:has(> .event-media:not(.event-media-unavailable), > .event-video) {
+  display: grid; grid-template-columns: 200px minmax(0, 1fr); grid-template-rows: auto 1fr auto;
+  grid-template-areas: "media header" "media copy" "media gallery"; align-items: start;
+}
+.rich-event-card > .rich-event-header { grid-area: header; }
+.rich-event-card > .rich-event-copy { grid-area: copy; }
+.rich-event-card > .event-gallery { grid-area: gallery; margin: 0 20px 14px; }
+.rich-event-card > .event-media, .rich-event-card > .event-video { grid-area: media; align-self: start; margin: 20px 0 20px 20px; }
+.rich-event-card > .event-media { display: flex; align-items: center; justify-content: center; min-height: 0; padding: 8px; background: var(--color-surface-soft); border-radius: 10px; }
+.rich-event-card > .event-media .event-media-link { display: flex; justify-content: center; width: 100%; }
+/* A poster that failed to load stays hidden (as in redesign.css). */
+.rich-event-card > .event-media.event-media-unavailable { display: none; }
+.rich-event-card > .event-media .event-poster { width: 100%; max-width: 100%; height: auto; max-height: 260px; object-fit: contain; border-radius: 6px; }
+.rich-event-card > .event-video { width: calc(100% - 20px); max-height: 300px; border-radius: 10px; background: #141814; }
+.rich-event-card > .rich-event-copy { padding-top: 4px; }
+@media (min-width: 1500px) {
+  .rich-event-card:has(> .event-media:not(.event-media-unavailable), > .event-video) { grid-template-columns: 220px minmax(0, 1fr); }
+  .rich-event-card > .event-media .event-poster { max-height: 290px; }
+}
+
+/* Phones: a small poster beside the date, title and place; the original post
+   and actions run full width underneath. */
+@media (max-width: 760px) {
+  .rich-event-card:has(> .event-media:not(.event-media-unavailable), > .event-video) {
+    grid-template-columns: minmax(0, 1fr) 104px; grid-template-rows: auto auto auto;
+    grid-template-areas: "header media" "copy copy" "gallery gallery";
+  }
+  .rich-event-card:has(> .event-media:not(.event-media-unavailable), > .event-video) > .rich-event-header { padding-right: 12px; }
+  .rich-event-card > .event-media, .rich-event-card > .event-video { margin: 16px 15px 0 0; }
+  .rich-event-card > .event-media { padding: 5px; border-radius: 8px; }
+  .rich-event-card > .event-media .event-poster { max-height: 150px; border-radius: 4px; }
+  .rich-event-card > .event-video { width: calc(100% - 15px); max-height: 180px; }
+  .rich-event-card > .event-gallery { margin: 0 15px 12px; }
+  .rich-event-header h2 { font-size: 1.08rem; line-height: 1.45; }
+}
+
+/* Home "Coming up": time leads, titles get three balanced lines so sessions
+   on the same day (morning / afternoon) can be told apart. */
+.home-upcoming-copy strong { -webkit-line-clamp: 3; line-clamp: 3; text-wrap: balance; }
+.home-upcoming-copy > .home-upcoming-time { display: block; color: var(--color-text-brand); font-size: .92rem; font-weight: 800; line-height: 1.35; font-variant-numeric: tabular-nums; }
+.home-now-events .home-upcoming-link, .home-upcoming-link { align-items: start; }
+.home-upcoming-copy > .home-upcoming-place svg { margin: 0 4px 0 0; vertical-align: -2px; }
+
+/* Home quick entries on phones: a 2×2 grid so all four are visible. */
+@media (max-width: 640px) {
+  .home-entries { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-inline: 0; padding: 0; overflow: visible; scroll-snap-type: none; }
+  .home-entry { flex: none; min-width: 0; min-height: 46px; padding: 6px 10px 6px 6px; gap: 8px; font-size: .9rem; line-height: 1.3; border-radius: var(--radius-md); }
+  .home-entry > svg:first-child { flex: 0 0 32px; width: 32px; height: 32px; padding: 7px; }
+  .home-entry > span { overflow-wrap: anywhere; }
+}
+
 }

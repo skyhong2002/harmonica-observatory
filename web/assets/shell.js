@@ -24,6 +24,16 @@ const shortLabels = {
   sources: ['Sources', '名錄', '情報源', '출처'], scores: ['Scores', '樂譜', '楽譜', '악보'], more: ['More', '更多', 'その他', '더보기'],
 };
 const shortText = (key) => (shortLabels[key] || shortLabels.more)[Math.max(0, locales.indexOf(getLocale()))];
+// New interface: one short name per page, shared by the desktop nav, the phone
+// tab bar, the page heading and the document title.
+const pageNames = {
+  discover: ['Home', '首頁', 'ホーム', '홈'], posts: ['Updates', '動態', '投稿', '소식'], events: ['Events', '活動', 'イベント', '행사'],
+  sources: ['Sources', '來源名錄', '情報源', '출처'], scores: ['Scores', '樂譜', '楽譜', '악보'], more: ['More', '更多', 'その他', '더 보기'],
+};
+// The redesigned name for a primary page, or null (callers keep their own label).
+export function pageName(key) {
+  return isRedesign() && pageNames[key] ? pageNames[key][Math.max(0, locales.indexOf(getLocale()))] : null;
+}
 const themeKey = 'observatory-appearance';
 let initialized = false;
 let currentTheme = 'system';
@@ -63,6 +73,10 @@ function active(url, current) {
   return current === url || (url === '/source/' && current.startsWith('/source/')) || (url === '/scores/' && current.startsWith('/scores/'));
 }
 function navLink(url, key, current, extra = '') {
+  if (isRedesign()) {
+    const name = esc(pageName(key));
+    return `<a href="${url}" class="nav-item ${extra}" title="${name}" ${active(url, current) ? 'aria-current="page"' : ''}>${glyph(navIcons[key])}<span class="nav-label">${name}</span></a>`;
+  }
   const label = key === 'discover' ? text('home') : t(key);
   return `<a href="${url}" class="nav-item ${extra}" title="${esc(label)}" ${active(url, current) ? 'aria-current="page"' : ''}>${glyph(navIcons[key])}<span class="nav-label">${label}</span><span class="nav-label-short" aria-hidden="true">${esc(shortText(key))}</span></a>`;
 }
@@ -86,7 +100,7 @@ export function navigation(current = location.pathname, routes = {}, session = n
   return `<a class="skip-link" href="#main">${t('skip')}</a><header class="site-header legacy-site-header nav-refresh">
     <a class="brand" href="/" aria-label="${esc(brandLabel)}"><span class="brand-mark"><img src="/web/assets/observatory-mark.svg" width="34" height="34" alt="" aria-hidden="true"></span><span class="brand-wordmark"><span class="brand-name">${esc(brand)}</span>${english ? '<span class="brand-english" lang="en">HARMONICA OBSERVATORY</span>' : ''}</span></a>
     <nav class="site-nav" aria-label="${t('navigation')}">${primary.map(([url,key])=>navLink(url,key,current)).join('')}
-      <details class="nav-more"><summary class="nav-item" aria-controls="nav-more-content" aria-expanded="false" aria-label="${text('more')} · ${t('language')}">${glyph('globe')}<span class="nav-label">${text('more')}</span><span class="nav-label-short" aria-hidden="true">${esc(shortText('more'))}</span></summary>
+      <details class="nav-more"><summary class="nav-item" aria-controls="nav-more-content" aria-expanded="false" aria-label="${text('more')} · ${t('language')}">${glyph('globe')}${isRedesign() ? `<span class="nav-label">${esc(pageName('more'))}</span>` : `<span class="nav-label">${text('more')}</span><span class="nav-label-short" aria-hidden="true">${esc(shortText('more'))}</span>`}</summary>
         <div class="nav-more-menu" id="nav-more-content">
           <section class="nav-menu-section" aria-labelledby="nav-resource-title"><h2 class="nav-section-title" id="nav-resource-title">${text('participate')}</h2><div class="nav-resource-grid">${resources.map(entry=>menuLink(entry)).join('')}</div></section>
           <section class="nav-preferences" aria-labelledby="nav-preferences-title"><h2 class="nav-section-title" id="nav-preferences-title">${text('preferences')}</h2>

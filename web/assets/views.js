@@ -2,6 +2,7 @@ import { isRedesign } from './redesign.js';
 import { eventText, eventOriginalMarkup } from './event-localization.js';
 import { sourceDisplayName, sourceNamesMarkup, sourceTypesMarkup, sourceAlternativesMarkup, sourceSummaryMarkup, sourceSummaryText, sourceTags } from "./source-names.js";
 import { reportLink } from "./reporting.js";
+import { pageName } from "./shell.js";
 import { t, getLocale, countryName } from "./i18n.js";
 import {
   esc,
@@ -120,7 +121,7 @@ export function collectionCard(s) {
   return `<article class="collection-card"><div class="collection-art">${icon("music")}<span aria-hidden="true">♫</span></div><div class="collection-copy"><div class="eyebrow">${esc(countryName(s.countryCode))}</div><h3>${esc(s.name || s.title)}</h3><p>${esc(s.summary || "")}</p><div class="card-bottom"><span class="muted small">${s.count !== undefined ? number(s.count) + " " + t("scoresCount") : ""}</span>${link(s.url, t("original"), "text-link")}</div></div></article>`;
 }
 export function pageHeading(key, body, extra = "") {
-  return `<header class="page-heading"><div><h1>${t(key)}</h1>${body ? `<p>${t(body)}</p>` : ""}</div>${extra}</header>`;
+  return `<header class="page-heading"><div><h1>${pageName(key) ? esc(pageName(key)) : t(key)}</h1>${body ? `<p>${t(body)}</p>` : ""}</div>${extra}</header>`;
 }
 export function countryFacets(state, catalog, kind, following = new Set()) {
   const sources = new Map((catalog.sources || []).map(source => [source.id, source]));

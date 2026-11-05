@@ -6,7 +6,7 @@ import { bindStories } from "./stories.js";
 import { bindGoogleCalendar } from "./google-calendar.js";
 import { eventsView, bindEvents } from "./events.js";
 import { scoresView, scoreSourcesView } from "./scores.js";
-import { navigation, accountNavigation, footer, initializeShell, handleShellClick } from "./shell.js";
+import { navigation, accountNavigation, footer, initializeShell, handleShellClick, pageName } from "./shell.js";
 import { timelineView, bindTimeline } from "./timeline.js";
 import { t, getLocale, setLocale } from "./i18n.js";
 import {
@@ -220,13 +220,21 @@ function sourceForPath() {
   if (!path().startsWith("/source/") && !path().startsWith("/post/source/")) return null;
   return catalog?.sources.find(source => source.id === slug || source.publicId === slug || source.url === path() || source.url?.split("/").filter(Boolean).at(-1) === slug);
 }
+// New interface loading state: the outline of the home page (title, key
+// numbers, tall story posters beside a short list of events).
+function loadingSkeleton() {
+  const bar = (cls = "") => `<div class="skeleton-bar ${cls}"></div>`;
+  const stat = `<div class="skeleton-stat">${bar("skeleton-stat-value")}${bar("skeleton-stat-label")}</div>`;
+  const story = `<div class="skeleton-story"><div class="skeleton-media"></div>${bar()}${bar("skeleton-short")}</div>`;
+  const row = `<div class="skeleton-row"><div class="skeleton-media skeleton-date"></div><div class="skeleton-row-copy">${bar()}${bar("skeleton-short")}</div></div>`;
+  return `<div class="skeleton" aria-busy="true"><h1 class="skeleton-label">${icon("globe")}<span>${t("loading")}</span></h1><div class="skeleton-body" aria-hidden="true">${bar("skeleton-title")}${bar("skeleton-text")}<div class="skeleton-stats">${stat.repeat(4)}</div><div class="skeleton-now"><div class="skeleton-stories">${bar("skeleton-heading")}<div class="skeleton-strip">${story.repeat(4)}</div></div><div class="skeleton-events">${bar("skeleton-heading")}${row.repeat(4)}</div></div></div></div>`;
+}
 function body() {
   if (!catalog && !isRedesign())
     return `<div class="initial-loading" ${loadFailed ? "" : 'aria-busy="true"'}>${icon(loadFailed ? "info" : "globe")}<h1>${t(loadFailed ? "loadError" : "loading")}</h1>${loadFailed ? `<p>${t("loadErrorBody")}</p><button class="button button-primary" data-action="retry">${t("retry")}</button>` : '<div class="loading-dots"><i></i><i></i><i></i></div>'}</div>`;
   if (!catalog && loadFailed)
     return `<div class="load-error"><h1 class="sr-only">${t("loadError")}</h1>${empty({ filtered: false, symbol: "info", title: t("loadError"), body: t("loadErrorBody"), actions: `<button class="button button-primary" data-action="retry">${t("retry")}</button>${link("/status/", t("status"), "button button-outline")}` })}</div>`;
-  if (!catalog)
-    return `<div class="skeleton" aria-busy="true"><h1 class="skeleton-label">${icon("globe")}<span>${t("loading")}</span></h1><div class="skeleton-bar skeleton-title"></div><div class="skeleton-bar skeleton-text"></div><div class="skeleton-grid">${'<div class="skeleton-card"><div class="skeleton-media"></div><div class="skeleton-bar"></div><div class="skeleton-bar skeleton-short"></div></div>'.repeat(3)}</div></div>`;
+  if (!catalog) return loadingSkeleton();
   const key = routes[path()];
   const data = filtered();
   if (key === "discover") return observatoryHome(catalog, state, following, limit);
@@ -266,7 +274,7 @@ function render({ focus = false } = {}) {
   setLocale(getLocale());
   const current = routes[path()] || (path().startsWith("/source/") || path().startsWith("/post/source/") ? "sources" : "notFound");
   const detail = sourceForPath();
-  document.title = `${detail ? sourceDisplayName(detail) : t(current)} · ${t("brand")}`;
+  document.title = `${detail ? sourceDisplayName(detail) : pageName(current) || t(current)} · ${t("brand")}`;
   updateMetadata();
   const isTimeline = ["/", "/post/"].includes(path());
   document.body.classList.remove("feed-locked");

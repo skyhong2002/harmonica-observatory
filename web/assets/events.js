@@ -103,6 +103,12 @@ function eventTimeLabel(event) {
   if (Number.isFinite(+end) && !event.endEstimated && end > start) return day(start) === day(end) ? `${clock(start)}–${clock(end)}` : eventDateLabel(event);
   return clock(start);
 }
+// Clock-only label for single-day timed events (the date block shows the day);
+// empty when the event needs its full date label.
+export function eventClockLabel(event) {
+  const label = eventTimeLabel(event);
+  return label === eventDateLabel(event) ? '' : label;
+}
 export function dateBlock(event) {
   const start = String(event.start || '');
   const civil = /^\d{4}-\d{2}-\d{2}$/.test(start);
