@@ -4,6 +4,7 @@ __pycache__/
 .env
 .venv/
 web/node_modules/
+docs/design-review/tools/node_modules
 private/
 
 # Runtime logs and fetch state.

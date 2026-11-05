@@ -1,0 +1,98 @@
+/* 2026-11 design review refresh. Loaded last; each block names the issue it fixes. */
+
+/* Type: CJK fonts draw ‘ ’ as full-width glyphs ("RJ&BME’ s"). Borrow only
+   those two characters from a Latin face, and give Japanese and Korean pages
+   their own Han/Hangul faces instead of Traditional Chinese glyph shapes. */
+@font-face {
+  font-family: "Observatory Quotes";
+  src: local("Helvetica Neue"), local("Segoe UI"), local("Roboto"), local("Arial"), local("Liberation Sans");
+  unicode-range: U+2018-2019;
+}
+:root {
+  --font-sans: "Observatory Quotes", "Noto Sans TC", system-ui, -apple-system, BlinkMacSystemFont, "PingFang TC", "Microsoft JhengHei", "Segoe UI", sans-serif;
+  --font-display: var(--font-sans);
+  --page-width: min(1120px, calc(100% - 48px));
+}
+html:lang(ja) { --font-sans: "Observatory Quotes", "Noto Sans JP", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", system-ui, -apple-system, "Noto Sans TC", sans-serif; }
+html:lang(ko) { --font-sans: "Observatory Quotes", "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, -apple-system, "Noto Sans TC", sans-serif; }
+body { font-family: var(--font-sans); }
+
+/* Layout: one page grid for every section, wider on large desktop screens. */
+@media (min-width: 1500px) { :root { --page-width: min(1320px, calc(100% - 96px)); } }
+@media (min-width: 1900px) {
+  html { font-size: 17px; }
+  :root { --page-width: min(1400px, calc(100% - 128px)); }
+}
+.main-container:not(.home-main), body.feed-locked .feed-main:not(.home-main),
+.site-footer, body.feed-locked .site-footer,
+.home-section-inner, .home-stories .home-section-inner { width: var(--page-width); }
+.site-header.legacy-site-header { padding-inline: max(24px, calc((100% - var(--page-width)) / 2)); }
+@media (max-width: 640px) {
+  :root { --page-width: calc(100% - 32px); }
+  .site-header.legacy-site-header { padding-inline: 16px; }
+}
+
+/* Readable post text on wide screens. */
+.observatory-timeline .feed-latest-excerpt { font-size: .92rem; line-height: 1.65; }
+.observatory-timeline .feed-text-toggle { font-size: .88rem; }
+
+/* Mobile: the header was position:static, so its z-index did nothing and the
+   story cards painted over the open "More" menu. */
+@media (max-width: 640px) {
+  .site-header.legacy-site-header { position: relative; z-index: 40; }
+}
+
+/* Dark appearance: Google's embed has no dark theme; invert it so the agenda
+   no longer glows white, keeping event colors' hues. */
+:root[data-theme="dark"] .google-calendar-frame { border-radius: 10px; overflow: hidden; background: #1b1f1c; }
+:root[data-theme="dark"] .google-calendar-frame iframe { filter: invert(.9) hue-rotate(180deg) saturate(1.2); }
+
+/* Stories: stronger scrims so names and times stay readable over posters. */
+.ob-story-header { padding-bottom: 40px; background: linear-gradient(rgb(0 0 0 / .82), rgb(0 0 0 / .55) 55%, transparent); }
+.ob-story-footer { padding-top: 40px; background: linear-gradient(transparent, rgb(0 0 0 / .6) 40%, rgb(0 0 0 / .86)); }
+
+/* Empty, error and 404 states: centred card with an icon, a reason and next steps. */
+.empty-state {
+  display: grid; justify-items: center; gap: 6px; max-width: 34rem; margin: 24px auto; padding: 40px 24px;
+  background: var(--color-surface); border: 1px dashed var(--color-border-strong); border-radius: var(--radius-lg);
+}
+.empty-state > svg { width: 40px; height: 40px; margin: 0 0 6px; padding: 9px; color: var(--color-text-brand); background: var(--color-surface-soft); border-radius: 50%; }
+.empty-state h2 { margin: 0; color: var(--color-text-primary); font-size: 1.15rem; line-height: 1.45; }
+.empty-state p { max-width: 28rem; margin: 0; color: var(--color-text-secondary); font-size: .92rem; line-height: 1.7; text-wrap: pretty; }
+.empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 12px; margin-top: 12px; }
+.not-found { display: grid; justify-items: center; max-width: 40rem; margin: 48px auto 24px; padding: 48px 24px; text-align: center; }
+.not-found > svg { width: 56px; height: 56px; padding: 12px; color: var(--color-text-brand); background: var(--color-surface-soft); border-radius: 50%; }
+.not-found .eyebrow { margin: 14px 0 0; color: var(--color-text-brand); font-weight: 700; letter-spacing: .12em; }
+.not-found .page-heading { display: block; padding: 4px 0 8px; border: 0; }
+.not-found .page-heading p { margin-inline: auto; text-wrap: pretty; }
+.not-found-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 12px; }
+
+/* Source page: the profile shares the page grid with the posts below it. */
+.org-page > .back-link, .org-page > .source-profile { max-width: none; }
+.source-profile { grid-template-columns: 96px minmax(0, 1fr) auto; gap: 24px; padding-bottom: 28px; }
+.source-profile .profile-avatar .avatar { width: 96px; height: 96px; }
+.source-profile > div:not(.profile-avatar) { max-width: 52rem; }
+.source-profile > .button { grid-column: 3; grid-row: 1; justify-self: end; align-self: start; }
+@media (max-width: 699px) {
+  .source-profile { grid-template-columns: 64px minmax(0, 1fr); gap: 14px; }
+  .source-profile .profile-avatar .avatar { width: 64px; height: 64px; }
+  .source-profile > .button { grid-column: 2; grid-row: auto; justify-self: start; }
+}
+
+/* System status: a card per service on phones instead of a clipped table. */
+@media (max-width: 640px) {
+  .status-table { overflow: visible; }
+  .status-table table, .status-table tbody, .status-table tr, .status-table th, .status-table td { display: block; width: auto; }
+  .status-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .status-table tr { margin: 0 0 12px; padding: 14px 16px; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); }
+  .status-table th[scope="row"] { padding: 0 0 8px; font-size: 1rem; text-align: left; border: 0; }
+  .status-table td { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 10px; padding: 8px 0; border: 0; border-top: 1px solid var(--color-border-subtle); }
+  .status-table td::before { content: attr(data-label); color: var(--color-text-muted); font-size: .8rem; font-weight: 600; }
+  .status-table td > * { justify-self: start; }
+  .status-table td p { grid-column: 2; margin: 4px 0 0; }
+}
+
+/* Directory rows on phones: keep link icons and the report flag on one tidy line. */
+@media (max-width: 699px) {
+  .src-row .src-links { flex-wrap: wrap; gap: 2px 4px; }
+}

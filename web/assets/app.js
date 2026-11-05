@@ -14,6 +14,7 @@ import {
   icon,
   number,
   empty,
+  hasFilters,
   pastEvent,
   textMatch,
   toast,
@@ -194,7 +195,15 @@ function listView(kind, data) {
       : kind === "sources"
         ? link("/submit/", t("submit") + icon("plus"), "button button-outline")
         : "";
-  return `${pageHeading(kind, bodyKey, extra)}${filterBar(state, catalog, kind, following)}<div class="results-bar"><p role="status">${t("results", { count: number(sorted.length) })}</p>${kind === "sources" && state.followed ? `<span>${t("followHint")}</span>` : ""}</div>${kind === "sources" ? directoryHeader(state.sort, state.descending) : ""}<div class="${cls}">${sorted.length ? sorted.slice(0, limit).map(card).join("") : empty()}</div>${sorted.length > limit ? `<div class="pagination"><p>${t("showing", { shown: number(limit), total: number(sorted.length) })}</p><button class="button button-outline" data-action="more">${t("loadMore")}${icon("plus")}</button></div>` : ""}`;
+  return `${pageHeading(kind, bodyKey, extra)}${filterBar(state, catalog, kind, following)}<div class="results-bar"><p role="status">${t("results", { count: number(sorted.length) })}</p>${kind === "sources" && state.followed ? `<span>${t("followHint")}</span>` : ""}</div>${kind === "sources" ? directoryHeader(state.sort, state.descending) : ""}<div class="${cls}">${sorted.length ? sorted.slice(0, limit).map(card).join("") : emptySources()}</div>${sorted.length > limit ? `<div class="pagination"><p>${t("showing", { shown: number(limit), total: number(sorted.length) })}</p><button class="button button-outline" data-action="more">${t("loadMore")}${icon("plus")}</button></div>` : ""}`;
+}
+function emptySources() {
+  if (state.followed && !following.size && !state.q && !state.country && !state.type)
+    return empty({ filtered: false, symbol: "heart", title: t("noFollowedTitle"), body: t("noFollowedBody"),
+      actions: link("/source/", t("browseAllSources"), "button button-outline") });
+  if (hasFilters(state)) return empty();
+  return empty({ filtered: false, symbol: "users", title: t("emptySourcesTitle"), body: t("emptySourcesBody"),
+    actions: link("/submit/", t("submit") + icon("plus"), "button button-outline") });
 }
 function sourceForPath() {
   let slug;
@@ -224,7 +233,7 @@ function body() {
     const source = sourceForPath();
     return sourceDetail(source, catalog, following, limit);
   }
-  return `${pageHeading("notFound", "countryNote")}${link("/", t("home"), "button button-primary")}`;
+  return `<section class="not-found">${icon("compass")}<p class="eyebrow">404</p>${pageHeading("notFound", "notFoundBody")}<div class="not-found-actions">${link("/", t("home"), "button button-primary")}${link("/post/", t("posts"), "button button-outline")}${link("/events/", t("events"), "button button-outline")}${link("/source/", t("sources"), "button button-outline")}</div></section>`;
 }
 function render({ focus = false } = {}) {
   const refreshStoriesOnMount = path() === "/" && previousRenderedPath !== null && previousRenderedPath !== "/";
@@ -242,7 +251,7 @@ function render({ focus = false } = {}) {
   directoryCleanup?.();
   renderVersion++;
   setLocale(getLocale());
-  const current = routes[path()] || "sources";
+  const current = routes[path()] || (path().startsWith("/source/") || path().startsWith("/post/source/") ? "sources" : "notFound");
   const detail = sourceForPath();
   document.title = `${detail ? sourceDisplayName(detail) : t(current)} · ${t("brand")}`;
   updateMetadata();

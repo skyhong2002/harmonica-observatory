@@ -1,6 +1,6 @@
 import { eventText } from './event-localization.js';
 import { t, getLocale, countryName } from './i18n.js';
-import { esc, link, icon, timestamp, shortEventDate, number, avatar, sourceHref, safeUrl, textMatch, platformName, empty, postDisplayText } from './utils.js';
+import { esc, link, icon, timestamp, shortEventDate, number, avatar, sourceHref, safeUrl, textMatch, platformName, empty, hasFilters, postDisplayText } from './utils.js';
 import { filterBar } from './views.js';
 import { reportLink } from './reporting.js';
 import { sourceDisplayName } from './source-names.js';
@@ -42,8 +42,9 @@ export function timelineCard(p, sources = [], following = new Set(), events = []
 export function timelineView(catalog,state = {},following = new Set(),limit = 24) {
   const posts = timelinePosts(catalog,state,following),shown=Math.min(posts.length,Math.max(1,limit));
   const noFollowing = (state.followed || state.kind === 'following') && !following.size;
-  const emptyFeed = noFollowing ? `<div class="empty-state">${icon('heart')}<h2>${esc(words().noFollowing)}</h2><p>${esc(words().startFollowing)}</p>${link('/source/',esc(t('sources')),'button button-outline')}</div>` : empty();
-  return `<section class="observatory-timeline" data-timeline><div class="feed-river-controls"><div class="feed-river-summary"><strong role="status">${t('results',{count:number(posts.length)})}</strong></div>${filterBar(state,catalog,'posts',following)}</div><div class="feed-river" data-timeline-grid>${posts.length ? posts.slice(0,shown).map((p,i)=>timelineCard(p,catalog.sources,following,catalog.events,i)).join('') : emptyFeed}</div><div class="feed-load-more-wrap" ${posts.length > shown ? 'data-timeline-more' : ''}><span class="feed-load-more-status" tabindex="-1">${t('showing',{shown:number(shown),total:number(posts.length)})}</span>${posts.length > shown ? `<button type="button" class="feed-load-more-button" data-action="more">${t('loadMore')}</button>` : ''}</div></section>`;
+  const emptyFeed = noFollowing ? `<div class="empty-state">${icon('heart')}<h2>${esc(words().noFollowing)}</h2><p>${esc(words().startFollowing)}</p><div class="empty-actions">${link('/source/',esc(t('browseAllSources')),'button button-outline')}</div></div>`
+    : hasFilters(state) ? empty() : empty({filtered:false,title:t('emptyPostsTitle'),body:t('emptyPostsBody'),symbol:'rss'});
+  return `<section class="observatory-timeline" data-timeline><div class="feed-river-controls"><div class="feed-river-summary"><strong role="status">${t('results',{count:number(posts.length)})}</strong></div>${filterBar(state,catalog,'posts',following)}</div><div class="feed-river" data-timeline-grid>${posts.length ? posts.slice(0,shown).map((p,i)=>timelineCard(p,catalog.sources,following,catalog.events,i)).join('') : emptyFeed}</div><div class="feed-load-more-wrap" ${posts.length > shown ? 'data-timeline-more' : ''}>${posts.length ? `<span class="feed-load-more-status" tabindex="-1">${t('showing',{shown:number(shown),total:number(posts.length)})}</span>` : ''}${posts.length > shown ? `<button type="button" class="feed-load-more-button" data-action="more">${t('loadMore')}</button>` : ''}</div></section>`;
 }
 
 let autoLoadEnabled = false;

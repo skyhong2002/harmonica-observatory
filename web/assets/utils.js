@@ -53,6 +53,8 @@ export const icon = (name) => {
     pin: '<path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/>',
     plus: '<path d="M12 4v16M4 12h16"/>',
     info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7v1"/>',
+    compass: '<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5 5-2Z"/>',
+    users: '<circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2M16 5a3 3 0 0 1 0 6m2 4a5 5 0 0 1 3 5"/>',
     layers:
       '<path d="m12 3 10 6-10 6L2 9l10-6ZM2 13l10 6 10-6M2 17l10 6 10-6"/>',
   };
@@ -212,8 +214,17 @@ export function postDisplayText(post, value) {
   const generated = post.isStory && post.platform === 'instagram' && /^Instagram story (@[A-Za-z0-9_.]+)$/.exec(text);
   return generated && getLocale() !== 'en' ? `Instagram ${t('story')} ${generated[1]}` : text;
 }
-export function empty() {
-  return `<div class="empty-state">${icon("search")}<h2>${t("noResults")}</h2><p>${t("noResultsBody")}</p><button class="button button-outline" data-action="reset">${t("reset")}</button> ${link("/submit/", t("submit"), "text-link")}</div>`;
+// Filtered views offer to clear the filters; unfiltered empty views explain
+// why there is nothing yet and offer the next useful place instead.
+export function hasFilters(state = {}) {
+  return Boolean(state.q || state.country || state.platform || state.kind || state.type || state.followed
+    || state.year || state.instrument || state.division || state.publisher || state.scoreKind
+    || (state.period && state.period !== "upcoming"));
+}
+export function empty({ filtered = true, title = "", body = "", actions = "", symbol = "info" } = {}) {
+  if (filtered)
+    return `<div class="empty-state">${icon("search")}<h2>${t("noResults")}</h2><p>${t("noResultsBody")}</p><div class="empty-actions"><button class="button button-outline" data-action="reset">${t("reset")}</button></div></div>`;
+  return `<div class="empty-state">${icon(symbol)}<h2>${esc(title)}</h2>${body ? `<p>${esc(body)}</p>` : ""}${actions ? `<div class="empty-actions">${actions}</div>` : ""}</div>`;
 }
 export const pastEvent = (event) => {
   const end = event.end || event.start;

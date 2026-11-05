@@ -1,5 +1,5 @@
 import { t, getLocale, countryName } from './i18n.js';
-import { esc, link, icon, number, safeUrl, textMatch, image, date } from './utils.js';
+import { esc, link, icon, number, safeUrl, textMatch, image, date, hasFilters } from './utils.js';
 import { pageHeading } from './views.js';
 import { reportLink } from './reporting.js';
 
@@ -241,15 +241,15 @@ function collectionControls(rows, state) {
   return `<section class="filter-bar scores-filters collection-filters" aria-label="${t('filter')}"><label class="search-label"><span>${t('search')}</span><div class="search-wrap">${icon('search')}<input id="catalog-search" type="search" value="${esc(state.q || '')}" placeholder="${esc(l('searchGuide'))}" autocomplete="off"></div></label><label>${esc(l('kind'))}<select data-filter="scoreKind"><option value="">${esc(l('allKinds'))} (${number(base.length)})</option>${['books','announcements','contacts'].map(kind=>`<option value="${kind}" ${state.scoreKind===kind?'selected':''}>${esc(l(kind))} (${number(base.filter(row=>collectionKind(row)===kind).length)})</option>`).join('')}</select></label>${countries ? select('country',t('country'),t('allCountries'),rows,{q:state.q,country:state.country}) : ''}${state.q || state.country || state.scoreKind ? `<button class="clear-filter" data-action="reset">${esc(l('reset'))}</button>` : ''}</section>`;
 }
 
-function noResults(collections) {
-  return `<div class="empty-state"><h2>${esc(l(collections ? 'noCollections' : 'noResults'))}</h2><p>${t('noResultsBody')}</p><button class="button button-outline" data-action="reset">${esc(l('reset'))}</button></div>`;
+function noResults(collections, filtered = true) {
+  return `<div class="empty-state">${icon(filtered ? 'search' : 'music')}<h2>${esc(l(collections ? 'noCollections' : 'noResults'))}</h2>${filtered ? `<p>${t('noResultsBody')}</p><div class="empty-actions"><button class="button button-outline" data-action="reset">${esc(l('reset'))}</button></div>` : ''}</div>`;
 }
 function pagination(length, limit) {
   return length > limit ? `<div class="pagination"><p>${t('showing', { shown: number(limit), total: number(length) })}</p><button class="button button-outline" data-action="more">${t('loadMore')}${icon('plus')}</button></div>` : '';
 }
 export function scoresView(catalog, state = {}, limit = 24) {
   const rows = catalog.scores || [], results = filterScores(rows, state);
-  return `${pageHeading('scores', 'scoresBody')}${tabs('repertoire', state, catalog)}${controls(rows, state)}<div class="results-bar"><p role="status">${esc(l('records', { count: number(results.length) }))}</p></div><div class="score-list">${results.length ? repertoireTable(results.slice(0, limit)) : noResults(false)}</div>${pagination(results.length, limit)}<details class="score-guide"><summary>${esc(l('guide'))}</summary><p>${esc(l('indexNote'))}</p><p>${esc(l('yearNote'))}</p></details>`;
+  return `${pageHeading('scores', 'scoresBody')}${tabs('repertoire', state, catalog)}${controls(rows, state)}<div class="results-bar"><p role="status">${esc(l('records', { count: number(results.length) }))}</p></div><div class="score-list">${results.length ? repertoireTable(results.slice(0, limit)) : noResults(false, hasFilters(state))}</div>${pagination(results.length, limit)}<details class="score-guide"><summary>${esc(l('guide'))}</summary><p>${esc(l('indexNote'))}</p><p>${esc(l('yearNote'))}</p></details>`;
 }
 export function scoreSourcesView(catalog, state = {}, limit = 24) {
   const rows = catalog.scoreSources || [];
@@ -261,5 +261,5 @@ export function scoreSourcesView(catalog, state = {}, limit = 24) {
     const group = visible.filter(row=>collectionKind(row)===kind);
     return group.length ? `<div class="collection-group-heading"><h2>${esc(l(kind))} <span>${number(results.filter(row=>collectionKind(row)===kind).length)}</span></h2><p>${esc(l(kind+'Help'))}</p></div>${group.map(collectionRow).join('')}` : '';
   }).join('');
-  return `${pageHeading('scoreSources', 'scoreSourcesBody')}${tabs('collections', state, catalog)}${collectionControls(rows,state)}<div class="results-bar"><p role="status">${esc(l('collectionRecords', { count: number(results.length) }))}</p></div><div class="score-list score-source-list">${results.length ? content : noResults(true)}</div>${pagination(results.length, limit)}<p class="score-index-note">${icon('info')}<span>${esc(l('collectionsNote'))}</span></p>`;
+  return `${pageHeading('scoreSources', 'scoreSourcesBody')}${tabs('collections', state, catalog)}${collectionControls(rows,state)}<div class="results-bar"><p role="status">${esc(l('collectionRecords', { count: number(results.length) }))}</p></div><div class="score-list score-source-list">${results.length ? content : noResults(true, hasFilters(state))}</div>${pagination(results.length, limit)}<p class="score-index-note">${icon('info')}<span>${esc(l('collectionsNote'))}</span></p>`;
 }
