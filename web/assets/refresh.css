@@ -420,3 +420,26 @@ html:lang(ko) body { word-break: keep-all; overflow-wrap: anywhere; }
 /* Contribute: the fold uses a chevron that turns, not a close-looking cross. */
 .new-contribution[open] > summary svg { transform: rotate(90deg); }
 @media (max-width: 640px) { .google-calendar-toolbar { justify-content: flex-start; } }
+
+
+/* Round 7: source-page images stay inside their cards (the feed layout
+   pulled them left under the hidden avatar column). */
+.source-updates-grid .post-image.feed-img { margin: 12px 0 0; width: 100%; max-width: 100%; }
+/* Events: two lines of the original post, still visible; cards use the full width. */
+.rich-events-grid { max-width: none; }
+.event-reference .feed-text { -webkit-line-clamp: 2; }
+/* Phones: one-line short tab labels. */
+.nav-label-short { display: none; }
+@media (max-width: 640px) {
+  .legacy-site-header.nav-refresh .site-nav .nav-label { display: none; }
+  .legacy-site-header.nav-refresh .site-nav .nav-label-short { display: block; font-size: .74rem; white-space: nowrap; }
+}
+/* Very wide screens: a wider page and larger secondary text. */
+@media (min-width: 2200px) { :root { --page-width: min(1560px, calc(100% - 160px)); } }
+.home-updated, .rich-event-zone, .ob-story-caption .ob-story-footer, .google-calendar-context, .home-upcoming-copy > span { font-size: .86rem; }
+.event-author-meta, .feed-latest-meta { font-size: .82rem; }
+/* Directory header: quiet column dividers until hovered. */
+@media (min-width: 900px) {
+  .src-column-resize::after { background: transparent; }
+  .src-head:hover .src-column-resize::after { background: var(--color-border-subtle); }
+}
