@@ -59,7 +59,9 @@ export function accountNavigation(session = null) {
   const label = session?.account ? t('accountTitle') : t('googleLoginShort');
   const content = session?.googleLoginEnabled && !session.account
     ? `<button type="button" class="button nav-account-button" data-google-auth="login" aria-label="${t('googleSignIn')}">${label}</button>`
-    : `<a class="button nav-account-button" href="/contribute/?lang=${encodeURIComponent(getLocale())}#google-account">${label}</a>`;
+    : session?.account
+      ? `<a class="button nav-account-button is-signed-in" href="/contribute/?lang=${encodeURIComponent(getLocale())}#google-account" ><span class="nav-account-avatar" aria-hidden="true">${icon('check')}</span><span>${label}</span></a>`
+      : `<a class="button nav-account-button" href="/contribute/?lang=${encodeURIComponent(getLocale())}#google-account">${label}</a>`;
   return `<div data-account-nav class="nav-account">${content}</div>`;
 }
 export function navigation(current = location.pathname, routes = {}, session = null) {

@@ -30,11 +30,14 @@ export function observatoryHome(catalog, state, following, limit = 24) {
   return `<div class="observatory-home">
     <section class="home-intro home-band" aria-labelledby="home-intro-title"><div class="home-section-inner home-intro-grid">
       <div class="home-intro-copy"><h1 id="home-intro-title">${esc(w.tagline)}</h1><p>${esc(w.intro)}</p>
-        <dl class="home-stats">${stats.map(([value, label]) => `<div><dt>${esc(label)}</dt><dd>${number(value)}</dd></div>`).join('')}</dl></div>
+        ${stats.some(([value]) => value) ? `<dl class="home-stats">${stats.map(([value, label]) => `<div><dt>${esc(label)}</dt><dd>${number(value)}</dd></div>`).join('')}</dl>` : ''}</div>
       <nav class="home-entries" aria-label="${esc(w.home)}">${entries.map(([url, symbol, label]) => `<a class="home-entry" href="${url + lang}">${icon(symbol)}<span>${esc(label)}</span>${icon('arrow')}</a>`).join('')}</nav>
     </div></section>
-    <section class="home-stories home-band" aria-labelledby="home-stories-title"><div class="home-section-inner"><header class="home-section-heading"><h2 id="home-stories-title">${esc(w.stories)}</h2>${updated}</header>${storiesView(catalog)}</div></section>
-    <section class="home-calendar home-band" aria-labelledby="home-calendar-title"><div class="home-section-inner"><header class="home-section-heading"><h2 id="home-calendar-title">${esc(w.calendar)}</h2><div>${link('/events/',esc(w.events),'text-link')}${link('/feeds/',esc(w.subscriptions),'text-link')}</div></header>${upcomingList(catalog, w)}<h3 class="home-calendar-subtitle">${esc(w.fullCalendar)}</h3>${googleCalendarView(catalog)}</div></section>
+    <section class="home-stories home-band" aria-labelledby="home-stories-title"><div class="home-section-inner home-now-grid">
+      <div class="home-now-stories"><header class="home-section-heading"><h2 id="home-stories-title">${esc(w.stories)}</h2>${updated}</header>${storiesView(catalog)}</div>
+      ${upcomingList(catalog, w) ? `<aside class="home-now-events" aria-labelledby="home-upcoming-title"><header class="home-section-heading"><h2 id="home-upcoming-title">${esc(w.upcomingTitle)}</h2>${link('/events/' + lang, esc(w.events) + icon('arrow'), 'text-link')}</header>${upcomingList(catalog, w)}</aside>` : ''}
+    </div></section>
+    <section class="home-calendar home-band" aria-labelledby="home-calendar-title"><div class="home-section-inner"><header class="home-section-heading"><h2 id="home-calendar-title">${esc(w.calendar)}</h2><div>${link('/events/',esc(w.events),'text-link')}${link('/feeds/',esc(w.subscriptions),'text-link')}</div></header>${googleCalendarView(catalog)}</div></section>
     <section class="home-posts home-band" aria-labelledby="home-posts-title"><div class="home-section-inner"><header class="home-section-heading"><h2 id="home-posts-title">${esc(w.feed)}</h2>${link('/post/?'+params,esc(w.full)+icon('arrow'),'text-link')}</header>${timelineView(catalog,state,following,limit)}</div></section>
   </div>`;
 }

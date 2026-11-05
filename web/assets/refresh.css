@@ -257,3 +257,85 @@ html:lang(ko) body { word-break: keep-all; overflow-wrap: anywhere; }
 .feed-groups { display: grid; gap: 28px; }
 .feed-group > header h2 { margin: 0 0 4px; font-size: 1.15rem; }
 .feed-group > header p { margin: 0 0 6px; color: var(--color-text-secondary); font-size: .9rem; }
+
+/* Directory: one line of description fills the name column on desktop; the
+   report flag sits apart from the source links. */
+.src-summary { display: none; }
+.src-country-inline { display: none; }
+@media (min-width: 900px) {
+  .src-c-name { flex-direction: column; align-items: stretch; justify-content: center; }
+  .src-summary { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; margin: 2px 0 0 54px; color: var(--color-text-muted); font-size: .84rem; line-height: 1.5; }
+}
+.src-links .context-report-link { margin-left: 6px; padding-left: 10px; color: var(--color-text-muted); border-left: 1px solid var(--color-border-subtle); }
+/* Phones: three lines per source — name, "country · type", links and stats. */
+@media (max-width: 699px) {
+  .src-country-mobile { display: none; }
+  .src-c-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; font-size: .84rem; }
+  .src-country-inline { display: inline; color: var(--color-text-secondary); font-weight: 600; }
+  .src-country-inline::after { content: "·"; margin-left: 6px; color: var(--color-text-muted); }
+  .src-c-chips .source-types { display: inline-flex; }
+  .src-links .context-report-link { display: none; }
+  .source-card.src-row { row-gap: 2px; padding-block: 10px; }
+}
+
+/* Home "now" band: stories beside the next events on desktop. */
+.home-now-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 26rem); gap: 32px 48px; align-items: start; }
+.home-now-stories { min-width: 0; }
+.home-now-events .home-upcoming { grid-template-columns: 1fr; gap: 10px; margin: 0; }
+.home-now-events .home-section-heading h2 { font-size: 1.5rem; }
+@media (max-width: 1100px) { .home-now-grid { grid-template-columns: 1fr; } .home-now-events .home-upcoming { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) {
+  .home-now-events .home-upcoming { grid-template-columns: 1fr; }
+  .home-now-events .home-section-heading h2 { font-size: 1.3rem; }
+  /* First screen on phones: one line of numbers, entries as a swipe row. */
+  .home-intro-copy > p { display: none; }
+  .home-stats { display: flex; flex-wrap: nowrap; gap: 14px; margin-top: 10px; overflow-x: auto; scrollbar-width: none; }
+  .home-stats > div { flex: 0 0 auto; }
+  .home-stats dd { font-size: 1.15rem; }
+  .home-stats dt { font-size: .74rem; white-space: nowrap; }
+  .home-entries { display: flex; gap: 8px; margin-inline: -16px; padding: 2px 16px 6px; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; }
+  .home-entry { flex: 0 0 auto; min-height: 48px; padding: 8px 14px 8px 8px; scroll-snap-align: start; border-radius: 999px; }
+  .home-entry > svg:last-child { display: none; }
+  .home-intro-grid { gap: 14px; }
+  .home-intro-copy h1 { font-size: 1.35rem; margin-bottom: 0; }
+}
+
+/* Event cards: compact poster, year on past dates, secondary actions in "⋯". */
+.event-media { padding: 0 20px; }
+.event-poster { width: auto; max-width: 100%; max-height: 260px; margin: 0; }
+.event-reference .feed-text { -webkit-line-clamp: 3; }
+.event-date-year { color: var(--color-text-muted); font-size: .7rem; font-weight: 700; line-height: 1.3; }
+.more-actions { position: relative; margin-left: auto; }
+.more-actions > summary { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 36px; color: var(--color-text-secondary); font-size: 1.2rem; list-style: none; cursor: pointer; border-radius: 8px; }
+.more-actions > summary::-webkit-details-marker { display: none; }
+.more-actions > summary:hover, .more-actions[open] > summary { background: var(--color-surface-soft); }
+.more-actions-menu { position: absolute; right: 0; bottom: calc(100% + 6px); z-index: 5; display: grid; gap: 2px; min-width: 10rem; padding: 6px; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: 10px; box-shadow: var(--shadow-raised); }
+.more-actions-menu > * { justify-content: flex-start; min-height: 40px; padding: 6px 10px !important; }
+@media (max-width: 760px) { .event-poster { max-height: 220px; } .event-media { padding: 0 15px; } }
+
+/* Filters on phones fold under one toggle. */
+.filter-more { flex: 1 1 100%; }
+.filter-more > summary { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 14px; color: var(--color-text-primary); font-size: .9rem; font-weight: 700; list-style: none; cursor: pointer; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: 999px; }
+.filter-more > summary::-webkit-details-marker { display: none; }
+.filter-more > summary svg { width: 18px; height: 18px; color: var(--color-text-brand); }
+.filter-more-body { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 10px; }
+.filter-more-body > *, .filter-more-body label, .filter-more-body select { width: 100%; max-width: none; flex: none; }
+
+/* Contribute: what Apify is, live contributions first, new form folded. */
+.contribution-main { display: flex; flex-direction: column; gap: 20px; }
+.contribution-main.has-contributions .ownership-section { order: -1; }
+.contribution-main .apify-intro { order: -2; display: flex; gap: 10px; align-items: flex-start; margin: 0; padding: 14px 16px; color: var(--color-text-secondary); font-size: .92rem; line-height: 1.7; background: var(--color-info-surface); border-radius: var(--radius-md); }
+.apify-intro svg { flex: 0 0 20px; width: 20px; height: 20px; margin-top: 3px; color: var(--color-text-brand); }
+.apify-intro p { margin: 0; }
+.new-contribution > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; list-style: none; cursor: pointer; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); }
+.new-contribution > summary::-webkit-details-marker { display: none; }
+.new-contribution > summary h2 { margin: 0; font-size: 1.1rem; }
+.new-contribution > summary svg { width: 20px; height: 20px; color: var(--color-text-brand); }
+.new-contribution[open] > summary { border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom: 0; }
+.new-contribution[open] > summary svg { transform: rotate(45deg); }
+.new-contribution > .form-panel { margin: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
+
+/* Signed-in header button reads as a state, not just a link. */
+.legacy-site-header .nav-account-button.is-signed-in { display: inline-flex; align-items: center; gap: 8px; color: var(--color-action-on-primary); background: var(--color-action-primary); border-color: var(--color-action-primary); }
+.nav-account-avatar { display: inline-grid; place-items: center; width: 22px; height: 22px; color: var(--color-action-primary); background: var(--color-action-on-primary); border-radius: 50%; }
+.nav-account-avatar svg { width: 14px; height: 14px; stroke-width: 2.4; }

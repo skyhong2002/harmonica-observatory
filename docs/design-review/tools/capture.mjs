@@ -31,7 +31,10 @@ async function shoot(page, file, size, { anchor, viewportOnly } = {}) {
   if (anchor) {
     top = await page.evaluate((selector) => {
       const node = document.querySelector(selector);
-      return node ? Math.round(Math.max(0, node.getBoundingClientRect().top + window.scrollY - 24)) : 0;
+      // Leave room for a sticky header so it never covers the anchored content.
+      const header = document.querySelector('.site-header');
+      const sticky = header && ['sticky', 'fixed'].includes(getComputedStyle(header).position) ? header.offsetHeight : 0;
+      return node ? Math.round(Math.max(0, node.getBoundingClientRect().top + window.scrollY - 24 - sticky)) : 0;
     }, anchor);
   }
   if (viewportOnly) {

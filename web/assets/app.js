@@ -263,6 +263,7 @@ function render({ focus = false } = {}) {
     navigation(path(), routes, getSession()) +
     `<main id="main" class="main-container${path() === "/post/" ? " timeline-main" : path() === "/" ? " home-main" : ""}" tabindex="-1">${body()}</main>` +
     footer();
+  collapseFilters(app);
   directoryCleanup = bindDirectoryColumns(app);
   if (isTimeline && catalog) timelineCleanup = bindTimeline(app);
   if (path() === "/events/" && catalog) eventsCleanup = bindEvents(app);
@@ -288,6 +289,22 @@ function render({ focus = false } = {}) {
   if (focus) document.querySelector("#main")?.focus({ preventScroll: true });
 }
 
+// Phones: fold three or more filter controls under one "Filter (n)" toggle so
+// results start on the first screen. Open while any filter is applied.
+function collapseFilters(root) {
+  if (!window.matchMedia?.("(max-width: 640px)").matches) return;
+  for (const bar of root.querySelectorAll(".filter-bar")) {
+    const controls = [...bar.children].filter(node => node.matches("label:not(.search-label), .clear-filter"));
+    if (controls.filter(node => node.matches("label")).length < 3) continue;
+    const active = controls.filter(node => node.querySelector("select")?.selectedIndex > 0 || node.querySelector("input[type=checkbox]")?.checked).length;
+    const details = document.createElement("details");
+    details.className = "filter-more";
+    details.open = active > 0;
+    details.innerHTML = `<summary>${icon("layers")}<span>${t("filter")}${active ? ` (${number(active)})` : ""}</span></summary><div class="filter-more-body"></div>`;
+    details.lastElementChild.append(...controls);
+    bar.append(details);
+  }
+}
 function updateMetadata() {
   const source = sourceForPath();
   const descriptionText = source && sourceSummaryText(source) || t("aboutBody");
