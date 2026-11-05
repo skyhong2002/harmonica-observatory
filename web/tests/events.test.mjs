@@ -19,9 +19,18 @@ test('event explanations follow locale while original posts and descriptions rem
   for (const locale of ['zh-Hant','en','ja','ko']) {
     setLocale(locale);
     document.querySelector('main').innerHTML = richEventCard(translated, catalog);
-    assert.equal(document.querySelector('.source-summary').textContent, translated.descriptions[locale]);
     assert.equal(document.querySelector('.feed-text').textContent, post.text);
+    // The new interface shows the structured description only when no
+    // original post is linked (the post already says it), and never folded.
+    if (isRedesign()) {
+      assert.equal(document.querySelector('.source-summary'), null);
+      assert.equal(document.querySelector('details.event-description'), null);
+      document.querySelector('main').innerHTML = richEventCard(translated, { ...catalog, posts: [] });
+      assert.equal(document.querySelector('.event-description-text').closest('details'), null);
+    }
+    assert.equal(document.querySelector('.source-summary').textContent, translated.descriptions[locale]);
     assert.equal(document.querySelector('.event-description b'), null);
+    assert.equal(document.querySelector('.event-description-text b'), null);
     const original = document.querySelector('.source-summary-original');
     if (locale === 'zh-Hant') assert.equal(original, null);
     else { assert.equal(original.open, false); assert.equal(original.querySelector('p').textContent, translated.description); }
@@ -147,11 +156,29 @@ test('failed videos remove dead controls and retain their poster with a four-lan
 
 test('event cards omit repeated declarations without hiding snapshot status, timezone or original links',()=>{
  const window=setup();document.querySelector('main').innerHTML=eventsView(catalog,{});
+ // The new interface states the count only when a search or filter narrows the list.
+ if(isRedesign()){assert.equal(document.querySelector('.results-bar'),null);document.querySelector('main').innerHTML=eventsView(catalog,{q:'concert'});}
  assert.equal(document.querySelector('.results-bar').children.length,1);
+ if(isRedesign()) document.querySelector('main').innerHTML=eventsView(catalog,{});
  assert.equal(document.querySelector('.event-reference-label'),null);
  // The new interface keeps one action row per single-post event.
  assert.ok(document.querySelector(isRedesign() ? '.rich-event-actions a[href]' : '.event-reference-actions a[href]'));
  assert.match(document.querySelector('.rich-event-zone').textContent,/America\/Los_Angeles/);
+ if(isRedesign()){
+  // One original link, one follow and one ⋯ menu per card; the zone sits beside the time.
+  assert.equal(document.querySelectorAll('.rich-event-card a.event-original-link').length,1);
+  assert.equal(document.querySelectorAll('.rich-event-card .event-reference-actions').length,0);
+  assert.equal(document.querySelectorAll('.rich-event-card [data-follow]').length,1);
+  assert.equal(document.querySelectorAll('.rich-event-card .more-actions').length,1);
+  assert.ok(document.querySelector('.rich-event-time .rich-event-zone'));
+  // The general rule and the event subscriptions live in the page notes.
+  assert.ok(document.querySelector('.page-notes'));
+  const zone=Intl.DateTimeFormat().resolvedOptions().timeZone;
+  document.querySelector('main').innerHTML=richEventCard({...event,timezone:zone},catalog);
+  assert.equal(document.querySelector('.rich-event-zone'),null);
+  document.querySelector('main').innerHTML=eventsView({...catalog,feeds:[{id:'taiwanCalendar',url:'/feeds/public-calendar.ics',format:'ICS'},{id:'events',url:'/feeds/events.xml',format:'RSS'},{id:'posts',url:'/feeds/posts.xml',format:'RSS'}]},{});
+  assert.deepEqual([...document.querySelectorAll('.page-notes a')].map(a=>a.getAttribute('href')),['/feeds/public-calendar.ics','/feeds/events.xml']);
+ }
  document.querySelector('main').innerHTML=richEventCard({...event,url:post.url,sourceUrl:post.url},{...catalog,posts:[{...post,contentKind:'website_snapshot',publishedAt:null}]});
  assert.match(document.querySelector('.event-reference-label').textContent,/website/i);
  assert.equal(document.querySelectorAll('.rich-event-actions a[href="'+post.url+'"]').length,isRedesign() ? 1 : 0);

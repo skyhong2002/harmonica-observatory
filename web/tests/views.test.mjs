@@ -142,3 +142,33 @@ test('event cards show announced end times and label estimated calendar placehol
   assert.doesNotMatch(document.querySelector('.event-time').textContent,/–/);
  }
 });
+
+test('"Clear filters" appears only for a real filter; in the new interface Following is a tab, not a filter', async () => {
+ const { filterBar } = await import('../assets/views.js');
+ const { isRedesign } = await import('../assets/redesign.js');
+ const data = { countries: [{ code: 'JP' }], sources: [{ id: 'a', countryCode: 'JP', type: 'club' }], posts: [{ countryCode: 'JP', sourceId: 'a', platform: 'instagram' }], events: [] };
+ setLocale('en');
+ for (const [kind, state] of [['sources', { followed: true }], ['posts', { kind: 'following' }]]) {
+  document.body.innerHTML = filterBar(state, data, kind, new Set());
+  assert.equal(!!document.querySelector('[data-action="reset"]'), !isRedesign());
+  document.body.innerHTML = filterBar({ ...state, country: 'JP' }, data, kind, new Set());
+  assert.ok(document.querySelector('[data-action="reset"]'));
+ }
+});
+test('new interface: status explains its snapshot once in the page notes, and the source page follows with a heart', async () => {
+ const { sourceDetail } = await import('../assets/views.js');
+ const { isRedesign } = await import('../assets/redesign.js');
+ setLocale('en');
+ document.body.innerHTML = statusView({ status: { services: [] } });
+ assert.equal(document.body.textContent.split(t('snapshotNote')).length - 1, 1);
+ assert.equal(!!document.querySelector('.page-notes'), isRedesign());
+ document.body.innerHTML = sourceDetail(sources[0], { posts: [], sources }, new Set());
+ assert.equal(!!document.querySelector('.source-profile [data-follow] path[d^="M20.8"]'), isRedesign());
+ const { aboutView } = await import('../assets/views.js');
+ for (const locale of ['en', 'zh-Hant', 'ja', 'ko']) {
+  setLocale(locale);
+  document.body.innerHTML = aboutView();
+  assert.equal(!!document.querySelector('.page-heading a[href="https://github.com/skyhong2002/chumei"]'), isRedesign(), 'project origin is linked once on About');
+  assert.equal(document.querySelector('.page-heading p').textContent.replace(/↗/g, ''), t('aboutBody'));
+ }
+});

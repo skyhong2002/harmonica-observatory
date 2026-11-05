@@ -7,7 +7,8 @@ import { bindGoogleCalendar } from "./google-calendar.js";
 import { eventsView, bindEvents } from "./events.js";
 import { scoresView, scoreSourcesView } from "./scores.js";
 import { navigation, accountNavigation, footer, initializeShell, handleShellClick, pageName } from "./shell.js";
-import { timelineView, bindTimeline } from "./timeline.js";
+import { timelineView, bindTimeline, timelineNotes } from "./timeline.js";
+import { pageNotes } from "./page-notes.js";
 import { t, getLocale, setLocale } from "./i18n.js";
 import {
   esc,
@@ -26,6 +27,7 @@ import {
   sortSources,
   togglePostExpansion,
   filterBar,
+  filtersActive,
   pageHeading,
   sourceCard,
   postCard,
@@ -196,7 +198,13 @@ function listView(kind, data) {
       : kind === "sources"
         ? link("/submit/", t("submit") + icon("plus"), "button button-outline")
         : "";
-  return `${pageHeading(kind, bodyKey, extra)}${kind === "sources" && isRedesign() ? followTabs("sources") : ""}${filterBar(state, catalog, kind, following)}<div class="results-bar"><p role="status">${t("results", { count: number(sorted.length) })}</p>${kind === "sources" && state.followed && sorted.length ? `<span>${t("followHint")}</span>` : ""}</div>${kind === "sources" && sorted.length ? directoryHeader(state.sort, state.descending) : ""}<div class="${cls}">${sorted.length ? sorted.slice(0, limit).map(card).join("") : emptySources()}</div>${sorted.length > limit ? `<div class="pagination"><p>${t("showing", { shown: number(limit), total: number(sorted.length) })}</p><button class="button button-outline" data-action="more">${t("loadMore")}${icon("plus")}</button></div>` : ""}`;
+  // New interface: one count per list — "showing x of y" by load-more, plus
+  // this result count only while a search or filter narrows the list.
+  const resultsBar = !isRedesign()
+    ? `<div class="results-bar"><p role="status">${t("results", { count: number(sorted.length) })}</p>${kind === "sources" && state.followed && sorted.length ? `<span>${t("followHint")}</span>` : ""}</div>`
+    : filtersActive(state) ? `<div class="results-bar"><p role="status">${t("results", { count: number(sorted.length) })}</p></div>` : "";
+  const notes = isRedesign() && kind === "sources" && state.followed && sorted.length ? pageNotes([esc(t("followHint"))]) : "";
+  return `${pageHeading(kind, bodyKey, extra)}${kind === "sources" && isRedesign() ? followTabs("sources") : ""}${filterBar(state, catalog, kind, following)}${resultsBar}${kind === "sources" && sorted.length ? directoryHeader(state.sort, state.descending) : ""}<div class="${cls}">${sorted.length ? sorted.slice(0, limit).map(card).join("") : emptySources()}</div>${sorted.length > limit ? `<div class="pagination"><p>${t("showing", { shown: number(limit), total: number(sorted.length) })}</p><button class="button button-outline" data-action="more">${t("loadMore")}${icon("plus")}</button></div>` : ""}${notes}`;
 }
 // "All / Following" tabs so the personal view is not hidden in a dropdown.
 function followTabs(kind) {
@@ -238,7 +246,7 @@ function body() {
   const key = routes[path()];
   const data = filtered();
   if (key === "discover") return observatoryHome(catalog, state, following, limit);
-  if (key === "posts") return pageHeading("posts", null) + (isRedesign() ? followTabs("posts") : "") + timelineView(catalog, state, following, limit);
+  if (key === "posts") return pageHeading("posts", null) + (isRedesign() ? followTabs("posts") : "") + timelineView(catalog, state, following, limit) + (isRedesign() ? pageNotes(timelineNotes()) : "");
   if (key === "scores") return scoresView(catalog, state, limit);
   if (key === "scoreSources") return scoreSourcesView(catalog, state, limit);
   if (key === "events") return eventsView(catalog, state, following, limit);
@@ -308,13 +316,14 @@ function render({ focus = false } = {}) {
   if (focus) document.querySelector("#main")?.focus({ preventScroll: true });
 }
 
-// Phones: fold three or more filter controls under one "Filter (n)" toggle so
-// results start on the first screen. Open while any filter is applied.
+// Phones: fold the filter controls under one "Filter (n)" toggle so results
+// start on the first screen (every list page has at least two). Open while
+// any filter is applied.
 function collapseFilters(root) {
   if (!isRedesign() || !window.matchMedia?.("(max-width: 640px)").matches) return;
   for (const bar of root.querySelectorAll(".filter-bar")) {
     const controls = [...bar.children].filter(node => node.matches("label:not(.search-label), .clear-filter"));
-    if (controls.filter(node => node.matches("label")).length < 3) continue;
+    if (controls.filter(node => node.matches("label")).length < 2) continue;
     const active = controls.filter(node => node.querySelector("select")?.selectedIndex > 0 || node.querySelector("input[type=checkbox]")?.checked).length;
     const details = document.createElement("details");
     details.className = "filter-more";

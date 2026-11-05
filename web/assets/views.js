@@ -2,6 +2,7 @@ import { isRedesign } from './redesign.js';
 import { eventText, eventOriginalMarkup } from './event-localization.js';
 import { sourceDisplayName, sourceNamesMarkup, sourceTypesMarkup, sourceAlternativesMarkup, sourceSummaryMarkup, sourceSummaryText, sourceTags } from "./source-names.js";
 import { reportLink } from "./reporting.js";
+import { pageNotes } from "./page-notes.js";
 import { pageName } from "./shell.js";
 import { t, getLocale, countryName } from "./i18n.js";
 import {
@@ -120,8 +121,18 @@ export function scoreRow(s) {
 export function collectionCard(s) {
   return `<article class="collection-card"><div class="collection-art">${icon("music")}<span aria-hidden="true">♫</span></div><div class="collection-copy"><div class="eyebrow">${esc(countryName(s.countryCode))}</div><h3>${esc(s.name || s.title)}</h3><p>${esc(s.summary || "")}</p><div class="card-bottom"><span class="muted small">${s.count !== undefined ? number(s.count) + " " + t("scoresCount") : ""}</span>${link(s.url, t("original"), "text-link")}</div></div></article>`;
 }
+// List pages describe themselves through their content; the new interface
+// keeps only the title there. Explanatory pages keep their description.
+const listDescriptions = new Set(["latestBody", "eventsBody", "directoryBody", "scoresBody", "scoreSourcesBody"]);
 export function pageHeading(key, body, extra = "") {
-  return `<header class="page-heading"><div><h1>${pageName(key) ? esc(pageName(key)) : t(key)}</h1>${body ? `<p>${t(body)}</p>` : ""}</div>${extra}</header>`;
+  const description = body && !(isRedesign() && listDescriptions.has(body)) ? `<p>${t(body)}</p>` : "";
+  return `<header class="page-heading"><div><h1>${pageName(key) ? esc(pageName(key)) : t(key)}</h1>${description}</div>${extra}</header>`;
+}
+// Whether the visitor narrowed a list. In the new interface "Following" is a
+// tab, not a filter, so it alone neither shows "Clear filters" nor a result count.
+export function filtersActive(state = {}) {
+  if (!isRedesign()) return hasFilters(state);
+  return hasFilters({ ...state, followed: false, kind: state.kind === "following" ? "" : state.kind });
 }
 export function countryFacets(state, catalog, kind, following = new Set()) {
   const sources = new Map((catalog.sources || []).map(source => [source.id, source]));
@@ -182,7 +193,7 @@ export function filterBar(state, catalog, kind, following = new Set()) {
           `<option value="${esc(v)}" ${state.year === v ? "selected" : ""}>${esc(v)}</option>`,
       )
       .join("")}</select></label>`;
-  return `<section class="filter-bar" aria-label="${t("filter")}"><label class="search-label"><span>${t("search")}</span><div class="search-wrap">${icon("search")}<input type="search" id="catalog-search" placeholder="${t("searchPlaceholder")}" value="${esc(state.q)}" autocomplete="off"></div></label><label>${t("country")}<select data-filter="country"><option value="">${t("allCountries")}</option>${countries.map((c) => `<option value="${esc(c.code)}" ${state.country === c.code ? "selected" : ""}>${esc(countryName(c.code, c.name))} (${number(c.count)})</option>`).join("")}</select></label>${extra}${state.q || state.country || state.platform || state.kind || state.type || state.followed || state.year || (state.period && state.period !== "upcoming") ? `<button class="clear-filter" data-action="reset">${t("reset")}</button>` : ""}</section>`;
+  return `<section class="filter-bar" aria-label="${t("filter")}"><label class="search-label"><span>${t("search")}</span><div class="search-wrap">${icon("search")}<input type="search" id="catalog-search" placeholder="${t("searchPlaceholder")}" value="${esc(state.q)}" autocomplete="off"></div></label><label>${t("country")}<select data-filter="country"><option value="">${t("allCountries")}</option>${countries.map((c) => `<option value="${esc(c.code)}" ${state.country === c.code ? "selected" : ""}>${esc(countryName(c.code, c.name))} (${number(c.count)})</option>`).join("")}</select></label>${extra}${(isRedesign() ? filtersActive(state) : state.q || state.country || state.platform || state.kind || state.type || state.followed || state.year || (state.period && state.period !== "upcoming")) ? `<button class="clear-filter" data-action="reset">${t("reset")}</button>` : ""}</section>`;
 }
 export function homeView(catalog, state, following, filtered) {
   return `${filterBar(state, catalog, "posts")}<div class="post-grid">${filtered.posts.length ? filtered.posts.slice(0, 24).map(p => postCard(p, catalog.sources, following, catalog.events)).join("") : empty()}</div>`;
@@ -194,7 +205,7 @@ export function sourceDetail(source, catalog, following, limit = 24) {
   if (!source)
     return `${pageHeading("sourceMissing", "directoryBody")}${link("/source/", t("backDirectory"), "button button-primary")}`;
   const posts = catalog.posts.filter((p) => p.sourceId === source.id);
-  return `<div class="org-page"><div class="back-link">${link("/source/", "← " + t("backDirectory"), "text-link")}</div><section class="source-profile"><div class="profile-avatar">${avatar(source)}</div><div><p class="eyebrow">${esc(countryName(source.countryCode, source.country))}</p><h1>${esc(sourceDisplayName(source))}</h1>${sourceNamesMarkup(source, {includePrimary:false})}<div class="profile-types">${sourceTypesMarkup(source)}</div>${sourceAlternativesMarkup(source)}${sourceSummaryMarkup(source)}<div class="profile-tags">${sourceTags(source).map((tag) => `<span class="tag">${esc(tag)}</span>`).join("")}</div><div class="profile-links">${(Array.isArray(source.links) ? source.links : []).map((l) => link(l.url, esc(sourceLinkLabel(l.label)), "button button-outline")).join("")}${reportLink(source, sourceHref(source))}</div></div><button class="button button-outline" data-follow="${esc(source.id)}" aria-pressed="${following.has(source.id)}">${icon(following.has(source.id) ? "check" : "plus")}${t(following.has(source.id) ? "following" : "follow")}</button></section><div class="section-heading"><div><h2>${t("sourceUpdates")}</h2>${posts.length ? `<p>${t("results", { count: number(posts.length) })}</p>` : ""}</div></div><div class="post-grid source-updates-grid">${
+  return `<div class="org-page"><div class="back-link">${link("/source/", "← " + t("backDirectory"), "text-link")}</div><section class="source-profile"><div class="profile-avatar">${avatar(source)}</div><div><p class="eyebrow">${esc(countryName(source.countryCode, source.country))}</p><h1>${esc(sourceDisplayName(source))}</h1>${sourceNamesMarkup(source, {includePrimary:false})}<div class="profile-types">${sourceTypesMarkup(source)}</div>${sourceAlternativesMarkup(source)}${sourceSummaryMarkup(source)}<div class="profile-tags">${sourceTags(source).map((tag) => `<span class="tag">${esc(tag)}</span>`).join("")}</div><div class="profile-links">${(Array.isArray(source.links) ? source.links : []).map((l) => link(l.url, esc(sourceLinkLabel(l.label)), "button button-outline")).join("")}${reportLink(source, sourceHref(source))}</div></div><button class="button button-outline" data-follow="${esc(source.id)}" aria-pressed="${following.has(source.id)}">${icon(following.has(source.id) ? "check" : isRedesign() ? "heart" : "plus")}${t(following.has(source.id) ? "following" : "follow")}</button></section><div class="section-heading"><div><h2>${t("sourceUpdates")}</h2>${posts.length && !isRedesign() ? `<p>${t("results", { count: number(posts.length) })}</p>` : ""}</div></div><div class="post-grid source-updates-grid">${
     posts.length
       ? posts
           .slice(0, limit)
@@ -218,12 +229,24 @@ function redesignedFeedsView(catalog) {
   const groups = ["Rss", "Ics", "Data"].map((key) => [key, catalog.feeds.filter((f) => kind(f) === key)]).filter(([, rows]) => rows.length);
   return `${pageHeading("feeds", "feedBody")}<div class="feed-groups">${groups.map(([key, rows]) => `<section class="feed-group"><header><h2>${t("feedGroup" + key)}</h2><p>${t("feedGroup" + key + "Body")}</p></header><div class="feed-grid">${rows.map(card).join("")}</div></section>`).join("")}</div>`;
 }
-export function aboutView() {
-  return `${pageHeading("aboutTitle", "aboutBody")}<div class="about-layout info-layout"><section class="faq-section"><h2>${t("faq")}</h2>${["Lang", "Cost", "Data", "Withdraw", "Coverage"].map((id) => `<details class="faq"><summary>${t("faq" + id + "Q")}<span class="faq-icon faq-icon-closed">${icon("plus")}</span><span class="faq-icon faq-icon-open">${icon("minus")}</span></summary><p>${t("faq" + id + "A")}</p></details>`).join("")}</section>${contactCard()}</div>${communityBanner()}`;
+// The project origin, said once on the About page (the new interface drops
+// the credit from every page footer): its name in the description links to it.
+const ORIGIN_URL = "https://github.com/skyhong2002/chumei";
+const originNames = { en: "Chumei Observatory", "zh-Hant": "竹梅活動觀測站", ja: "竹梅活動観測站", ko: "Chumei 관측소" };
+function aboutHeading() {
+  if (!isRedesign()) return pageHeading("aboutTitle", "aboutBody");
+  const body = esc(t("aboutBody")), name = esc(originNames[getLocale()] || originNames.en);
+  const linked = body.includes(name) ? body.replace(name, link(ORIGIN_URL, name, "text-link")) : body;
+  return `<header class="page-heading"><div><h1>${t("aboutTitle")}</h1><p>${linked}</p></div></header>`;
 }
+export function aboutView() {
+  return `${aboutHeading()}<div class="about-layout info-layout"><section class="faq-section"><h2>${t("faq")}</h2>${["Lang", "Cost", "Data", "Withdraw", "Coverage"].map((id) => `<details class="faq"><summary>${t("faq" + id + "Q")}<span class="faq-icon faq-icon-closed">${icon("plus")}</span><span class="faq-icon faq-icon-open">${icon("minus")}</span></summary><p>${t("faq" + id + "A")}</p></details>`).join("")}</section>${contactCard()}</div>${communityBanner()}`;
+}
+// System status gets its own mark, distinct from the "layers" used for find & buy music.
+const pulseIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg>';
 const ISSUES_URL = "https://github.com/skyhong2002/harmonica-observatory/issues";
 function contactCard() {
-  return `<aside class="contact-card"><h2>${t("contactTitle")}</h2><p>${t("contactBody")}</p><ul>${[[ISSUES_URL, "contactIssues", "info"], ["/submit/", "submit", "plus"], ["/status/", "status", "layers"]].map(([url, key, symbol]) => `<li>${link(url, icon(symbol) + `<span>${t(key)}</span>`, "contact-link")}</li>`).join("")}</ul></aside>`;
+  return `<aside class="contact-card"><h2>${t("contactTitle")}</h2><p>${t("contactBody")}</p><ul>${[[ISSUES_URL, "contactIssues", "info"], ["/submit/", "submit", "plus"], ["/status/", "status", isRedesign() ? "pulse" : "layers"]].map(([url, key, symbol]) => `<li>${link(url, (symbol === "pulse" ? pulseIcon : icon(symbol)) + `<span>${t(key)}</span>`, "contact-link")}</li>`).join("")}</ul></aside>`;
 }
 export function privacyView() {
   return `${pageHeading("privacy", "privacyBody")}<div class="info-layout"><div class="prose">${["Browser", "Server", "External"].map((id) => `<section><h2>${t("privacy" + id + "Title")}</h2><p>${t("privacy" + id)}</p></section>`).join("")}<section><h2>${t("privacyRequestTitle")}</h2><p>${t("privacyRequestBody")}</p></section><p>${link("/contribute/", t("myContributions"), "text-link")} · ${link("/submit/", t("submit"), "text-link")}</p></div>${contactCard()}</div>`;
@@ -242,5 +265,5 @@ export function statusView(catalog, community) {
       : ["scheduled", "no_sources_due"].includes(service.reasonCode) ? "collectionScheduled" : "";
     return `<tr><th scope="row">${esc(platformName(service.name || service.id))}</th><td data-label="${esc(t("status"))}"><span class="status-pill status-${label(service.status)} ${label(service.status) === "healthy" ? "is-ok" : ""}">${t(label(service.status))}</span>${reason ? `<p>${esc(t(reason))}</p>` : ""}</td><td data-label="${esc(t("configuredSources"))}">${number(service.count)}</td><td data-label="${esc(t("checkedCoverage"))}"><span>${checked}<br><small>${t("lastSourceCheck")}: ${timestamp(coverage.lastSuccessAt)}</small></span></td><td data-label="${esc(t("errors"))}">${number(service.errors)}</td></tr>`;
   }).join("");
-  return `${pageHeading("status", "statusBody")}<section class="status-hero"><span class="status-orb ${label(status.overall) === "healthy" ? "ok" : ""}"></span><div><h2>${t(label(status.overall))}</h2><p>${t("updated", { date: timestamp(status.updatedAt) })}</p></div></section><div class="status-metrics"><div><span>${t("provider")}</span><strong>${esc(platformName(status.provider) || t("unavailable"))}</strong></div><div><span>${t("snapshot")}</span><strong>${timestamp(status.metrics?.latestDataAt || catalog.generatedAt)}</strong></div><div><span>${t("activeAccounts")}</span><strong>${community ? number(community.crawlSchedule?.pool?.usableAccountCount ?? community.activeAccounts) : "—"}</strong></div></div><p class="notice">${icon("info")}${t("snapshotNote")}</p><div class="table-scroll status-table"><table><thead><tr><th>${t("service")}</th><th>${t("status")}</th><th>${t("configuredSources")}</th><th>${t("checkedCoverage")}</th><th>${t("errors")}</th></tr></thead><tbody>${services}</tbody></table></div>${communityBanner()}`;
+  return `${pageHeading("status", "statusBody")}<section class="status-hero"><span class="status-orb ${label(status.overall) === "healthy" ? "ok" : ""}"></span><div><h2>${t(label(status.overall))}</h2><p>${t("updated", { date: timestamp(status.updatedAt) })}</p></div></section><div class="status-metrics"><div><span>${t("provider")}</span><strong>${esc(platformName(status.provider) || t("unavailable"))}</strong></div><div><span>${t("snapshot")}</span><strong>${timestamp(status.metrics?.latestDataAt || catalog.generatedAt)}</strong></div><div><span>${t("activeAccounts")}</span><strong>${community ? number(community.crawlSchedule?.pool?.usableAccountCount ?? community.activeAccounts) : "—"}</strong></div></div>${isRedesign() ? "" : `<p class="notice">${icon("info")}${t("snapshotNote")}</p>`}<div class="table-scroll status-table"><table><thead><tr><th>${t("service")}</th><th>${t("status")}</th><th>${t("configuredSources")}</th><th>${t("checkedCoverage")}</th><th>${t("errors")}</th></tr></thead><tbody>${services}</tbody></table></div>${communityBanner()}${isRedesign() ? pageNotes([esc(t("snapshotNote"))]) : ""}`;
 }

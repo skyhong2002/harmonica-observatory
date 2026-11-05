@@ -26,20 +26,26 @@
   .rich-event-card > .event-media .event-poster { max-height: 290px; }
 }
 
-/* Phones: a small poster beside the date, title and place; the original post
-   and actions run full width underneath. */
+/* Phones: the date chip and the title use the full width; a small poster
+   sits beside the time and place lines below the title. The header is
+   flattened into the card grid so the poster can join those lines. */
 @media (max-width: 760px) {
-  .rich-event-card:has(> .event-media:not(.event-media-unavailable), > .event-video) {
-    grid-template-columns: minmax(0, 1fr) 104px; grid-template-rows: auto auto auto;
-    grid-template-areas: "header media" "copy copy" "gallery gallery";
+  .rich-event-header h2 { font-size: 1.08rem; line-height: 1.45; overflow-wrap: break-word; }
+  .rich-event-card:has(> .event-media:not(.event-media-unavailable)) {
+    grid-template-columns: minmax(0, 1fr) 72px; grid-template-rows: none; grid-template-areas: none; column-gap: 12px;
   }
-  .rich-event-card:has(> .event-media:not(.event-media-unavailable), > .event-video) > .rich-event-header { padding-right: 12px; }
-  .rich-event-card > .event-media, .rich-event-card > .event-video { margin: 16px 15px 0 0; }
-  .rich-event-card > .event-media { padding: 5px; border-radius: 8px; }
-  .rich-event-card > .event-media .event-poster { max-height: 150px; border-radius: 4px; }
-  .rich-event-card > .event-video { width: calc(100% - 15px); max-height: 180px; }
+  .rich-event-card:has(> .event-media:not(.event-media-unavailable)) > .rich-event-header,
+  .rich-event-card:has(> .event-media:not(.event-media-unavailable)) .rich-event-heading { display: contents; }
+  .rich-event-card:has(> .event-media:not(.event-media-unavailable)) .rich-event-header > .event-date-block { grid-column: 1 / -1; justify-self: start; margin: 16px 15px 10px; }
+  .rich-event-card:has(> .event-media:not(.event-media-unavailable)) .rich-event-heading > * { grid-column: 1 / -1; min-width: 0; margin-inline: 15px; }
+  .rich-event-card:has(> .event-media:not(.event-media-unavailable)) .rich-event-heading > .rich-event-facts { grid-column: 1; margin: 0 0 4px 15px; }
+  .rich-event-card:has(> .event-media:not(.event-media-unavailable)) > .event-media { grid-row: auto; grid-column: 2; align-self: start; margin: 4px 15px 0 0; padding: 4px; border-radius: 8px; }
+  .rich-event-card:has(> .event-media:not(.event-media-unavailable)) > .event-media .event-poster { max-height: 104px; border-radius: 4px; }
+  .rich-event-card:has(> .event-media:not(.event-media-unavailable)) > :is(.rich-event-copy, .event-gallery) { grid-row: auto; grid-column: 1 / -1; }
+  /* A video plays full width under the details. */
+  .rich-event-card:has(> .event-video) { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "header" "media" "copy" "gallery"; }
+  .rich-event-card > .event-video { width: calc(100% - 30px); max-height: 240px; margin: 0 15px; }
   .rich-event-card > .event-gallery { margin: 0 15px 12px; }
-  .rich-event-header h2 { font-size: 1.08rem; line-height: 1.45; }
 }
 
 /* Home "Coming up": time leads, titles get three balanced lines so sessions
@@ -49,12 +55,38 @@
 .home-now-events .home-upcoming-link, .home-upcoming-link { align-items: start; }
 .home-upcoming-copy > .home-upcoming-place svg { margin: 0 4px 0 0; vertical-align: -2px; }
 
-/* Home quick entries on phones: a 2×2 grid so all four are visible. */
-@media (max-width: 640px) {
-  .home-entries { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-inline: 0; padding: 0; overflow: visible; scroll-snap-type: none; }
-  .home-entry { flex: none; min-width: 0; min-height: 46px; padding: 6px 10px 6px 6px; gap: 8px; font-size: .9rem; line-height: 1.3; border-radius: var(--radius-md); }
-  .home-entry > svg:first-child { flex: 0 0 32px; width: 32px; height: 32px; padding: 7px; }
-  .home-entry > span { overflow-wrap: anywhere; }
-}
+/* Events list: a comfortable reading width on the page's left edge; the
+   timezone appears beside the time only when it differs from the visitor's. */
+.rich-events-grid, .rich-events-grid ~ .pagination, .rich-events-grid ~ .page-notes { max-width: 62rem; }
+.rich-event-time .rich-event-zone { display: inline-block; margin: 0 0 0 6px; color: var(--color-text-muted); font-size: .8rem; font-weight: 600; white-space: nowrap; }
 
+/* Home intro: tagline, one line and the numbers (the top navigation covers
+   the main pages). */
+.home-intro-grid { grid-template-columns: minmax(0, 1fr); }
+
+/* Home calendar: one compact row of calendar choices, then a short agenda. */
+.home-calendar .google-calendar-toolbar { margin-bottom: 8px; }
+.home-calendar .google-calendar-filters { gap: 2px 4px; }
+.home-calendar .google-calendar-filters label { min-height: 40px; padding: 6px 8px 6px 0; font-size: .86rem; }
+.home-calendar .google-calendar-filters label + label { padding-left: 8px; }
+.google-calendar-frame iframe { height: 440px; }
+@media (max-width: 640px) { .google-calendar-frame iframe { height: 460px; } }
+
+/* Home page notes: snapshot time, timezone and calendar subscriptions. */
+.home-notes { padding: 0 0 48px; }
+.home-notes .page-notes { margin-top: 0; }
+.page-notes .home-updated { color: inherit; font-size: inherit; }
+.page-notes li:has(> [data-story-observed]:empty) { display: none; }
+.page-notes .google-calendar-context { margin: 0; color: inherit; font-size: inherit; }
+
+/* Story captions: avatar and name, then the display deadline and the
+   original source on one line. */
+.ob-story-caption { gap: 4px; }
+.ob-story-caption .ob-story-header { align-items: center; }
+.ob-story-caption .ob-story-footer { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 10px; padding: 0; border-top: 0; }
+.ob-story-caption .ob-story-original { min-height: 28px; }
+
+
+/* The events filter bar shares the list's reading width. */
+.main-container:has(.rich-events-grid) > .filter-bar { max-width: 62rem; }
 }

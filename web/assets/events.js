@@ -4,12 +4,13 @@ import { t, getLocale, countryName } from './i18n.js';
 import { esc, link, icon, timestamp, number, safeUrl, image, avatar, sourceHref, pastEvent, textMatch, empty, hasFilters, platformName } from './utils.js';
 import { pageHeading, filterBar, eventDateLabel } from './views.js';
 import { reportLink } from './reporting.js';
+import { pageNotes } from './page-notes.js';
 import { sourceDisplayName, sourceSummaryMarkup } from './source-names.js';
 const labels = {
-  'zh-Hant': { moreActions: '更多動作', reference: '相關原始貼文', snapshot: '相關網站原文', description: '活動整理資訊', endUnknown: '結束時間未公告', poster: '活動圖片', moreImages: '更多活動圖片', video: '相關影片', videoUnavailable: '影片暫時無法載入，查看原始影片', unavailable: '圖片暫時無法載入，請查看原始來源。', share: '分享' },
-  en: { moreActions: 'More actions', reference: 'Related original post', snapshot: 'Original website content', description: 'Event information', endUnknown: 'End time not announced', poster: 'Event image', moreImages: 'More event images', video: 'Related video', videoUnavailable: 'Video unavailable. View the original video.', unavailable: 'Image unavailable. Please view the original source.', share: 'Share' },
-  ja: { moreActions: 'その他の操作', reference: '関連する元の投稿', snapshot: '関連ウェブサイトの原文', description: 'イベント情報', endUnknown: '終了時刻は未発表', poster: 'イベント画像', moreImages: 'その他のイベント画像', video: '関連動画', videoUnavailable: '動画を読み込めません。元の動画を見る', unavailable: '画像を読み込めません。元の情報をご確認ください。', share: '共有' },
-  ko: { moreActions: '더 보기 작업', reference: '관련 원본 게시물', snapshot: '관련 웹사이트 원문', description: '행사 정보', endUnknown: '종료 시각 미발표', poster: '행사 이미지', moreImages: '행사 이미지 더 보기', video: '관련 동영상', videoUnavailable: '동영상을 불러올 수 없습니다. 원본 동영상 보기', unavailable: '이미지를 불러올 수 없습니다. 원본 출처를 확인하세요.', share: '공유' },
+  'zh-Hant': { moreActions: '更多動作', reference: '相關原始貼文', snapshot: '相關網站原文', description: '活動整理資訊', endUnknown: '結束時間未公告', poster: '活動圖片', moreImages: '更多活動圖片', video: '相關影片', videoUnavailable: '影片暫時無法載入，查看原始影片', unavailable: '圖片暫時無法載入，請查看原始來源。', share: '分享', zoneNote: '活動時間以活動當地時區顯示；與你所在的時區不同時，時間旁會標示該時區。', subscribe: '訂閱活動' },
+  en: { moreActions: 'More actions', reference: 'Related original post', snapshot: 'Original website content', description: 'Event information', endUnknown: 'End time not announced', poster: 'Event image', moreImages: 'More event images', video: 'Related video', videoUnavailable: 'Video unavailable. View the original video.', unavailable: 'Image unavailable. Please view the original source.', share: 'Share', zoneNote: 'Event times are shown in each event’s local timezone; when it differs from yours, the timezone is named beside the time.', subscribe: 'Subscribe to events' },
+  ja: { moreActions: 'その他の操作', reference: '関連する元の投稿', snapshot: '関連ウェブサイトの原文', description: 'イベント情報', endUnknown: '終了時刻は未発表', poster: 'イベント画像', moreImages: 'その他のイベント画像', video: '関連動画', videoUnavailable: '動画を読み込めません。元の動画を見る', unavailable: '画像を読み込めません。元の情報をご確認ください。', share: '共有', zoneNote: 'イベントの時刻は開催地のタイムゾーンで表示します。お使いのタイムゾーンと異なる場合は、時刻の横にタイムゾーンを表示します。', subscribe: 'イベントを購読' },
+  ko: { moreActions: '더 보기 작업', reference: '관련 원본 게시물', snapshot: '관련 웹사이트 원문', description: '행사 정보', endUnknown: '종료 시각 미발표', poster: '행사 이미지', moreImages: '행사 이미지 더 보기', video: '관련 동영상', videoUnavailable: '동영상을 불러올 수 없습니다. 원본 동영상 보기', unavailable: '이미지를 불러올 수 없습니다. 원본 출처를 확인하세요.', share: '공유', zoneNote: '행사 시간은 행사 현지 시간대로 표시합니다. 내 시간대와 다르면 시간 옆에 해당 시간대를 표시합니다.', subscribe: '행사 구독' },
 };
 const l = key => (labels[getLocale()] || labels.en)[key];
 
@@ -83,12 +84,12 @@ function followButton(source, following) {
   const followed = following.has(source.id), name = sourceDisplayName(source);
   return `<button type="button" class="feed-action ${followed ? 'is-following' : ''}" data-follow="${esc(source.id)}" aria-pressed="${!!followed}" aria-label="${esc(t(followed ? 'unfollow' : 'follow') + ' ' + name)}">${icon(followed ? 'check' : 'heart')}<span>${t(followed ? 'following' : 'follow')}</span></button>`;
 }
-function originalPost(post, catalog, following, showAuthor = true, withActions = true) {
+function originalPost(post, catalog, following, showAuthor = true, withActions = true, withFollow = true) {
   const source = catalog.sources?.find(source => source.id === post.sourceId);
   const name = source ? sourceDisplayName(source) : post.sourceName || t('source');
   const expanded = (post.text || '').length <= 240 && (post.text || '').split('\n').length <= 5;
   const followed = source && following.has(source.id);
-  return `<section class="event-reference feed-content" data-event-post="${esc(post.id)}">${post.contentKind === 'website_snapshot' ? `<p class="event-reference-label">${l('snapshot')}</p>` : ''}${showAuthor ? eventAuthor(post, catalog) : ''}${post.text ? `<p class="feed-text ${expanded ? 'is-expanded' : ''}">${esc(post.text)}</p>${expanded ? '' : `<button type="button" class="feed-expand" data-expand-post aria-expanded="false">${t('readMore')}</button>`}` : ''}${withActions ? `<div class="event-reference-actions">${source ? followButton(source, following) : ''}${link(post.url, t('original'), 'text-link')}</div>` : ''}</section>`;
+  return `<section class="event-reference feed-content" data-event-post="${esc(post.id)}">${post.contentKind === 'website_snapshot' ? `<p class="event-reference-label">${l('snapshot')}</p>` : ''}${showAuthor ? eventAuthor(post, catalog) : ''}${post.text ? `<p class="feed-text ${expanded ? 'is-expanded' : ''}">${esc(post.text)}</p>${expanded ? '' : `<button type="button" class="feed-expand" data-expand-post aria-expanded="false">${t('readMore')}</button>`}` : ''}${withActions ? `<div class="event-reference-actions">${source && withFollow ? followButton(source, following) : ''}${link(post.url, t('original'), 'text-link')}</div>` : ''}</section>`;
 }
 // A calendar-style date block in the event's own timezone (civil dates stay put).
 // The date block already shows the day, so single-day timed events list only
@@ -108,6 +109,19 @@ function eventTimeLabel(event) {
 export function eventClockLabel(event) {
   const label = eventTimeLabel(event);
   return label === eventDateLabel(event) ? '' : label;
+}
+// The event's timezone, only when it would read differently from the
+// visitor's own clock; empty when both show the same local time.
+function visitorTimeZone() {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch { return 'UTC'; }
+}
+function differingZone(event) {
+  const zone = event.timezone || 'UTC', viewer = visitorTimeZone();
+  if (zone === viewer) return '';
+  const when = new Date(event.start);
+  const at = Number.isFinite(+when) ? when : new Date();
+  const wall = timeZone => { try { return new Intl.DateTimeFormat('en-US', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(at); } catch { return ''; } };
+  return wall(zone) && wall(zone) === wall(viewer) ? '' : zone;
 }
 export function dateBlock(event) {
   const start = String(event.start || '');
@@ -141,7 +155,9 @@ function legacyRichEventCard(event, catalog, following = new Set()) {
   const gallery = candidates.filter(url => url !== mainImage && !cachedOriginals.has(url));
   return `<article class="rich-event-card ${pastEvent(event) ? 'is-past' : ''}" data-event-id="${esc(event.id)}"><header class="rich-event-header">${posts[0] ? eventAuthor(posts[0], catalog) : ''}<div class="eyebrow">${esc(countryName(event.countryCode, event.country))}${pastEvent(event) ? ` · ${t('past')}` : ''}</div><h2>${esc(eventText(event))}</h2>${eventOriginalMarkup(event)}<p class="rich-event-time">${icon('calendar')}<span>${esc(eventDateLabel(event))}${event.allDay ? ` · ${t('allDay')}` : event.endEstimated ? ` · ${l('endUnknown')}` : ''}</span></p><p class="rich-event-location">${icon('pin')}<span>${esc(eventText(event, 'location') || t('locationUnknown'))}</span></p><p class="rich-event-zone">${esc(event.timezone || 'UTC')} · ${t('localTime')}</p></header>${mainImage && !video ? `<figure class="event-media" data-event-media>${link(event.url || event.sourceUrl, image(mainImage, 'event-poster', `${l('poster')}: ${eventText(event)}`), 'event-media-link')}${candidates.length > 1 ? `<span hidden data-event-image-fallback="${esc(JSON.stringify(candidates.slice(1)))}"></span>` : ''}</figure>` : ''}${gallery.length ? `<details class="event-gallery"><summary>${l('moreImages')} (${number(gallery.length)})</summary><div class="event-gallery-strip" tabindex="0" aria-label="${esc(l('moreImages'))}">${gallery.map(url => link(url, image(url, 'event-gallery-image', l('poster')), 'event-gallery-link')).join('')}</div></details>` : ''}${video ? `<video class="event-video" controls preload="metadata" playsinline data-original-video="${esc(safeUrl(event.url || event.sourceUrl || posts[0]?.url))}" ${mainImage ? `poster="${esc(mainImage)}"` : ''} aria-label="${esc(l('video') + ': ' + eventText(event))}" src="${esc(video)}"></video>` : ''}<div class="rich-event-copy">${posts.map((post, index) => originalPost(post, catalog, following, index > 0)).join('')}${event.description ? posts.length ? `<details class="event-description"><summary>${l('description')}</summary>${eventDescriptionMarkup(event)}</details>` : `<div class="event-description-text">${eventDescriptionMarkup(event)}</div>` : ''}<footer class="rich-event-actions">${posts.some(post => safeUrl(post.url) === safeUrl(event.url || event.sourceUrl)) ? '' : link(event.url || event.sourceUrl, t('original'), 'text-link')}<button type="button" class="feed-action" data-share="${esc(event.url || event.sourceUrl || '')}" data-share-title="${esc(eventText(event))}">${icon('arrow')}<span>${l('share')}</span></button>${reportLink(event)}</footer></div></article>`;
 }
-// "New interface" version.
+// "New interface" version. Each card names the original source, follow and
+// the ⋯ menu once; the timezone appears only when it differs from the
+// visitor's; the structured description only shows when no post is linked.
 function redesignedRichEventCard(event, catalog, following = new Set()) {
   const posts = relatedEventPosts(event, catalog.posts);
   const postImages = posts.flatMap(post => [post.image, ...(Array.isArray(post.images) ? post.images : [])]).map(safeUrl).filter(Boolean);
@@ -157,7 +173,23 @@ function redesignedRichEventCard(event, catalog, following = new Set()) {
     return cover.startsWith('/') && first && !first.startsWith('/') ? [first] : [];
   }));
   const gallery = candidates.filter(url => url !== mainImage && !cachedOriginals.has(url));
-  return `<article class="rich-event-card ${pastEvent(event) ? 'is-past' : ''}" data-event-id="${esc(event.id)}"><header class="rich-event-header">${dateBlock(event)}<div class="rich-event-heading"><div class="eyebrow">${esc(countryName(event.countryCode, event.country))}${pastEvent(event) ? `<span class="past-badge">${t('past')}</span>` : ''}</div><h2>${esc(eventText(event))}</h2>${eventOriginalMarkup(event)}<p class="rich-event-time">${icon('calendar')}<span>${eventTimeLabel(event) === eventDateLabel(event) ? esc(eventDateLabel(event)) : `<span class="sr-only">${esc(eventDateLabel(event))}</span><span aria-hidden="true">${esc(eventTimeLabel(event))}</span>`}${event.allDay ? ` · ${t('allDay')}` : event.endEstimated ? ` · ${l('endUnknown')}` : ''}</span></p><p class="rich-event-location">${icon('pin')}<span>${esc(eventText(event, 'location') || t('locationUnknown'))}</span></p><p class="rich-event-zone">${esc(event.timezone || 'UTC')} · ${t('localTime')}</p></div></header>${mainImage && !video ? `<figure class="event-media" data-event-media>${link(event.url || event.sourceUrl, image(mainImage, 'event-poster', `${l('poster')}: ${eventText(event)}`), 'event-media-link')}${candidates.length > 1 ? `<span hidden data-event-image-fallback="${esc(JSON.stringify(candidates.slice(1)))}"></span>` : ''}</figure>` : ''}${gallery.length ? `<details class="event-gallery"><summary>${l('moreImages')} (${number(gallery.length)})</summary><div class="event-gallery-strip" tabindex="0" aria-label="${esc(l('moreImages'))}">${gallery.map(url => link(url, image(url, 'event-gallery-image', l('poster')), 'event-gallery-link')).join('')}</div></details>` : ''}${video ? `<video class="event-video" controls preload="metadata" playsinline data-original-video="${esc(safeUrl(event.url || event.sourceUrl || posts[0]?.url))}" ${mainImage ? `poster="${esc(mainImage)}"` : ''} aria-label="${esc(l('video') + ': ' + eventText(event))}" src="${esc(video)}"></video>` : ''}<div class="rich-event-copy">${posts.map((post) => originalPost(post, catalog, following, true, posts.length > 1)).join('')}${event.description ? posts.length ? `<details class="event-description"><summary>${l('description')}</summary>${eventDescriptionMarkup(event)}</details>` : `<div class="event-description-text">${eventDescriptionMarkup(event)}</div>` : ''}<footer class="rich-event-actions">${posts.length === 1 && catalog.sources?.find(source => source.id === posts[0].sourceId) ? followButton(catalog.sources.find(source => source.id === posts[0].sourceId), following) : ''}${posts.length === 1 ? link(posts[0].url, t('original'), 'text-link') : ''}${posts.some(post => safeUrl(post.url) === safeUrl(event.url || event.sourceUrl)) ? '' : link(event.url || event.sourceUrl, t('original'), 'text-link event-original-link')}<details class="more-actions"><summary aria-label="${esc(l('moreActions'))}" title="${esc(l('moreActions'))}"><span aria-hidden="true">⋯</span></summary><div class="more-actions-menu"><button type="button" class="feed-action" data-share="${esc(event.url || event.sourceUrl || '')}" data-share-title="${esc(eventText(event))}">${icon('arrow')}<span>${l('share')}</span></button>${reportLink(event)}</div></details></footer></div></article>`;
+  const eventUrl = event.url || event.sourceUrl;
+  const eventKey = referenceKey(eventUrl);
+  const eventIsPost = !!eventKey && posts.some(post => referenceKey(post.url) === eventKey);
+  // One post that is the event's own source: its follow and original link
+  // move to the card's action row. Several posts keep their own actions.
+  const single = posts.length === 1 && (eventIsPost || !safeUrl(eventUrl));
+  const sourceOf = post => catalog.sources?.find(source => source.id === post.sourceId);
+  const followed = new Set();
+  const references = posts.map(post => {
+    const id = post.sourceId || '';
+    const first = !followed.has(id); followed.add(id);
+    return originalPost(post, catalog, following, true, !single, first);
+  }).join('');
+  const original = single ? link(eventUrl || posts[0].url, t('original'), 'text-link event-original-link') : eventIsPost ? '' : link(eventUrl, t('original'), 'text-link event-original-link');
+  const zone = differingZone(event);
+  const time = `${eventTimeLabel(event) === eventDateLabel(event) ? esc(eventDateLabel(event)) : `<span class="sr-only">${esc(eventDateLabel(event))}</span><span aria-hidden="true">${esc(eventTimeLabel(event))}</span>`}${event.allDay ? ` · ${t('allDay')}` : event.endEstimated ? ` · ${l('endUnknown')}` : ''}${zone ? ` <span class="rich-event-zone" title="${esc(t('localTime'))}">${esc(zone)}</span>` : ''}`;
+  return `<article class="rich-event-card ${pastEvent(event) ? 'is-past' : ''}" data-event-id="${esc(event.id)}"><header class="rich-event-header">${dateBlock(event)}<div class="rich-event-heading"><div class="eyebrow">${esc(countryName(event.countryCode, event.country))}${pastEvent(event) ? `<span class="past-badge">${t('past')}</span>` : ''}</div><h2>${esc(eventText(event))}</h2>${eventOriginalMarkup(event)}<div class="rich-event-facts"><p class="rich-event-time">${icon('calendar')}<span>${time}</span></p><p class="rich-event-location">${icon('pin')}<span>${esc(eventText(event, 'location') || t('locationUnknown'))}</span></p></div></div></header>${mainImage && !video ? `<figure class="event-media" data-event-media>${link(eventUrl, image(mainImage, 'event-poster', `${l('poster')}: ${eventText(event)}`), 'event-media-link')}${candidates.length > 1 ? `<span hidden data-event-image-fallback="${esc(JSON.stringify(candidates.slice(1)))}"></span>` : ''}</figure>` : ''}${gallery.length ? `<details class="event-gallery"><summary>${l('moreImages')} (${number(gallery.length)})</summary><div class="event-gallery-strip" tabindex="0" aria-label="${esc(l('moreImages'))}">${gallery.map(url => link(url, image(url, 'event-gallery-image', l('poster')), 'event-gallery-link')).join('')}</div></details>` : ''}${video ? `<video class="event-video" controls preload="metadata" playsinline data-original-video="${esc(safeUrl(eventUrl || posts[0]?.url))}" ${mainImage ? `poster="${esc(mainImage)}"` : ''} aria-label="${esc(l('video') + ': ' + eventText(event))}" src="${esc(video)}"></video>` : ''}<div class="rich-event-copy">${references}${event.description && !posts.length ? `<div class="event-description-text">${eventDescriptionMarkup(event)}</div>` : ''}<footer class="rich-event-actions">${single && sourceOf(posts[0]) ? followButton(sourceOf(posts[0]), following) : ''}${original}<details class="more-actions"><summary aria-label="${esc(l('moreActions'))}" title="${esc(l('moreActions'))}"><span aria-hidden="true">⋯</span></summary><div class="more-actions-menu"><button type="button" class="feed-action" data-share="${esc(eventUrl || '')}" data-share-title="${esc(eventText(event))}">${icon('arrow')}<span>${l('share')}</span></button>${reportLink(event)}</div></details></footer></div></article>`;
 }
 function emptyEvents(catalog, state) {
   if (hasFilters(state)) return empty();
@@ -165,9 +197,17 @@ function emptyEvents(catalog, state) {
   return empty({ filtered: false, symbol: 'calendar', title: t(hasPast ? 'emptyEventsTitle' : 'emptyEventsNone'), body: t(hasPast ? 'emptyEventsBody' : 'emptyEventsNoneBody'),
     actions: hasPast ? link('/events/?period=past', esc(t('seePastEvents')), 'button button-outline') : link('/feeds/', esc(t('feeds')) + icon('rss'), 'button button-outline') });
 }
+// Page notes (new interface): the timezone rule and the event subscriptions.
+function eventNotes(catalog) {
+  const feeds = (Array.isArray(catalog.feeds) ? catalog.feeds : []).filter(feed => ['taiwanCalendar', 'worldCalendar', 'onlineCalendar', 'events'].includes(feed.id) && safeUrl(feed.url));
+  const colon = ['zh-Hant', 'ja'].includes(getLocale()) ? '：' : ': ';
+  return pageNotes([esc(l('zoneNote')), feeds.length ? `${esc(l('subscribe'))}${colon}<span class="page-notes-links">${feeds.map(feed => link(feed.url, `${esc(t('feed_' + feed.id))} ${esc(feed.format || '')}`, 'text-link')).join('')}</span>` : ''], 'events-notes');
+}
 export function eventsView(catalog, state = {}, following = new Set(), limit = 24) {
   const rows = eventRows(catalog, state);
-  return `${pageHeading('events', 'eventsBody')}${filterBar(state, catalog, 'events', following)}<div class="results-bar"><p role="status">${t('results', { count: number(rows.length) })}</p></div><div class="rich-events-grid">${rows.length ? rows.slice(0, limit).map(event => richEventCard(event, catalog, following)).join('') : emptyEvents(catalog, state)}</div>${rows.length > limit ? `<div class="pagination"><p>${t('showing', { shown: number(limit), total: number(rows.length) })}</p><button type="button" class="button button-outline" data-action="more">${t('loadMore')}${icon('plus')}</button></div>` : ''}`;
+  // New interface: a count only when a search or filter narrows the list.
+  const count = !isRedesign() || hasFilters(state) ? `<div class="results-bar"><p role="status">${t('results', { count: number(rows.length) })}</p></div>` : '';
+  return `${pageHeading('events', 'eventsBody')}${filterBar(state, catalog, 'events', following)}${count}<div class="rich-events-grid">${rows.length ? rows.slice(0, limit).map(event => richEventCard(event, catalog, following)).join('') : emptyEvents(catalog, state)}</div>${rows.length > limit ? `<div class="pagination"><p>${t('showing', { shown: number(limit), total: number(rows.length) })}</p><button type="button" class="button button-outline" data-action="more">${t('loadMore')}${icon('plus')}</button></div>` : ''}${isRedesign() ? eventNotes(catalog) : ''}`;
 }
 export function bindEvents(root) {
   const grid = root.querySelector('.rich-events-grid');

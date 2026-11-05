@@ -440,4 +440,40 @@
 .page-notes ul { display: grid; gap: 6px; margin: 0; padding: 0 0 0 1.1em; font-size: .86rem; line-height: 1.7; }
 .page-notes a { color: var(--color-text-brand); }
 .page-notes .page-notes-links { display: inline-flex; flex-wrap: wrap; gap: 4px 14px; }
+
+/* De-noise round: small labels, actions and badges in post cards, directory
+   rows, scores and source profiles read at 13px or more. */
+.observatory-timeline .timeline-action, .observatory-timeline .timeline-actions .feed-open-link, .feed-latest-meta,
+.source-name-value, .source-language-label, .source-alternatives > summary, .source-alternatives-content h4, .source-translation-note,
+.profile-tags .tag, .feed-plat, .feed-action, .feed-meta .tag, .story-expired,
+.src-row .follow-button span, .src-count, .src-upd, .src-upd time,
+.score-tab, .score-tab > span, .score-table th, .score-table .score-credits span, .score-table .score-notes, .score-table .score-notes p,
+.score-table .score-publisher, .score-mobile-label, .score-evidence-link, .score-row-links .context-report-link,
+.collection-group-heading h2 span, .collection-facts dt, .collection-primary, .collection-record > summary, .collection-original,
+.status-pill, .status-metrics span, .page-heading .button { font-size: max(.82rem, 13px); }
+.source-language-label { color: var(--color-text-muted); }
+
+/* Source page: every post is from this source, so its country is not repeated
+   on each card; tall story images and posters are capped and shown whole. */
+.source-updates-grid .feed-meta .feed-topic, .source-updates-grid .feed-meta .feed-topic + [aria-hidden] { display: none; }
+.source-updates-grid .post-image.feed-img, .source-updates-grid .post-card:has(.story-tag) .feed-img { max-height: 360px; width: 100%; object-fit: contain; object-position: center; background: var(--color-surface-soft); }
+
+/* Scores on phones: one card per record, without a rule between each field. */
+@media (max-width: 699px) {
+  .score-list { border-top: 0; }
+  .score-table tbody { display: grid; gap: 10px; }
+  .score-table .score-row { grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 14px 16px; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); }
+  .score-table .score-row td { border: 0; }
+  .score-table tbody tr:hover { background: var(--color-surface); }
+  .score-table .score-row-meta { flex-direction: row; flex-wrap: wrap; gap: 0 8px; }
+  .score-table .score-row-meta > span:empty { display: none; }
+  .score-table .score-row-meta > span { white-space: nowrap; }
+  .score-table .score-row-meta > span:not(:empty):has(~ span:not(:empty))::after { content: "·"; margin-left: 8px; color: var(--color-text-muted); }
+  .score-table .score-publisher { display: flex; flex-wrap: wrap; gap: 0 6px; }
+  .score-mobile-label { display: inline; margin: 0; }
+  .score-table .score-notes { margin: 0; }
+}
+
+/* Prose pages: a reading column of about 40 CJK characters on desktop. */
+.info-layout .prose, .info-layout .faq-section, .page-heading p { max-width: 40rem; }
 }

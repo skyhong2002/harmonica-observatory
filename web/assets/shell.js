@@ -96,7 +96,7 @@ export function navigation(current = location.pathname, routes = {}, session = n
   return `<a class="skip-link" href="#main">${t('skip')}</a><header class="site-header legacy-site-header nav-refresh">
     <a class="brand" href="/" aria-label="${esc(brandLabel)}"><span class="brand-mark"><img src="/web/assets/observatory-mark.svg" width="34" height="34" alt="" aria-hidden="true"></span><span class="brand-wordmark"><span class="brand-name">${esc(brand)}</span>${english ? '<span class="brand-english" lang="en">HARMONICA OBSERVATORY</span>' : ''}</span></a>
     <nav class="site-nav" aria-label="${t('navigation')}">${primary.map(([url,key])=>navLink(url,key,current)).join('')}
-      <details class="nav-more"><summary class="nav-item" aria-controls="nav-more-content" aria-expanded="false" aria-label="${text('more')} · ${t('language')}">${glyph('globe')}${isRedesign() ? `<span class="nav-label">${esc(pageName('more'))}</span>` : `<span class="nav-label">${text('more')}</span><span class="nav-label-short" aria-hidden="true">${esc(shortText('more'))}</span>`}</summary>
+      <details class="nav-more"><summary class="nav-item" aria-controls="nav-more-content" aria-expanded="false" aria-label="${text('more')} · ${t('language')}">${glyph(isRedesign() ? 'menu' : 'globe')}${isRedesign() ? `<span class="nav-label">${esc(pageName('more'))}</span>` : `<span class="nav-label">${text('more')}</span><span class="nav-label-short" aria-hidden="true">${esc(shortText('more'))}</span>`}</summary>
         <div class="nav-more-menu" id="nav-more-content">
           <section class="nav-menu-section" aria-labelledby="nav-resource-title"><h2 class="nav-section-title" id="nav-resource-title">${text('participate')}</h2><div class="nav-resource-grid">${resources.map(entry=>menuLink(entry)).join('')}</div></section>
           <section class="nav-preferences" aria-labelledby="nav-preferences-title"><h2 class="nav-section-title" id="nav-preferences-title">${text('preferences')}</h2>
@@ -109,7 +109,11 @@ export function navigation(current = location.pathname, routes = {}, session = n
     </nav>${accountNavigation(session)}</header>`;
 }
 export function footer() {
-  return `<footer class="site-footer"><div class="footer-links">${[['/about/', 'about'], ['/privacy/', 'privacy'], ['/status/', 'status'], ['/feeds/', 'feeds'], ['/submit/', 'submit'], ['/scores/sources/', 'scoreSources']].map(([url, key]) => link(url, t(key))).join('')}</div><div class="footer-bottom"><span>© ${new Date().getFullYear()} ${esc(t('brand'))}</span>${link('https://github.com/skyhong2002/chumei', t('credit'))}${link('/api/v1/catalog', t('dataLink'))}</div></footer>`;
+  const links = `<div class="footer-links">${[['/about/', 'about'], ['/privacy/', 'privacy'], ['/status/', 'status'], ['/feeds/', 'feeds'], ['/submit/', 'submit'], ['/scores/sources/', 'scoreSources']].map(([url, key]) => link(url, t(key))).join('')}</div>`;
+  // New interface: the project origin is told once on About, and the open
+  // data (JSON) link lives with the other subscriptions on /feeds/.
+  if (isRedesign()) return `<footer class="site-footer">${links}<div class="footer-bottom"><span>© ${new Date().getFullYear()} ${esc(t('brand'))}</span></div></footer>`;
+  return `<footer class="site-footer">${links}<div class="footer-bottom"><span>© ${new Date().getFullYear()} ${esc(t('brand'))}</span>${link('https://github.com/skyhong2002/chumei', t('credit'))}${link('/api/v1/catalog', t('dataLink'))}</div></footer>`;
 }
 export function initializeShell() {
   applyTheme(storedTheme());

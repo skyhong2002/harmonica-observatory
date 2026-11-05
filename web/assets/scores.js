@@ -1,3 +1,5 @@
+import { isRedesign } from './redesign.js';
+import { pageNotes } from './page-notes.js';
 import { t, getLocale, countryName } from './i18n.js';
 import { esc, link, icon, number, safeUrl, textMatch, image, date, hasFilters } from './utils.js';
 import { pageHeading } from './views.js';
@@ -5,24 +7,24 @@ import { reportLink } from './reporting.js';
 
 const labels = {
   'zh-Hant': {
-    guide: '樂譜說明', announcement: '來源公告原文', media: '樂譜封面／來源圖片', work: '曲目與作者', context: '學年度・編制・組別', actions: '佐證與連結', repertoire: '比賽指定曲', collections: '出版者與譜集', browse: '樂譜瀏覽',
-    indexNote: '這是比賽指定曲與出版線索索引，不代表每筆都有可下載的完整樂譜。請由原始佐證核對曲目，再向出版者或來源洽詢取得方式。',
-    collectionsNote: '公開出版公告、譜集與洽詢入口。保留來源原文；實際取得方式與授權以原始來源為準。',
+    guide: '樂譜說明', announcement: '來源公告原文', media: '樂譜封面／來源圖片', work: '曲目與作者', context: '學年度・編制・組別', actions: '出處與連結', repertoire: '比賽指定曲', collections: '出版者與譜集', browse: '樂譜瀏覽',
+    indexNote: '這是比賽指定曲與出版線索索引，不代表每筆都有可下載的完整樂譜。請由原始出處核對曲目，再向出版者或提供者詢問取得方式。',
+    collectionsNote: '公開出版公告、譜集與聯絡方式。保留來源原文；實際取得方式與授權以原始來源為準。',
     academicYear: '學年度', yearNote: '臺灣學年度以西元起始年顯示，括號保留來源的民國年。', rocYear: '民國 {year}',
-    instrument: '編制', allInstruments: '所有編制', division: '組別', allDivisions: '所有組別', publisher: '出版／洽詢來源', allPublishers: '所有來源',
+    instrument: '編制', allInstruments: '所有編制', division: '組別', allDivisions: '所有組別', publisher: '出版者／提供者', allPublishers: '所有來源',
     sort: '排序', year_desc: '學年度：新到舊', year_asc: '學年度：舊到新', title: '曲名：A–Z', composer: '作曲者：A–Z', name: '來源名稱：A–Z',
-    evidence: '原始佐證', publisherLink: '出版／洽詢入口', sourceAndEvidence: '來源與佐證',
+    evidence: '原始出處', publisherLink: '出版者或詢問處', sourceAndEvidence: '原始出處',
     noResults: '沒有符合條件的曲目', noCollections: '沒有符合條件的出版來源', reset: '清除篩選', notes: '原始備註', records: '{count} 筆曲目索引', collectionRecords: '{count} 筆出版／譜集來源',
     solo: '口琴獨奏', quartet: '口琴四重奏', ensemble: '口琴合奏',
   },
   en: {
-    guide: 'About this index', announcement: 'Original announcement', media: 'Cover / source image', work: 'Work & credits', context: 'Year · instrumentation · division', actions: 'Evidence & links', repertoire: 'Competition repertoire', collections: 'Publishers & collections', browse: 'Browse scores',
-    indexNote: 'This is an index of competition repertoire and publishing leads. Entries do not necessarily include a downloadable full score. Check the original evidence, then contact the publisher or source for availability.',
-    collectionsNote: 'Public publishing announcements, collections and enquiry links. Original descriptions are preserved; availability and permissions are determined by each source.',
+    guide: 'About this index', announcement: 'Original announcement', media: 'Cover / source image', work: 'Work & credits', context: 'Year · instrumentation · division', actions: 'Sources & links', repertoire: 'Competition repertoire', collections: 'Publishers & collections', browse: 'Browse scores',
+    indexNote: 'This is an index of competition repertoire and publishing leads. Entries do not necessarily include a downloadable full score. Check the original source, then contact the publisher or source for availability.',
+    collectionsNote: 'Public publishing announcements, collections and where to ask. Original descriptions are preserved; availability and permissions are determined by each source.',
     academicYear: 'Academic year', yearNote: 'Taiwan academic years show the Gregorian starting year, followed by the original ROC year.', rocYear: 'ROC {year}',
-    instrument: 'Instrumentation', allInstruments: 'All instrumentation', division: 'Division', allDivisions: 'All divisions', publisher: 'Publisher / enquiry source', allPublishers: 'All sources',
+    instrument: 'Instrumentation', allInstruments: 'All instrumentation', division: 'Division', allDivisions: 'All divisions', publisher: 'Publisher / provider', allPublishers: 'All sources',
     sort: 'Sort', year_desc: 'Year: newest first', year_asc: 'Year: oldest first', title: 'Title: A–Z', composer: 'Composer: A–Z', name: 'Source name: A–Z',
-    evidence: 'Original evidence', publisherLink: 'Publisher / enquiries', sourceAndEvidence: 'Source & evidence',
+    evidence: 'Original source', publisherLink: 'Publisher or where to ask', sourceAndEvidence: 'Original source',
     noResults: 'No matching repertoire', noCollections: 'No matching publishing sources', reset: 'Clear filters', notes: 'Original notes', records: '{count} repertoire entries', collectionRecords: '{count} publishing / collection sources',
     solo: 'Harmonica solo', quartet: 'Harmonica quartet', ensemble: 'Harmonica ensemble',
   },
@@ -31,20 +33,20 @@ const labels = {
     indexNote: 'コンクール課題曲と出版情報の索引です。すべての項目にダウンロード可能な楽譜があるわけではありません。原資料で曲目を確認し、入手方法は出版社・情報源にお問い合わせください。',
     collectionsNote: '公開の出版案内、楽譜集、お問い合わせ先です。説明は原文を保持し、入手条件・利用許諾は各情報源に従います。',
     academicYear: '学年度', yearNote: '台湾の学年度は開始年を西暦で表示し、原資料の民国年を括弧内に併記しています。', rocYear: '民国{year}年',
-    instrument: '編成', allInstruments: 'すべての編成', division: '部門', allDivisions: 'すべての部門', publisher: '出版社・問い合わせ先', allPublishers: 'すべての情報源',
+    instrument: '編成', allInstruments: 'すべての編成', division: '部門', allDivisions: 'すべての部門', publisher: '出版社・提供元', allPublishers: 'すべての情報源',
     sort: '並べ替え', year_desc: '年度：新しい順', year_asc: '年度：古い順', title: '曲名：A–Z', composer: '作曲者：A–Z', name: '情報源名：A–Z',
     evidence: '原資料', publisherLink: '出版社・お問い合わせ', sourceAndEvidence: '情報源・原資料',
     noResults: '条件に合う曲目がありません', noCollections: '条件に合う出版情報がありません', reset: '絞り込みを解除', notes: '原文の備考', records: '曲目索引 {count} 件', collectionRecords: '出版社・楽譜集 {count} 件',
     solo: 'ハーモニカ独奏', quartet: 'ハーモニカ四重奏', ensemble: 'ハーモニカ合奏',
   },
   ko: {
-    guide: '악보 안내', announcement: '공개 공지 원문', media: '표지·출처 이미지', work: '곡목·제작진', context: '학년도·편성·부문', actions: '근거·링크', repertoire: '콩쿠르 지정곡', collections: '출판사·악보집', browse: '악보 찾기',
-    indexNote: '콩쿠르 지정곡과 출판 정보의 목록입니다. 모든 항목에 내려받을 수 있는 전체 악보가 있는 것은 아닙니다. 원본 근거에서 곡목을 확인한 후 출판사나 출처에 입수 방법을 문의하세요.',
+    guide: '악보 안내', announcement: '공개 공지 원문', media: '표지·출처 이미지', work: '곡목·제작진', context: '학년도·편성·부문', actions: '출처·링크', repertoire: '콩쿠르 지정곡', collections: '출판사·악보집', browse: '악보 찾기',
+    indexNote: '콩쿠르 지정곡과 출판 정보의 목록입니다. 모든 항목에 내려받을 수 있는 전체 악보가 있는 것은 아닙니다. 원본 출처에서 곡목을 확인한 후 출판사나 출처에 입수 방법을 문의하세요.',
     collectionsNote: '공개 출판 공지, 악보집 및 문의처입니다. 설명은 원문을 유지하며 입수 조건과 이용 허가는 각 출처를 따릅니다.',
     academicYear: '학년도', yearNote: '대만 학년도는 시작하는 서기 연도를 표시하며, 출처의 민국년을 괄호 안에 함께 표시합니다.', rocYear: '민국 {year}년',
-    instrument: '편성', allInstruments: '모든 편성', division: '부문', allDivisions: '모든 부문', publisher: '출판사·문의처', allPublishers: '모든 출처',
+    instrument: '편성', allInstruments: '모든 편성', division: '부문', allDivisions: '모든 부문', publisher: '출판사·제공처', allPublishers: '모든 출처',
     sort: '정렬', year_desc: '학년도: 최신순', year_asc: '학년도: 오래된순', title: '곡명: A–Z', composer: '작곡가: A–Z', name: '출처 이름: A–Z',
-    evidence: '원본 근거', publisherLink: '출판사·문의', sourceAndEvidence: '출처·근거',
+    evidence: '원본 출처', publisherLink: '출판사·문의처', sourceAndEvidence: '원본 출처',
     noResults: '조건에 맞는 곡목이 없습니다', noCollections: '조건에 맞는 출판 정보가 없습니다', reset: '필터 초기화', notes: '원문 비고', records: '곡목 색인 {count}건', collectionRecords: '출판사·악보집 출처 {count}건',
     solo: '하모니카 독주', quartet: '하모니카 4중주', ensemble: '하모니카 합주',
   },
@@ -232,8 +234,12 @@ function collectionRow(row) {
   const cover = Array.isArray(row.images) && row.images.some(safeUrl) && !(row.relatedPosts || []).length;
   const media = collectionMedia(row);
   const detail = (label,value) => value ? `<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>` : '';
+  // New interface: a button that opens the product page already says how to
+  // obtain the book; the recorded method (often "browse the category") would
+  // only repeat or contradict it.
+  const showHow = !(isRedesign() && action.label === 'product');
   const extra = [...new Set([row.imageSourceUrl,row.sourceUrl,row.url,...(row.links || []).map(item=>item.url)].map(safeUrl).filter(url=>url && url !== action.url))];
-  return `<article class="score-row repertoire-row collection-row${cover ? ' collection-illustrated' : ''}" data-collection-kind="${collectionKind(row)}">${cover ? `<div class="collection-cover">${media}</div>` : ''}<div class="score-main"><h3 class="collection-title">${esc(row.title || row.name)}</h3><p class="collection-provider">${esc(l('provider'))}: ${esc(row.name || '')}</p>${row.referenceStatus === 'unverified' ? `<p class="collection-reference-note">${esc(l('unverified'))}</p>` : ''}<dl class="collection-facts">${detail(l('instrument'),instrumentation(row.instrumentation))}${detail(l('how'),purchaseMethod(row.purchaseMethod))}</dl>${cover ? '' : media}<div class="score-row-links">${link(action.url, esc(l(action.label)), 'button button-outline collection-primary')}${reportLink(row)}</div><details class="collection-record"><summary>${esc(l('record'))}${row.lastSeenAt ? ` · ${esc(row.lastSeenAt)}` : ''}</summary><dl>${detail(l('recorded'),row.lastSeenAt)}${detail(t('composer'),row.composer)}${detail(t('arranger'),row.arranger)}${detail(l('recordedPrice'),row.price)}${detail(l('recordedAvailability'),row.availability)}</dl>${row.summary ? `<p class="collection-original">${esc(row.summary)}</p>` : ''}<div class="score-evidence">${extra.map(url=>link(url,esc(l('sourcePage')),'score-evidence-link')).join('')}</div></details></div></article>`;
+  return `<article class="score-row repertoire-row collection-row${cover ? ' collection-illustrated' : ''}" data-collection-kind="${collectionKind(row)}">${cover ? `<div class="collection-cover">${media}</div>` : ''}<div class="score-main"><h3 class="collection-title">${esc(row.title || row.name)}</h3><p class="collection-provider">${esc(l('provider'))}: ${esc(row.name || '')}</p>${row.referenceStatus === 'unverified' ? `<p class="collection-reference-note">${esc(l('unverified'))}</p>` : ''}<dl class="collection-facts">${detail(l('instrument'),instrumentation(row.instrumentation))}${showHow ? detail(l('how'),purchaseMethod(row.purchaseMethod)) : ''}</dl>${cover ? '' : media}<div class="score-row-links">${link(action.url, esc(l(action.label)), 'button button-outline collection-primary')}${reportLink(row)}</div><details class="collection-record"><summary>${esc(l('record'))}${row.lastSeenAt ? ` · ${esc(row.lastSeenAt)}` : ''}</summary><dl>${detail(l('recorded'),row.lastSeenAt)}${detail(t('composer'),row.composer)}${detail(t('arranger'),row.arranger)}${detail(l('recordedPrice'),row.price)}${detail(l('recordedAvailability'),row.availability)}</dl>${row.summary ? `<p class="collection-original">${esc(row.summary)}</p>` : ''}<div class="score-evidence">${extra.map(url=>link(url,esc(l('sourcePage')),'score-evidence-link')).join('')}</div></details></div></article>`;
 }
 function collectionControls(rows, state) {
   const base = rows.filter(row=>match(row,{q:state.q,country:state.country}));
@@ -249,6 +255,12 @@ function pagination(length, limit) {
 }
 export function scoresView(catalog, state = {}, limit = 24) {
   const rows = catalog.scores || [], results = filterScores(rows, state);
+  if (isRedesign()) {
+    // One count per list: the tab and "showing x of y"; a result count only
+    // while filtered. The index and year rules move to the page notes.
+    const filtered = ['q', 'country', 'year', 'instrument', 'division', 'publisher'].some(key => state[key]);
+    return `${pageHeading('scores', 'scoresBody')}${tabs('repertoire', state, catalog)}${controls(rows, state)}${filtered ? `<div class="results-bar"><p role="status">${esc(l('records', { count: number(results.length) }))}</p></div>` : ''}<div class="score-list">${results.length ? repertoireTable(results.slice(0, limit)) : noResults(false, hasFilters(state))}</div>${pagination(results.length, limit)}${pageNotes([esc(l('indexNote')), esc(l('yearNote'))])}`;
+  }
   return `${pageHeading('scores', 'scoresBody')}${tabs('repertoire', state, catalog)}${controls(rows, state)}<div class="results-bar"><p role="status">${esc(l('records', { count: number(results.length) }))}</p></div><div class="score-list">${results.length ? repertoireTable(results.slice(0, limit)) : noResults(false, hasFilters(state))}</div>${pagination(results.length, limit)}<details class="score-guide"><summary>${esc(l('guide'))}</summary><p>${esc(l('indexNote'))}</p><p>${esc(l('yearNote'))}</p></details>`;
 }
 export function scoreSourcesView(catalog, state = {}, limit = 24) {
@@ -261,5 +273,11 @@ export function scoreSourcesView(catalog, state = {}, limit = 24) {
     const group = visible.filter(row=>collectionKind(row)===kind);
     return group.length ? `<div class="collection-group-heading"><h2>${esc(l(kind))} <span>${number(results.filter(row=>collectionKind(row)===kind).length)}</span></h2><p>${esc(l(kind+'Help'))}</p></div>${group.map(collectionRow).join('')}` : '';
   }).join('');
+  if (isRedesign()) {
+    // Each group heading carries its own count, so the total appears only
+    // while a search or country narrows every group; the note moves to the foot.
+    const filtered = state.q || state.country;
+    return `${pageHeading('scoreSources', 'scoreSourcesBody')}${tabs('collections', state, catalog)}${collectionControls(rows,state)}${filtered ? `<div class="results-bar"><p role="status">${esc(l('collectionRecords', { count: number(results.length) }))}</p></div>` : ''}<div class="score-list score-source-list">${results.length ? content : noResults(true, hasFilters(state))}</div>${pagination(results.length, limit)}${pageNotes([esc(l('collectionsNote'))])}`;
+  }
   return `${pageHeading('scoreSources', 'scoreSourcesBody')}${tabs('collections', state, catalog)}${collectionControls(rows,state)}<div class="results-bar"><p role="status">${esc(l('collectionRecords', { count: number(results.length) }))}</p></div><div class="score-list score-source-list">${results.length ? content : noResults(true, hasFilters(state))}</div>${pagination(results.length, limit)}<p class="score-index-note">${icon('info')}<span>${esc(l('collectionsNote'))}</span></p>`;
 }
