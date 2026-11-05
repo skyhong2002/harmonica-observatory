@@ -28,10 +28,10 @@ import {
   textMatch,
 } from "./utils.js";
 const viewLabels = {
-  en: { share: "Share", collapse: "Show less", name: "Name", updated: "Updated", links: "Links", endUnknown: "End time not announced", snapshot: "Website snapshot", observed: "Observed", website: "Website", sort: "Sort", followSource: "Follow source", more: "More actions", ascending: "Ascending", descending: "Descending" },
-  "zh-Hant": { share: "分享", collapse: "收合", name: "名稱", updated: "更新", links: "來源連結", endUnknown: "結束時間未公告", snapshot: "網站頁面快照", observed: "觀測時間", website: "網站", sort: "排序", followSource: "追蹤來源", more: "更多動作", ascending: "遞增", descending: "遞減" },
-  ja: { share: "共有", collapse: "閉じる", name: "名前", updated: "更新", links: "リンク", endUnknown: "終了時刻は未発表", snapshot: "ウェブページの保存記録", observed: "確認日時", website: "ウェブサイト", sort: "並べ替え", followSource: "情報源をフォロー", more: "その他の操作", ascending: "昇順", descending: "降順" },
-  ko: { share: "공유", collapse: "접기", name: "이름", updated: "업데이트", links: "링크", endUnknown: "종료 시각 미발표", snapshot: "웹페이지 스냅샷", observed: "확인 시각", website: "웹사이트", sort: "정렬", followSource: "출처 팔로우", more: "더 보기 작업", ascending: "오름차순", descending: "내림차순" },
+  en: { moreLinks: "{count} more links on the source page", share: "Share", collapse: "Show less", name: "Name", updated: "Updated", links: "Links", endUnknown: "End time not announced", snapshot: "Website snapshot", observed: "Observed", website: "Website", sort: "Sort", followSource: "Follow source", more: "More actions", ascending: "Ascending", descending: "Descending" },
+  "zh-Hant": { moreLinks: "來源頁還有 {count} 個連結", share: "分享", collapse: "收合", name: "名稱", updated: "更新", links: "來源連結", endUnknown: "結束時間未公告", snapshot: "網站頁面快照", observed: "觀測時間", website: "網站", sort: "排序", followSource: "追蹤來源", more: "更多動作", ascending: "遞增", descending: "遞減" },
+  ja: { moreLinks: "情報源ページにほか {count} 件のリンク", share: "共有", collapse: "閉じる", name: "名前", updated: "更新", links: "リンク", endUnknown: "終了時刻は未発表", snapshot: "ウェブページの保存記録", observed: "確認日時", website: "ウェブサイト", sort: "並べ替え", followSource: "情報源をフォロー", more: "その他の操作", ascending: "昇順", descending: "降順" },
+  ko: { moreLinks: "출처 페이지에 링크 {count}개 더", share: "공유", collapse: "접기", name: "이름", updated: "업데이트", links: "링크", endUnknown: "종료 시각 미발표", snapshot: "웹페이지 스냅샷", observed: "확인 시각", website: "웹사이트", sort: "정렬", followSource: "출처 팔로우", more: "더 보기 작업", ascending: "오름차순", descending: "내림차순" },
 };
 const vl = (key) => (viewLabels[getLocale()] || viewLabels.en)[key];
 const sourceLinkLabel = (label) => /^(網站|website|web site)$/i.test(String(label || "").trim()) ? vl("website") : label || t("original");
@@ -74,9 +74,17 @@ export function sortSources(rows, sort = "name", descending = false, catalog = {
     return (typeof av === "number" ? av - bv : collator.compare(av || "", bv || "")) * (descending ? -1 : 1) || collator.compare(a.name || "", b.name || "");
   });
 }
+// New interface, phones: the meta line shows four link icons at most; "+n"
+// opens the source page with the rest (redesign.css hides it on wider screens).
+function moreLinks(s) {
+  const extra = (s.links || []).length - 4;
+  if (extra < 1) return "";
+  const label = vl("moreLinks").replace("{count}", number(extra));
+  return link(sourceHref(s), `+${number(extra)}`, "src-links-more", `title="${esc(label)}" aria-label="${esc(label)}"`);
+}
 export function sourceCard(s, following = new Set(), catalog) {
   const followed = following.has(s.id), count = sourcePostCount(s, catalog);
-  return `<article class="source-card src-row"><div class="src-c-name"><h3>${link(sourceHref(s), avatar(s) + `<span class="src-name">${sourceNamesMarkup(s)}</span><span class="src-country-mobile" title="${esc(countryName(s.countryCode, s.country))}">${esc(countryName(s.countryCode, s.country))}</span>`, "source-avatar-link", `title="${esc(s.name)}"`)}</h3>${sourceSummaryText(s) ? `<p class="src-summary">${esc(sourceSummaryText(s))}</p>` : ""}</div><span class="src-country">${esc(countryName(s.countryCode, s.country))}</span><div class="src-c-chips"><span class="src-country-inline">${esc(countryName(s.countryCode, s.country))}</span>${sourceTypesMarkup(s)}</div><div class="src-links">${(s.links || []).map(sourceIconLink).join("")}${reportLink(s, sourceHref(s), {iconOnly:true})}</div><span class="src-count" title="${esc(t("posts"))}" data-label="${esc(t("posts"))}">${count === undefined ? "—" : number(count)}</span><span class="src-upd" data-label="${esc(vl("updated"))}">${s.updatedAt ? (isRedesign() ? compactDate(s.updatedAt) : timestamp(s.updatedAt, { dateOnly: true })) : "—"}</span><button class="follow-button src-c-follow ${followed ? "is-following" : ""}" data-follow="${esc(s.id)}" aria-pressed="${followed}" aria-label="${esc(t(followed ? "unfollow" : "follow") + " " + s.name)}">${icon(followed ? "check" : "heart")}<span>${t(followed ? "following" : "follow")}</span></button></article>`;
+  return `<article class="source-card src-row"><div class="src-c-name"><h3>${link(sourceHref(s), avatar(s) + `<span class="src-name">${sourceNamesMarkup(s)}</span><span class="src-country-mobile" title="${esc(countryName(s.countryCode, s.country))}">${esc(countryName(s.countryCode, s.country))}</span>`, "source-avatar-link", `title="${esc(s.name)}"`)}</h3>${sourceSummaryText(s) ? `<p class="src-summary">${esc(sourceSummaryText(s))}</p>` : ""}</div><span class="src-country">${esc(countryName(s.countryCode, s.country))}</span><div class="src-c-chips"><span class="src-country-inline">${esc(countryName(s.countryCode, s.country))}</span>${sourceTypesMarkup(s)}</div><div class="src-links">${(s.links || []).map(sourceIconLink).join("")}${isRedesign() ? moreLinks(s) : ""}${reportLink(s, sourceHref(s), {iconOnly:true})}</div><span class="src-count" title="${esc(t("posts"))}" data-label="${esc(t("posts"))}">${count === undefined ? "—" : number(count)}</span><span class="src-upd" data-label="${esc(vl("updated"))}">${s.updatedAt ? (isRedesign() ? compactDate(s.updatedAt) : timestamp(s.updatedAt, { dateOnly: true })) : "—"}</span><button class="follow-button src-c-follow ${followed ? "is-following" : ""}" data-follow="${esc(s.id)}" aria-pressed="${followed}" aria-label="${esc(t(followed ? "unfollow" : "follow") + " " + s.name)}">${icon(followed ? "check" : "heart")}<span>${t(followed ? "following" : "follow")}</span></button></article>`;
 }
 export function togglePostExpansion(button) {
   const expanded = button.getAttribute("aria-expanded") !== "true";

@@ -24,11 +24,35 @@
 .rich-event-card > .event-media.event-media-unavailable { display: none; }
 .rich-event-card > .event-video { grid-area: video; width: calc(100% - 40px); max-height: 300px; margin: 0 20px 4px; border-radius: 10px; background: #141814; }
 .rich-event-card:has(> .event-media:not(.event-media-unavailable)) > .rich-event-header { padding-right: 16px; }
+
+/* Cards in a row share one height: the post text takes the spare space and
+   the action row sits at the bottom. Post excerpts and descriptions show
+   three lines ("read more" opens the rest); the poster stays a thumbnail. */
+.rich-event-card { grid-template-rows: auto auto auto 1fr; }
+.rich-event-card > .rich-event-copy { display: flex; flex-direction: column; align-self: stretch; }
+.rich-event-copy > .rich-event-actions { margin-top: auto; }
+.rich-event-copy > :nth-last-child(2) { margin-bottom: 12px; }
+.event-reference .feed-text:not(.is-expanded) { -webkit-line-clamp: 3; }
+.event-description-text:not(.is-expanded) .source-summary { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.event-description-text .source-summary { margin: 0; }
+.event-description-block .feed-expand { margin-top: 5px; }
+
+/* Phones: the title uses the full card width; the small poster sits beside
+   the time and place under it. */
 @media (max-width: 760px) {
   .rich-event-header h2 { font-size: 1.08rem; line-height: 1.45; overflow-wrap: break-word; }
-  .rich-event-card > .event-media { width: 72px; margin: 16px 15px 0 0; padding: 4px; border-radius: 8px; }
+  .rich-event-card {
+    grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: none;
+    grid-template-areas: "date date" "eyebrow eyebrow" "title title" "original original" "facts media" "video video" "gallery gallery" "copy copy";
+  }
+  .rich-event-card > .rich-event-header, .rich-event-header > .rich-event-heading { display: contents; }
+  .rich-event-header > .event-date-block { grid-area: date; margin: 16px 15px 10px; }
+  .rich-event-heading > .eyebrow { grid-area: eyebrow; margin: 0 15px 5px; }
+  .rich-event-heading > h2 { grid-area: title; margin: 0 15px 8px; }
+  .rich-event-heading > .event-original { grid-area: original; margin: 0 15px 8px; }
+  .rich-event-heading > .rich-event-facts { grid-area: facts; align-self: center; min-width: 0; margin: 0 12px 10px 15px; }
+  .rich-event-card > .event-media { width: 72px; margin: 0 15px 10px 0; padding: 4px; border-radius: 8px; }
   .rich-event-card > .event-media .event-poster { border-radius: 4px; }
-  .rich-event-card:has(> .event-media:not(.event-media-unavailable)) > .rich-event-header { padding-right: 12px; }
   .rich-event-card > .event-video { width: calc(100% - 30px); max-height: 240px; margin: 0 15px 4px; }
   .rich-event-card > .event-gallery { margin: 0 15px 4px; }
 }
@@ -41,9 +65,9 @@
 .home-upcoming-copy > .home-upcoming-place svg { margin: 0 4px 0 0; vertical-align: -2px; }
 
 /* Events list: one column on phones and tablets, two on desktop, in date
-   order left to right then down; cards sit at the top of their row. The
+   order left to right then down; cards in a row share its height. The
    timezone appears beside the time only when it differs from the visitor's. */
-.rich-events-grid { grid-template-columns: minmax(0, 1fr); align-items: start; }
+.rich-events-grid { grid-template-columns: minmax(0, 1fr); align-items: stretch; }
 @media (min-width: 1100px) { .rich-events-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; } }
 .rich-event-time .rich-event-zone { display: inline-block; margin: 0 0 0 6px; color: var(--color-text-muted); font-size: .8rem; font-weight: 600; white-space: nowrap; }
 
@@ -57,7 +81,12 @@
 .home-calendar .google-calendar-filters label { min-height: 40px; padding: 6px 8px 6px 0; font-size: .86rem; }
 .home-calendar .google-calendar-filters label + label { padding-left: 8px; }
 .google-calendar-frame iframe { height: 560px; }
-@media (max-width: 640px) { .google-calendar-frame iframe { height: 460px; } }
+/* Phones: three "Coming up" events and a short calendar, so the latest
+   posts are not pushed far down. */
+@media (max-width: 640px) {
+  .google-calendar-frame iframe { height: 360px; min-height: 0; }
+  .home-now-events .home-upcoming > li:nth-child(n+4) { display: none; }
+}
 
 /* Home page notes: snapshot time, timezone and calendar subscriptions. */
 .home-notes { padding: 0 0 48px; }
@@ -65,6 +94,17 @@
 .page-notes .home-updated { color: inherit; font-size: inherit; }
 .page-notes li:has(> [data-story-observed]:empty) { display: none; }
 .page-notes .google-calendar-context { margin: 0; color: inherit; font-size: inherit; }
+
+/* No stories: the same centred empty card as the other empty states (the
+   band uses the full width when there is no "Coming up" column). */
+.home-now-grid:not(:has(> .home-now-events)) { grid-template-columns: minmax(0, 1fr); }
+.ob-story-empty.empty-state {
+  flex: 0 1 auto; width: fit-content; max-width: 34rem; margin: 24px auto; padding: 40px 24px; color: inherit; font-size: 1rem;
+  line-height: inherit; text-align: center; border-radius: var(--radius-lg);
+}
+.ob-story-empty.empty-state h3 { margin: 0; color: var(--color-text-primary); font-size: 1.15rem; line-height: 1.45; }
+.ob-story-empty.empty-state .ob-story-status-link { display: inline-flex; width: auto; margin: 0; padding: 8px 14px; color: var(--color-text-primary); font-weight: 600; text-decoration: none; }
+.ob-story-empty.empty-state .ob-story-status-link:hover { color: var(--color-text-primary); }
 
 /* Story captions: avatar and name, then the display deadline and the
    original source on one line. */

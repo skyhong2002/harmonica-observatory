@@ -4,7 +4,7 @@ const rows = {
   loginCancelled: ["Sign-in was cancelled. You can try again anytime.", "已取消登入，可隨時重試。", "ログインをキャンセルしました。いつでも再試行できます。", "로그인이 취소되었습니다. 언제든 다시 시도할 수 있습니다."],
   loginFailed: ["Sign-in could not be completed. Please try again.", "無法完成登入，請再試一次。", "ログインを完了できませんでした。もう一度お試しください。", "로그인하지 못했습니다. 다시 시도해 주세요."],
   accountSynced: ["Your contributions and submissions are linked to this Google account.", "貢獻與投稿已綁定此 Google 帳號。", "提供枠と投稿はこのGoogleアカウントに紐づいています。", "기여와 제보가 이 Google 계정에 연결되어 있습니다."],
-  loginHint: ["Sign in to link this browser’s contributions and submissions to your Google account and manage them across devices.", "登入即可將此瀏覽器的貢獻與投稿綁定 Google 帳號，並跨裝置管理。", "ログインすると、このブラウザの提供枠と投稿をGoogleアカウントに紐づけ、別の端末でも管理できます。", "로그인하면 이 브라우저의 기여와 제보를 Google 계정에 연결하고 다른 기기에서도 관리할 수 있습니다."],
+  loginHint: ["You can submit without signing in. Sign in with Google to manage your submissions and contributions on other devices.", "不登入也能提交。登入 Google 後可在其他裝置管理你的投稿與貢獻。", "ログインしなくても送信できます。Googleでログインすると、投稿と提供枠を別の端末でも管理できます。", "로그인하지 않아도 제출할 수 있어요. Google로 로그인하면 다른 기기에서도 제보와 기여를 관리할 수 있어요."],
   signOut: ["Sign out", "登出", "ログアウト", "로그아웃"],
   googleSignIn: ["Sign in with Google", "使用 Google 帳號登入", "Google でログイン", "Google 계정으로 로그인"],
   accountTitle: ["Your account", "我的帳號", "アカウント", "내 계정"],

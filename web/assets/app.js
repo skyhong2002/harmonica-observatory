@@ -318,19 +318,20 @@ function render({ focus = false } = {}) {
 
 // Phones: fold the filter controls under one "Filter (n)" toggle so results
 // start on the first screen (every list page has at least two). Open while
-// any filter is applied.
+// any filter is applied. "Clear filters" stays outside the fold, beside the
+// toggle (redesign.css), so it is reachable while the fold is closed.
 function collapseFilters(root) {
   if (!isRedesign() || !window.matchMedia?.("(max-width: 640px)").matches) return;
   for (const bar of root.querySelectorAll(".filter-bar")) {
-    const controls = [...bar.children].filter(node => node.matches("label:not(.search-label), .clear-filter"));
-    if (controls.filter(node => node.matches("label")).length < 2) continue;
+    const controls = [...bar.children].filter(node => node.matches("label:not(.search-label)"));
+    if (controls.length < 2) continue;
     const active = controls.filter(node => node.querySelector("select")?.selectedIndex > 0 || node.querySelector("input[type=checkbox]")?.checked).length;
     const details = document.createElement("details");
     details.className = "filter-more";
     details.open = active > 0;
     details.innerHTML = `<summary>${icon("layers")}<span>${t("filter")}${active ? ` (${number(active)})` : ""}</span></summary><div class="filter-more-body"></div>`;
     details.lastElementChild.append(...controls);
-    bar.append(details);
+    bar.append(details, ...bar.querySelectorAll(":scope > .clear-filter"));
   }
 }
 function updateMetadata() {

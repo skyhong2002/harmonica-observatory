@@ -1,6 +1,6 @@
 import { isRedesign } from './redesign.js';
 import { t, getLocale, locales } from './i18n.js';
-import { esc, safeUrl, image, link, initials, timestamp } from './utils.js';
+import { esc, safeUrl, image, link, initials, timestamp, icon } from './utils.js';
 
 const words = {
   empty: ['No stories to show right now', '目前沒有可顯示的限動', '今表示できるストーリーはありません', '지금 보여 줄 스토리가 없어요'],
@@ -9,6 +9,7 @@ const words = {
   expires: ['Shown until', '展示至', '表示期限', '표시 기한'],
   observed: ['Last retrieved', '最近收錄', '最終取得', '최근 수집'],
   browse: ['Browse stories', '瀏覽限時動態', 'ストーリーを見る', '스토리 탐색'],
+  emptyBody: ['Stories that sources post appear here until they expire.', '來源發布的限時動態會顯示在這裡，到期後自動移除。', '情報源が投稿したストーリーは、期限が切れるまでここに表示されます。', '출처가 올린 스토리는 기한이 끝날 때까지 여기에 표시돼요.'],
 };
 const word = key => words[key][locales.indexOf(getLocale())] || words[key][0];
 
@@ -70,7 +71,8 @@ export function storyObservedMarkup(catalog) {
 export function storyEmptyMarkup(catalog) {
   // New interface: the plain message and the status link; retrieval details
   // (budget, schedule) belong on the status page.
-  if (isRedesign()) return `<p class="ob-story-empty story-empty" role="status">${esc(word('empty'))} <a class="ob-story-status-link" href="/status/?lang=${encodeURIComponent(getLocale())}">${esc(t('status'))}</a></p>`;
+  // It uses the same centred empty card as the other empty states.
+  if (isRedesign()) return `<div class="ob-story-empty story-empty empty-state" role="status">${icon('layers')}<h3>${esc(word('empty'))}</h3><p>${esc(word('emptyBody'))}</p><div class="empty-actions"><a class="ob-story-status-link button button-outline" href="/status/?lang=${encodeURIComponent(getLocale())}">${esc(t('status'))}</a></div></div>`;
   const status = catalog.status?.stories || {};
   const reason = ['credit_budget', 'daily_result_limit', 'user_daily_exhausted', 'free_capacity_exhausted', 'pool_budget_pacing', 'public_unavailable_credit_reserve'].includes(status.reasonCode)
     ? 'budgetDeferred' : status.reasonCode === 'no_sources_due' ? 'collectionScheduled' : '';

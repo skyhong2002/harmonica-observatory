@@ -166,6 +166,13 @@ test('reviewed covers open their actual source and unverified announcements beco
   document.body.innerHTML=scoreSourcesView({scoreSources:[book,notice]});
   assert.equal(document.querySelector('.collection-cover a').href,book.imageSourceUrl);
   assert.ok(document.querySelector('.collection-reference-note').textContent.length>10);
+  // New interface: a book without a cover beside one with a cover gets the same
+  // layout with a placeholder tile; groups without any cover stay text-only.
+  document.body.innerHTML=scoreSourcesView({scoreSources:[book,{...book,title:'Bare book',images:[]},notice]});
+  const bare=[...document.querySelectorAll('.collection-row')].find(row=>row.textContent.includes('Bare book'));
+  assert.equal(bare.classList.contains('collection-illustrated'),isRedesign());
+  assert.equal(!!bare.querySelector('.collection-cover-placeholder'),isRedesign());
+  assert.equal(document.querySelector('[data-collection-kind="contacts"] .collection-cover'),null);
   assert.doesNotMatch(document.body.textContent,/undefined/);
  }
 });
@@ -186,6 +193,9 @@ test('score facets show only the interface language while source filter values a
    assert.equal(document.querySelector('.score-guide'),null);
    assert.ok(document.querySelector('.page-notes').textContent.includes(scoreLabels[locale].yearNote));
    assert.equal(document.querySelector('.results-bar'),null,'no total count without a filter');
+   // What the list is (an index, not downloads) is said once, under the title.
+   assert.equal(document.querySelector('.page-heading p').textContent,scoreLabels[locale].indexLine);
+   assert.equal(document.querySelector('.page-notes').textContent.includes(scoreLabels[locale].indexNote),false);
   } else {
    assert.equal(document.querySelector('.score-guide').open,false);
    assert.equal(document.querySelector('.results-bar').textContent.includes(scoreLabels[locale].yearNote),false);

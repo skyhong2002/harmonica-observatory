@@ -54,13 +54,29 @@
 }
 
 
-/* Directory rows on phones: the counts sit beside "country · type", so the
-   link icons get a full row with 36px targets and 8px gaps. */
+/* Directory rows on phones, three lines: name and a labelled follow pill;
+   "country · type" ending in up to four link icons (then "+n", which opens
+   the source page); post count and update date. The row's ::before/::after
+   are zero-height flex items that end the first two lines. */
+.src-links-more { display: none; }
 @media (max-width: 699px) {
-  .source-card.src-row { grid-template-areas: "name name follow" "types count updated" "links links links"; }
-  .src-row .src-links { flex-wrap: wrap; gap: 6px 8px; }
-  .src-row .src-links .src-link-icon { flex-basis: 36px; width: 36px; height: 36px; }
-  .src-row .src-links .src-link-icon svg { width: 20px; height: 20px; }
+  .source-card.src-row { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; }
+  .source-card.src-row::before, .source-card.src-row::after { content: ""; flex: 0 0 100%; height: 0; }
+  .source-card.src-row::before { order: 3; }
+  .source-card.src-row::after { order: 6; }
+  .src-row > .src-c-name { order: 1; flex: 1 1 0; }
+  .src-row > .src-c-follow { order: 2; }
+  .src-row > .src-country { display: none; }
+  .src-row > .src-c-chips { order: 4; flex: 1 1 0; min-width: 0; }
+  .src-row > .src-links { order: 5; flex: none; flex-wrap: nowrap; gap: 0; padding-left: 0; overflow: visible; }
+  .src-row > .src-count { order: 7; padding-left: 50px; }
+  .src-row > .src-upd { order: 8; }
+  .src-row .src-links .src-link-icon { flex-basis: 32px; width: 32px; height: 32px; }
+  .src-row .src-links .src-link-icon svg { width: 18px; height: 18px; }
+  .src-row .src-links .src-link-icon:nth-child(n+5) { display: none; }
+  .src-links-more { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; padding: 0 4px; color: var(--color-text-secondary); font-size: .8rem; font-weight: 700; text-decoration: none; border-radius: 6px; }
+  .follow-button.src-c-follow { flex: none; width: auto; min-width: 0; height: 44px; padding: 0 14px; gap: 6px; font-size: .86rem; font-weight: 700; }
+  .src-c-follow > span { display: inline; }
 }
 
 /* Directory sort: column-header buttons on desktop; on phones one labelled
@@ -197,6 +213,9 @@
 .score-row-meta, .score-table .score-row-meta { font-size: .86rem; }
 .collection-facts > div, .collection-record dl > div, .collection-provider { font-size: .88rem; }
 .score-source-list .collection-title { font-size: 1.06rem; }
+/* A book without a cover keeps the illustrated layout with a quiet tile. */
+.collection-cover-placeholder { display: grid; place-items: center; aspect-ratio: 1; color: var(--color-text-muted); background: var(--color-surface-soft); border-radius: 4px; }
+.collection-cover-placeholder svg { width: 32%; height: auto; max-width: 40px; opacity: .7; }
 .feed-grid { max-width: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 40px; }
 .feed-card h2 { font-size: 1rem; }
 @media (max-width: 760px) { .feed-grid { grid-template-columns: 1fr; } }
@@ -210,7 +229,6 @@
 /* Directory on phones: let the stats row size to its labels instead of
    fixed 36px/55px columns that pushed the date off-screen. */
 @media (max-width: 699px) {
-  .source-card.src-row { grid-template-columns: minmax(0, 1fr) auto auto; column-gap: 12px; }
   .src-links { min-width: 0; }
   .src-count, .src-upd { font-size: .78rem; }
 }
@@ -310,8 +328,15 @@
 .filter-more > summary { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 14px; color: var(--color-text-primary); font-size: .9rem; font-weight: 700; list-style: none; cursor: pointer; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: 999px; }
 .filter-more > summary::-webkit-details-marker { display: none; }
 .filter-more > summary svg { width: 18px; height: 18px; color: var(--color-text-brand); }
-.filter-more-body { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 10px; }
-.filter-more-body > *, .filter-more-body label, .filter-more-body select { width: 100%; max-width: none; flex: none; }
+.filter-more-body { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 10px; margin-top: 8px; }
+.filter-more-body > *, .filter-more-body label, .filter-more-body select { width: 100%; max-width: none; min-width: 0; flex: none; }
+.filter-more-body label { gap: 3px; }
+.filter-more-body select { min-height: 44px; }
+/* "Clear filters" is a small text button on the toggle's row. */
+.filter-bar:has(> .filter-more) { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: start; }
+.filter-bar:has(> .filter-more) > .search-label { grid-column: 1 / -1; }
+.filter-bar > .filter-more { grid-column: 1 / -1; grid-row: 2; }
+.filter-bar > .filter-more ~ .clear-filter { position: relative; z-index: 1; grid-column: 2; grid-row: 2; align-self: start; justify-self: end; min-height: 44px; padding: 0 4px; font-size: .86rem; }
 
 /* Contribute: what Apify is, live contributions first, new form folded. */
 .contribution-main { display: flex; flex-direction: column; gap: 20px; }
@@ -360,7 +385,6 @@
   .src-row:hover .src-links .context-report-link, .src-row:focus-within .src-links .context-report-link { opacity: 1; }
 }
 .src-upd { white-space: nowrap; }
-@media (max-width: 699px) { .src-links { flex-wrap: nowrap; overflow: hidden; } }
 
 /* About and privacy: reading column plus a contact card. */
 .info-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 24rem); gap: 32px 56px; align-items: start; }
@@ -372,7 +396,13 @@
 .contact-link { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 12px; color: var(--color-text-primary); font-weight: 600; text-decoration: none; background: var(--color-canvas); border-radius: 10px; }
 .contact-link svg { width: 18px; height: 18px; color: var(--color-text-brand); }
 .contact-link:hover { background: var(--color-surface-soft); }
-@media (max-width: 900px) { .info-layout { grid-template-columns: 1fr; } .contact-card { position: static; } }
+/* About: the short FAQ lines take the free width beside the contact card.
+   Privacy: the prose keeps a reading measure and the card sits right beside
+   it, so the empty space is the page margin, not a hole mid-page. */
+.about-layout.info-layout .faq-section { max-width: none; }
+.info-layout:not(.about-layout) { grid-template-columns: minmax(0, 42rem) minmax(280px, 24rem); justify-content: start; column-gap: 64px; }
+.info-layout:not(.about-layout) .prose { max-width: none; }
+@media (max-width: 900px) { .info-layout, .info-layout:not(.about-layout) { grid-template-columns: 1fr; } .contact-card { position: static; } }
 
 
 /* Phones: one row of six icon tabs instead of two rows of wide cells. */
@@ -501,6 +531,7 @@
 
 /* Prose pages: a reading column of about 40 CJK characters on desktop. */
 .info-layout .prose, .info-layout .faq-section, .page-heading p { max-width: 40rem; }
+.about-layout.info-layout .faq-section, .info-layout:not(.about-layout) .prose { max-width: none; }
 
 /* Wide screens (1500px+): helper and meta text — dates, labels, counts,
    card actions, tags, the footer — reads at about 14px instead of 12–13px.
@@ -518,7 +549,10 @@
   .collection-group-heading h2 span, .collection-facts dt, .collection-primary, .collection-record > summary, .collection-original,
   .status-pill, .status-metrics span, .page-heading .button, .pagination p,
   .feed-card .tag, .feed-card .copy-button, .site-footer,
-  .collection-group-heading p, .community-banner p:not(.eyebrow), .profile-links .button { font-size: max(.84rem, 14px); }
+  .collection-group-heading p, .community-banner p:not(.eyebrow), .profile-links .button,
+  .site-footer a, .field-hint, .consent-label span, .ownership-hint, .capacity-panel .small, .capacity-panel small, .capacity-figures span,
+  .submission-row .small, .sidebar-note p, .account-panel .small { font-size: max(.84rem, 14px); }
+  .status-table small, .field-hint, .ownership-hint, .capacity-panel .small, .capacity-panel small, .capacity-figures span, .site-footer a { color: var(--color-text-muted); }
   .page-notes ul, .home-updated, .rich-event-zone, .ob-story-caption .ob-story-footer, .google-calendar-context, .home-upcoming-copy > span { font-size: max(.86rem, 14px); }
   .home-intro-copy > p { font-size: 1.1rem; }
 }

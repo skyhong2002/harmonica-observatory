@@ -86,12 +86,49 @@ function followButton(source, following) {
   const label = followed ? t('following') : isRedesign() ? l('followSource') : t('follow');
   return `<button type="button" class="feed-action ${followed ? 'is-following' : ''}" data-follow="${esc(source.id)}" aria-pressed="${!!followed}" aria-label="${esc(t(followed ? 'unfollow' : 'follow') + ' ' + name)}">${icon(followed ? 'check' : 'heart')}<span>${label}</span></button>`;
 }
-function originalPost(post, catalog, following, showAuthor = true, withActions = true, withFollow = true) {
+// New interface: the excerpt is clamped to three lines, so only text that
+// surely fits stays unclamped (bindEvents hides "read more" when it fits).
+const fitsThreeLines = text => text.length <= 60 && text.split('\n').length <= 3;
+function originalPost(post, catalog, following, showAuthor = true, withActions = true, withFollow = true, text = post.text || '') {
   const source = catalog.sources?.find(source => source.id === post.sourceId);
   const name = source ? sourceDisplayName(source) : post.sourceName || t('source');
-  const expanded = (post.text || '').length <= 240 && (post.text || '').split('\n').length <= 5;
+  const expanded = isRedesign() ? fitsThreeLines(text) : text.length <= 240 && text.split('\n').length <= 5;
   const followed = source && following.has(source.id);
-  return `<section class="event-reference feed-content" data-event-post="${esc(post.id)}">${post.contentKind === 'website_snapshot' ? `<p class="event-reference-label">${l('snapshot')}</p>` : ''}${showAuthor ? eventAuthor(post, catalog) : ''}${post.text ? `<p class="feed-text ${expanded ? 'is-expanded' : ''}">${esc(post.text)}</p>${expanded ? '' : `<button type="button" class="feed-expand" data-expand-post aria-expanded="false">${t('readMore')}</button>`}` : ''}${withActions ? `<div class="event-reference-actions">${source && withFollow ? followButton(source, following) : ''}${link(post.url, t('original'), 'text-link')}</div>` : ''}</section>`;
+  return `<section class="event-reference feed-content" data-event-post="${esc(post.id)}">${post.contentKind === 'website_snapshot' ? `<p class="event-reference-label">${l('snapshot')}</p>` : ''}${showAuthor ? eventAuthor(post, catalog) : ''}${text ? `<p class="feed-text ${expanded ? 'is-expanded' : ''}">${esc(text)}</p>${expanded ? '' : `<button type="button" class="feed-expand" data-expand-post aria-expanded="false">${t('readMore')}</button>`}` : ''}${withActions ? `<div class="event-reference-actions">${source && withFollow ? followButton(source, following) : ''}${link(post.url, t('original'), 'text-link')}</div>` : ''}</section>`;
+}
+// New interface: a post that opens with the event's title (give or take
+// emoji, punctuation and spacing) shows only what follows it, since the card
+// heading already says it. Returns the text unchanged when it is no repeat.
+const titleKey = value => String(value || '').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+// Spaces, dashes, closing marks and emoji left over after the title (a
+// following hashtag or mention keeps its # or @).
+const leadingSeparators = /^(?:(?![#@＃＠])[\s\p{Pd}\p{Po}\p{Pe}\p{Pf}\p{S}\p{M}\p{Cf}])+/u;
+function withoutTitleRepeat(text, titles) {
+  for (const title of titles) {
+    const target = titleKey(title);
+    if (target.length < 4) continue;
+    let matched = 0, end = 0, lineBreak = false, cut = -1;
+    for (const match of text.matchAll(/[\s\S]/gu)) {
+      const char = match[0], key = titleKey(char);
+      if (char === '\n') lineBreak = true;
+      if (!key) continue;
+      if (!target.startsWith(key, matched)) {
+        // The first line(s) are most of the title (e.g. the title adds
+        // "(morning)"): drop those whole lines.
+        if (lineBreak && matched >= Math.max(4, target.length * .75)) cut = end;
+        break;
+      }
+      matched += key.length; end = match.index + char.length; lineBreak = false;
+      if (matched === target.length) { cut = end; break; }
+    }
+    if (cut < 0 && matched >= Math.max(4, target.length * .75) && !titleKey(text.slice(end))) cut = end;
+    // In space-separated scripts the title must end at a word boundary
+    // ("Spring Concert" is not repeated by "Spring concerts are …").
+    const last = [...text.slice(0, cut)].pop() || '', next = [...text.slice(cut)][0] || '';
+    if (cut > 0 && /[\p{L}\p{N}]/u.test(next) && !/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u.test(last + next)) cut = -1;
+    if (cut >= 0) return text.slice(cut).replace(leadingSeparators, '');
+  }
+  return text;
 }
 // A calendar-style date block in the event's own timezone (civil dates stay put).
 // The date block already shows the day, so single-day timed events list only
@@ -183,15 +220,18 @@ function redesignedRichEventCard(event, catalog, following = new Set()) {
   const single = posts.length === 1 && (eventIsPost || !safeUrl(eventUrl));
   const sourceOf = post => catalog.sources?.find(source => source.id === post.sourceId);
   const followed = new Set();
+  const titles = [...new Set([eventText(event), event.title].filter(Boolean))];
   const references = posts.map(post => {
     const id = post.sourceId || '';
     const first = !followed.has(id); followed.add(id);
-    return originalPost(post, catalog, following, true, !single, first);
+    return originalPost(post, catalog, following, true, !single, first, withoutTitleRepeat(post.text || '', titles));
   }).join('');
+  // A long description is clamped like the post excerpts, with "read more".
+  const description = event.description && !posts.length ? `<div class="event-description-block feed-content"><div class="event-description-text feed-text">${eventDescriptionMarkup(event)}</div>${fitsThreeLines(String(event.description)) ? '' : `<button type="button" class="feed-expand" data-expand-post aria-expanded="false">${t('readMore')}</button>`}</div>` : '';
   const original = single ? link(eventUrl || posts[0].url, t('original'), 'text-link event-original-link') : eventIsPost ? '' : link(eventUrl, t('original'), 'text-link event-original-link');
   const zone = differingZone(event);
   const time = `${eventTimeLabel(event) === eventDateLabel(event) ? esc(eventDateLabel(event)) : `<span class="sr-only">${esc(eventDateLabel(event))}</span><span aria-hidden="true">${esc(eventTimeLabel(event))}</span>`}${event.allDay ? ` · ${t('allDay')}` : event.endEstimated ? ` · ${l('endUnknown')}` : ''}${zone ? ` <span class="rich-event-zone" title="${esc(t('localTime'))}">${esc(zone)}</span>` : ''}`;
-  return `<article class="rich-event-card ${pastEvent(event) ? 'is-past' : ''}" data-event-id="${esc(event.id)}"><header class="rich-event-header">${dateBlock(event)}<div class="rich-event-heading"><div class="eyebrow">${esc(countryName(event.countryCode, event.country))}${pastEvent(event) ? `<span class="past-badge">${t('past')}</span>` : ''}</div><h2>${esc(eventText(event))}</h2>${eventOriginalMarkup(event)}<div class="rich-event-facts"><p class="rich-event-time">${icon('calendar')}<span>${time}</span></p><p class="rich-event-location">${icon('pin')}<span>${esc(eventText(event, 'location') || t('locationUnknown'))}</span></p></div></div></header>${mainImage && !video ? `<figure class="event-media" data-event-media>${link(eventUrl, image(mainImage, 'event-poster', `${l('poster')}: ${eventText(event)}`), 'event-media-link')}${candidates.length > 1 ? `<span hidden data-event-image-fallback="${esc(JSON.stringify(candidates.slice(1)))}"></span>` : ''}</figure>` : ''}${gallery.length ? `<details class="event-gallery"><summary>${l('moreImages')} (${number(gallery.length)})</summary><div class="event-gallery-strip" tabindex="0" aria-label="${esc(l('moreImages'))}">${gallery.map(url => link(url, image(url, 'event-gallery-image', l('poster')), 'event-gallery-link')).join('')}</div></details>` : ''}${video ? `<video class="event-video" controls preload="metadata" playsinline data-original-video="${esc(safeUrl(eventUrl || posts[0]?.url))}" ${mainImage ? `poster="${esc(mainImage)}"` : ''} aria-label="${esc(l('video') + ': ' + eventText(event))}" src="${esc(video)}"></video>` : ''}<div class="rich-event-copy">${references}${event.description && !posts.length ? `<div class="event-description-text">${eventDescriptionMarkup(event)}</div>` : ''}<footer class="rich-event-actions">${single && sourceOf(posts[0]) ? followButton(sourceOf(posts[0]), following) : ''}${original}<details class="more-actions"><summary aria-label="${esc(l('moreActions'))}" title="${esc(l('moreActions'))}"><span aria-hidden="true">⋯</span></summary><div class="more-actions-menu"><button type="button" class="feed-action" data-share="${esc(eventUrl || '')}" data-share-title="${esc(eventText(event))}">${icon('arrow')}<span>${l('share')}</span></button>${reportLink(event)}</div></details></footer></div></article>`;
+  return `<article class="rich-event-card ${pastEvent(event) ? 'is-past' : ''}" data-event-id="${esc(event.id)}"><header class="rich-event-header">${dateBlock(event)}<div class="rich-event-heading"><div class="eyebrow">${esc(countryName(event.countryCode, event.country))}${pastEvent(event) ? `<span class="past-badge">${t('past')}</span>` : ''}</div><h2>${esc(eventText(event))}</h2>${eventOriginalMarkup(event)}<div class="rich-event-facts"><p class="rich-event-time">${icon('calendar')}<span>${time}</span></p><p class="rich-event-location">${icon('pin')}<span>${esc(eventText(event, 'location') || t('locationUnknown'))}</span></p></div></div></header>${mainImage && !video ? `<figure class="event-media" data-event-media>${link(eventUrl, image(mainImage, 'event-poster', `${l('poster')}: ${eventText(event)}`), 'event-media-link')}${candidates.length > 1 ? `<span hidden data-event-image-fallback="${esc(JSON.stringify(candidates.slice(1)))}"></span>` : ''}</figure>` : ''}${gallery.length ? `<details class="event-gallery"><summary>${l('moreImages')} (${number(gallery.length)})</summary><div class="event-gallery-strip" tabindex="0" aria-label="${esc(l('moreImages'))}">${gallery.map(url => link(url, image(url, 'event-gallery-image', l('poster')), 'event-gallery-link')).join('')}</div></details>` : ''}${video ? `<video class="event-video" controls preload="metadata" playsinline data-original-video="${esc(safeUrl(eventUrl || posts[0]?.url))}" ${mainImage ? `poster="${esc(mainImage)}"` : ''} aria-label="${esc(l('video') + ': ' + eventText(event))}" src="${esc(video)}"></video>` : ''}<div class="rich-event-copy">${references}${description}<footer class="rich-event-actions">${single && sourceOf(posts[0]) ? followButton(sourceOf(posts[0]), following) : ''}${original}<details class="more-actions"><summary aria-label="${esc(l('moreActions'))}" title="${esc(l('moreActions'))}"><span aria-hidden="true">⋯</span></summary><div class="more-actions-menu"><button type="button" class="feed-action" data-share="${esc(eventUrl || '')}" data-share-title="${esc(eventText(event))}">${icon('arrow')}<span>${l('share')}</span></button>${reportLink(event)}</div></details></footer></div></article>`;
 }
 function emptyEvents(catalog, state) {
   if (hasFilters(state)) return empty();
@@ -223,6 +263,12 @@ export function bindEvents(root) {
     grid?.classList.toggle('events-masonry', masonry);
     for (const card of cards) {
       card.style.gridRowEnd = masonry ? `span ${Math.ceil((card.getBoundingClientRect().height + 20) / 8)}` : '';
+    }
+    // New interface: "read more" only when the three-line clamp hides text.
+    if (isRedesign()) for (const button of grid?.querySelectorAll('.rich-event-card [data-expand-post][aria-expanded="false"]') || []) {
+      const text = button.closest('.feed-content')?.querySelector('.feed-text');
+      const clamped = text?.querySelector('.source-summary') || text;
+      if (clamped?.clientHeight) button.hidden = clamped.scrollHeight <= clamped.clientHeight + 1;
     }
   };
   const queueLayout = () => { if (!frame) frame = window.requestAnimationFrame(layout); };
