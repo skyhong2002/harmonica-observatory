@@ -212,8 +212,10 @@ function sourceForPath() {
   return catalog?.sources.find(source => source.id === slug || source.publicId === slug || source.url === path() || source.url?.split("/").filter(Boolean).at(-1) === slug);
 }
 function body() {
+  if (!catalog && loadFailed)
+    return `<div class="load-error"><h1 class="sr-only">${t("loadError")}</h1>${empty({ filtered: false, symbol: "info", title: t("loadError"), body: t("loadErrorBody"), actions: `<button class="button button-primary" data-action="retry">${t("retry")}</button>${link("/feeds/", t("feeds"), "button button-outline")}` })}</div>`;
   if (!catalog)
-    return `<div class="initial-loading" ${loadFailed ? "" : 'aria-busy="true"'}>${icon(loadFailed ? "info" : "globe")}<h1>${t(loadFailed ? "loadError" : "loading")}</h1>${loadFailed ? `<p>${t("loadErrorBody")}</p><button class="button button-primary" data-action="retry">${t("retry")}</button>` : '<div class="loading-dots"><i></i><i></i><i></i></div>'}</div>`;
+    return `<div class="skeleton" aria-busy="true"><h1 class="skeleton-label">${icon("globe")}<span>${t("loading")}</span></h1><div class="skeleton-bar skeleton-title"></div><div class="skeleton-bar skeleton-text"></div><div class="skeleton-grid">${'<div class="skeleton-card"><div class="skeleton-media"></div><div class="skeleton-bar"></div><div class="skeleton-bar skeleton-short"></div></div>'.repeat(3)}</div></div>`;
   const key = routes[path()];
   const data = filtered();
   if (key === "discover") return observatoryHome(catalog, state, following, limit);

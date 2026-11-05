@@ -838,6 +838,7 @@ const rows = {
   emptyEventsTitle: ["No upcoming events right now", "近期沒有即將舉行的活動", "今後のイベントは現在ありません", "예정된 행사가 지금은 없어요"],
   emptyEventsBody: ["New announcements are added once confirmed. Past events are still available.", "新的活動公告確認後會加入。也可以先看看過去的活動。", "新しい告知は確認後に追加されます。過去のイベントもご覧いただけます。", "새 공지는 확인 후 추가돼요. 지난 행사도 볼 수 있어요."],
   emptyEventsNone: ["No events have been recorded yet", "目前還沒有收錄任何活動", "まだイベントが記録されていません", "아직 기록된 행사가 없어요"],
+  emptyEventsNoneBody: ["Confirmed announcements will appear here. Subscribe to get new events automatically.", "活動公告經確認後會出現在這裡。訂閱行事曆就能自動收到新活動。", "確認済みの告知がここに表示されます。購読すると新しいイベントを自動で受け取れます。", "확인된 공지가 여기에 표시돼요. 구독하면 새 행사를 자동으로 받을 수 있어요."],
   seePastEvents: ["See past events", "查看過去活動", "過去のイベントを見る", "지난 행사 보기"],
   noFollowedTitle: ["You aren’t following any sources yet", "你還沒有追蹤任何來源", "まだ情報源をフォローしていません", "아직 팔로우한 출처가 없어요"],
   noFollowedBody: ["Tap the heart beside a source to follow it. Follows are saved in this browser only.", "在來源旁點愛心即可追蹤。追蹤清單只儲存在這個瀏覽器。", "情報源の横のハートを押すとフォローできます。フォローはこのブラウザーにのみ保存されます。", "출처 옆의 하트를 누르면 팔로우돼요. 팔로우 목록은 이 브라우저에만 저장돼요."],

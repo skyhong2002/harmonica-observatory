@@ -501,7 +501,7 @@ test("application DOM journey across languages, routing, filters and community f
   });
   await t.test("home composes stories, Google calendar and a unified timeline while posts opens the same full timeline", async () => {
     click('.brand');
-    assert.deepEqual([...$(".observatory-home").children].filter(node => node.tagName === "SECTION").map(node => node.classList[0]), ["home-stories", "home-calendar", "home-posts"]);
+    assert.deepEqual([...$(".observatory-home").children].filter(node => node.tagName === "SECTION").map(node => node.classList[0]), ["home-intro", "home-stories", "home-calendar", "home-posts"]);
     assert.equal(window.document.querySelectorAll(".ob-stories").length, 1);
     assert.ok($("[data-google-calendar-embed]"));
     assert.equal($(".calendar-grid"), null);

@@ -78,12 +78,26 @@ function eventAuthor(post, catalog) {
 export function eventDescriptionMarkup(event) {
   return sourceSummaryMarkup({summary: event.description, summaries: event.descriptions, summaryLanguage: event.descriptionLanguage});
 }
-function originalPost(post, catalog, following, showAuthor = true) {
+function followButton(source, following) {
+  const followed = following.has(source.id), name = sourceDisplayName(source);
+  return `<button type="button" class="feed-action ${followed ? 'is-following' : ''}" data-follow="${esc(source.id)}" aria-pressed="${!!followed}" aria-label="${esc(t(followed ? 'unfollow' : 'follow') + ' ' + name)}">${icon(followed ? 'check' : 'heart')}<span>${t(followed ? 'following' : 'follow')}</span></button>`;
+}
+function originalPost(post, catalog, following, showAuthor = true, withActions = true) {
   const source = catalog.sources?.find(source => source.id === post.sourceId);
   const name = source ? sourceDisplayName(source) : post.sourceName || t('source');
   const expanded = (post.text || '').length <= 240 && (post.text || '').split('\n').length <= 5;
   const followed = source && following.has(source.id);
-  return `<section class="event-reference feed-content" data-event-post="${esc(post.id)}">${post.contentKind === 'website_snapshot' ? `<p class="event-reference-label">${l('snapshot')}</p>` : ''}${showAuthor ? eventAuthor(post, catalog) : ''}${post.text ? `<p class="feed-text ${expanded ? 'is-expanded' : ''}">${esc(post.text)}</p>${expanded ? '' : `<button type="button" class="feed-expand" data-expand-post aria-expanded="false">${t('readMore')}</button>`}` : ''}<div class="event-reference-actions">${source ? `<button type="button" class="feed-action ${followed ? 'is-following' : ''}" data-follow="${esc(source.id)}" aria-pressed="${!!followed}" aria-label="${esc(t(followed ? 'unfollow' : 'follow') + ' ' + name)}">${icon(followed ? 'check' : 'heart')}<span>${t(followed ? 'following' : 'follow')}</span></button>` : ''}${link(post.url, t('original'), 'text-link')}</div></section>`;
+  return `<section class="event-reference feed-content" data-event-post="${esc(post.id)}">${post.contentKind === 'website_snapshot' ? `<p class="event-reference-label">${l('snapshot')}</p>` : ''}${showAuthor ? eventAuthor(post, catalog) : ''}${post.text ? `<p class="feed-text ${expanded ? 'is-expanded' : ''}">${esc(post.text)}</p>${expanded ? '' : `<button type="button" class="feed-expand" data-expand-post aria-expanded="false">${t('readMore')}</button>`}` : ''}${withActions ? `<div class="event-reference-actions">${source ? followButton(source, following) : ''}${link(post.url, t('original'), 'text-link')}</div>` : ''}</section>`;
+}
+// A calendar-style date block in the event's own timezone (civil dates stay put).
+function dateBlock(event) {
+  const start = String(event.start || '');
+  const civil = /^\d{4}-\d{2}-\d{2}$/.test(start);
+  const when = new Date(civil ? start + 'T00:00:00Z' : start);
+  if (!Number.isFinite(+when)) return '';
+  const timeZone = civil ? 'UTC' : event.timezone || 'UTC';
+  const part = (options) => { try { return new Intl.DateTimeFormat(getLocale(), { timeZone, ...options }).format(when); } catch { return ''; } };
+  return `<div class="event-date-block" aria-hidden="true"><span class="event-date-month">${esc(part({ month: 'short' }))}</span><strong>${esc(part({ day: 'numeric' }).replace(/\D+$/, ''))}</strong><span class="event-date-weekday">${esc(part({ weekday: 'short' }))}</span></div>`;
 }
 export function richEventCard(event, catalog, following = new Set()) {
   const posts = relatedEventPosts(event, catalog.posts);
@@ -100,13 +114,13 @@ export function richEventCard(event, catalog, following = new Set()) {
     return cover.startsWith('/') && first && !first.startsWith('/') ? [first] : [];
   }));
   const gallery = candidates.filter(url => url !== mainImage && !cachedOriginals.has(url));
-  return `<article class="rich-event-card ${pastEvent(event) ? 'is-past' : ''}" data-event-id="${esc(event.id)}"><header class="rich-event-header">${posts[0] ? eventAuthor(posts[0], catalog) : ''}<div class="eyebrow">${esc(countryName(event.countryCode, event.country))}${pastEvent(event) ? ` · ${t('past')}` : ''}</div><h2>${esc(eventText(event))}</h2>${eventOriginalMarkup(event)}<p class="rich-event-time">${icon('calendar')}<span>${esc(eventDateLabel(event))}${event.allDay ? ` · ${t('allDay')}` : event.endEstimated ? ` · ${l('endUnknown')}` : ''}</span></p><p class="rich-event-location">${icon('pin')}<span>${esc(eventText(event, 'location') || t('locationUnknown'))}</span></p><p class="rich-event-zone">${esc(event.timezone || 'UTC')} · ${t('localTime')}</p></header>${mainImage && !video ? `<figure class="event-media" data-event-media>${link(event.url || event.sourceUrl, image(mainImage, 'event-poster', `${l('poster')}: ${eventText(event)}`), 'event-media-link')}${candidates.length > 1 ? `<span hidden data-event-image-fallback="${esc(JSON.stringify(candidates.slice(1)))}"></span>` : ''}</figure>` : ''}${gallery.length ? `<details class="event-gallery"><summary>${l('moreImages')} (${number(gallery.length)})</summary><div class="event-gallery-strip" tabindex="0" aria-label="${esc(l('moreImages'))}">${gallery.map(url => link(url, image(url, 'event-gallery-image', l('poster')), 'event-gallery-link')).join('')}</div></details>` : ''}${video ? `<video class="event-video" controls preload="metadata" playsinline data-original-video="${esc(safeUrl(event.url || event.sourceUrl || posts[0]?.url))}" ${mainImage ? `poster="${esc(mainImage)}"` : ''} aria-label="${esc(l('video') + ': ' + eventText(event))}" src="${esc(video)}"></video>` : ''}<div class="rich-event-copy">${posts.map((post, index) => originalPost(post, catalog, following, index > 0)).join('')}${event.description ? posts.length ? `<details class="event-description"><summary>${l('description')}</summary>${eventDescriptionMarkup(event)}</details>` : `<div class="event-description-text">${eventDescriptionMarkup(event)}</div>` : ''}<footer class="rich-event-actions">${posts.some(post => safeUrl(post.url) === safeUrl(event.url || event.sourceUrl)) ? '' : link(event.url || event.sourceUrl, t('original'), 'text-link')}<button type="button" class="feed-action" data-share="${esc(event.url || event.sourceUrl || '')}" data-share-title="${esc(eventText(event))}">${icon('arrow')}<span>${l('share')}</span></button>${reportLink(event)}</footer></div></article>`;
+  return `<article class="rich-event-card ${pastEvent(event) ? 'is-past' : ''}" data-event-id="${esc(event.id)}"><header class="rich-event-header">${dateBlock(event)}<div class="rich-event-heading"><div class="eyebrow">${esc(countryName(event.countryCode, event.country))}${pastEvent(event) ? ` · ${t('past')}` : ''}</div><h2>${esc(eventText(event))}</h2>${eventOriginalMarkup(event)}<p class="rich-event-time">${icon('calendar')}<span>${esc(eventDateLabel(event))}${event.allDay ? ` · ${t('allDay')}` : event.endEstimated ? ` · ${l('endUnknown')}` : ''}</span></p><p class="rich-event-location">${icon('pin')}<span>${esc(eventText(event, 'location') || t('locationUnknown'))}</span></p><p class="rich-event-zone">${esc(event.timezone || 'UTC')} · ${t('localTime')}</p></div></header>${mainImage && !video ? `<figure class="event-media" data-event-media>${link(event.url || event.sourceUrl, image(mainImage, 'event-poster', `${l('poster')}: ${eventText(event)}`), 'event-media-link')}${candidates.length > 1 ? `<span hidden data-event-image-fallback="${esc(JSON.stringify(candidates.slice(1)))}"></span>` : ''}</figure>` : ''}${gallery.length ? `<details class="event-gallery"><summary>${l('moreImages')} (${number(gallery.length)})</summary><div class="event-gallery-strip" tabindex="0" aria-label="${esc(l('moreImages'))}">${gallery.map(url => link(url, image(url, 'event-gallery-image', l('poster')), 'event-gallery-link')).join('')}</div></details>` : ''}${video ? `<video class="event-video" controls preload="metadata" playsinline data-original-video="${esc(safeUrl(event.url || event.sourceUrl || posts[0]?.url))}" ${mainImage ? `poster="${esc(mainImage)}"` : ''} aria-label="${esc(l('video') + ': ' + eventText(event))}" src="${esc(video)}"></video>` : ''}<div class="rich-event-copy">${posts.map((post) => originalPost(post, catalog, following, true, posts.length > 1)).join('')}${event.description ? posts.length ? `<details class="event-description"><summary>${l('description')}</summary>${eventDescriptionMarkup(event)}</details>` : `<div class="event-description-text">${eventDescriptionMarkup(event)}</div>` : ''}<footer class="rich-event-actions">${posts.length === 1 && catalog.sources?.find(source => source.id === posts[0].sourceId) ? followButton(catalog.sources.find(source => source.id === posts[0].sourceId), following) : ''}${posts.length === 1 ? link(posts[0].url, t('original'), 'text-link') : ''}${posts.some(post => safeUrl(post.url) === safeUrl(event.url || event.sourceUrl)) ? '' : link(event.url || event.sourceUrl, t('original'), 'text-link event-original-link')}<button type="button" class="feed-action" data-share="${esc(event.url || event.sourceUrl || '')}" data-share-title="${esc(eventText(event))}">${icon('arrow')}<span>${l('share')}</span></button>${reportLink(event)}</footer></div></article>`;
 }
 function emptyEvents(catalog, state) {
   if (hasFilters(state)) return empty();
   const hasPast = (catalog.events || []).length > 0;
-  return empty({ filtered: false, symbol: 'calendar', title: t(hasPast ? 'emptyEventsTitle' : 'emptyEventsNone'), body: hasPast ? t('emptyEventsBody') : '',
-    actions: hasPast ? link('/events/?period=past', esc(t('seePastEvents')), 'button button-outline') : link('/feeds/', esc(t('feeds')), 'button button-outline') });
+  return empty({ filtered: false, symbol: 'calendar', title: t(hasPast ? 'emptyEventsTitle' : 'emptyEventsNone'), body: t(hasPast ? 'emptyEventsBody' : 'emptyEventsNoneBody'),
+    actions: hasPast ? link('/events/?period=past', esc(t('seePastEvents')), 'button button-outline') : link('/feeds/', esc(t('feeds')) + icon('rss'), 'button button-outline') });
 }
 export function eventsView(catalog, state = {}, following = new Set(), limit = 24) {
   const rows = eventRows(catalog, state);
@@ -147,7 +161,8 @@ export function bindEvents(root) {
     }
     if (img.matches?.('.event-gallery-image')) {
       const galleryLink = img.closest('.event-gallery-link');
-      const original = img.closest('.rich-event-card')?.querySelector('.rich-event-actions a');
+      const card = img.closest('.rich-event-card');
+      const original = card?.querySelector('.rich-event-actions .event-original-link') || card?.querySelector('.rich-event-actions a');
       if (galleryLink) {
         if (original?.href) galleryLink.href = original.href;
         galleryLink.textContent = l('unavailable');
