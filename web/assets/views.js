@@ -202,10 +202,14 @@ export function feedsView(catalog) {
   return `${pageHeading("feeds", "feedBody")}<div class="feed-groups">${groups.map(([key, rows]) => `<section class="feed-group"><header><h2>${t("feedGroup" + key)}</h2><p>${t("feedGroup" + key + "Body")}</p></header><div class="feed-grid">${rows.map(card).join("")}</div></section>`).join("")}</div>`;
 }
 export function aboutView() {
-  return `${pageHeading("aboutTitle", "aboutBody")}<div class="about-layout"><section class="faq-section"><h2>${t("faq")}</h2>${["Lang", "Cost", "Data", "Withdraw", "Coverage"].map((id) => `<details class="faq"><summary>${t("faq" + id + "Q")}<span class="faq-icon faq-icon-closed">${icon("plus")}</span><span class="faq-icon faq-icon-open">${icon("minus")}</span></summary><p>${t("faq" + id + "A")}</p></details>`).join("")}</section></div>${communityBanner()}`;
+  return `${pageHeading("aboutTitle", "aboutBody")}<div class="about-layout info-layout"><section class="faq-section"><h2>${t("faq")}</h2>${["Lang", "Cost", "Data", "Withdraw", "Coverage"].map((id) => `<details class="faq"><summary>${t("faq" + id + "Q")}<span class="faq-icon faq-icon-closed">${icon("plus")}</span><span class="faq-icon faq-icon-open">${icon("minus")}</span></summary><p>${t("faq" + id + "A")}</p></details>`).join("")}</section>${contactCard()}</div>${communityBanner()}`;
+}
+const ISSUES_URL = "https://github.com/skyhong2002/harmonica-observatory/issues";
+function contactCard() {
+  return `<aside class="contact-card"><h2>${t("contactTitle")}</h2><p>${t("contactBody")}</p><ul>${[[ISSUES_URL, "contactIssues", "info"], ["/submit/", "submit", "plus"], ["/status/", "status", "layers"]].map(([url, key, symbol]) => `<li>${link(url, icon(symbol) + `<span>${t(key)}</span>`, "contact-link")}</li>`).join("")}</ul></aside>`;
 }
 export function privacyView() {
-  return `${pageHeading("privacy", "privacyBody")}<div class="prose">${["Browser", "Server", "External"].map((id) => `<section><h2>${t("privacy" + id + "Title")}</h2><p>${t("privacy" + id)}</p></section>`).join("")}<p>${link("/contribute/", t("myContributions"), "text-link")} · ${link("/submit/", t("submit"), "text-link")}</p></div>`;
+  return `${pageHeading("privacy", "privacyBody")}<div class="info-layout"><div class="prose">${["Browser", "Server", "External"].map((id) => `<section><h2>${t("privacy" + id + "Title")}</h2><p>${t("privacy" + id)}</p></section>`).join("")}<section><h2>${t("privacyRequestTitle")}</h2><p>${t("privacyRequestBody")}</p></section><p>${link("/contribute/", t("myContributions"), "text-link")} · ${link("/submit/", t("submit"), "text-link")}</p></div>${contactCard()}</div>`;
 }
 export function statusView(catalog, community) {
   const status = catalog.status || {};

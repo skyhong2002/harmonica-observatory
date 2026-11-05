@@ -28,14 +28,17 @@ export function calendarTimeZone() {
   try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; }
   catch { return 'UTC'; }
 }
-export function googleCalendarUrl(calendars, {locale=getLocale(),timeZone=calendarTimeZone()} = {}) {
+// Wide screens get Google's month grid beside the native "Coming up" list;
+// phones keep the agenda, which reads better in a narrow frame.
+const preferredMode = () => globalThis.matchMedia?.('(min-width: 901px)').matches ? 'MONTH' : 'AGENDA';
+export function googleCalendarUrl(calendars, {locale=getLocale(),timeZone=calendarTimeZone(),mode=preferredMode()} = {}) {
   if (!calendars.length) return '';
   const url = new URL('https://calendar.google.com/calendar/embed');
   for (const calendar of calendars) {
     url.searchParams.append('src',calendar.id);
     url.searchParams.append('color',calendarColors[calendar.key]);
   }
-  const params = {ctz:timeZone,hl:locale==='zh-Hant'?'zh_TW':locale,mode:'AGENDA',showTitle:'0',showNav:'1',showDate:'1',showPrint:'0',showTabs:'0',showCalendars:'0',showTz:'1'};
+  const params = {ctz:timeZone,hl:locale==='zh-Hant'?'zh_TW':locale,mode,showTitle:'0',showNav:'1',showDate:'1',showPrint:'0',showTabs:'0',showCalendars:'0',showTz:'1'};
   for (const [key,value] of Object.entries(params)) url.searchParams.set(key,value);
   return url.href;
 }

@@ -339,3 +339,50 @@ html:lang(ko) body { word-break: keep-all; overflow-wrap: anywhere; }
 .legacy-site-header .nav-account-button.is-signed-in { display: inline-flex; align-items: center; gap: 8px; color: var(--color-action-on-primary); background: var(--color-action-primary); border-color: var(--color-action-primary); }
 .nav-account-avatar { display: inline-grid; place-items: center; width: 22px; height: 22px; color: var(--color-action-primary); background: var(--color-action-on-primary); border-radius: 50%; }
 .nav-account-avatar svg { width: 14px; height: 14px; stroke-width: 2.4; }
+
+/* Wide screens: the calendar embed shows a month grid. */
+@media (min-width: 901px) { .google-calendar-frame iframe { height: 640px; } }
+
+/* Post cards: one action row — follow source, open source, then "⋯". */
+.observatory-timeline .home-feed-footer { flex-wrap: wrap; row-gap: 6px; }
+.observatory-timeline .timeline-actions { display: flex; flex: 1 1 auto; flex-wrap: nowrap; align-items: center; justify-content: flex-end; gap: 4px 14px; }
+.observatory-timeline .timeline-actions .feed-open-link { color: var(--color-text-brand); font-size: .86rem; font-weight: 700; white-space: nowrap; }
+.observatory-timeline .timeline-actions .more-actions { margin-left: 0; }
+.observatory-timeline .more-actions-menu.feed-card-links { display: grid; width: auto; flex: none; justify-content: stretch; }
+.observatory-timeline .more-actions-menu .context-report-link { font-size: .86rem; }
+
+/* Events: past cards read as finished; a missing poster is a quiet placeholder. */
+.past-badge { display: inline-block; margin-left: 8px; padding: 1px 8px; color: var(--color-text-secondary); font-size: .72rem; font-weight: 700; letter-spacing: .02em; background: var(--color-surface-soft); border-radius: 999px; }
+.rich-event-card.is-past .event-poster { filter: grayscale(.55); opacity: .85; }
+.rich-event-card.is-past h2 { color: var(--color-text-secondary); }
+.event-media { display: flex; justify-content: center; margin: 0 20px; padding: 14px; background: var(--color-canvas); border-radius: 10px; }
+.event-media-unavailable .event-media-link { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 64px; color: var(--color-text-muted); font-size: .84rem; }
+.event-media-unavailable .event-media-link::before { content: ""; width: 18px; height: 18px; border: 1.6px solid currentColor; border-radius: 4px; }
+@media (max-width: 760px) { .event-media { margin: 0 15px; padding: 10px; } }
+
+/* All / Following tabs. */
+.follow-tabs { display: inline-flex; gap: 4px; margin: 4px 0 6px; padding: 4px; background: var(--color-surface-soft); border-radius: 999px; }
+.follow-tab { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 6px 16px; color: var(--color-text-secondary); font-size: .9rem; font-weight: 700; text-decoration: none; border-radius: 999px; }
+.follow-tab svg { width: 16px; height: 16px; }
+.follow-tab[aria-current="page"] { color: var(--color-text-brand); background: var(--color-surface); box-shadow: 0 1px 3px rgb(0 0 0 / 10%); }
+.follow-count { min-width: 1.4em; padding: 0 6px; color: var(--color-text-muted); font-size: .76rem; text-align: center; background: var(--color-canvas); border-radius: 999px; }
+
+/* Directory: the report flag appears on row hover or focus; dates stay on one line. */
+@media (min-width: 900px) {
+  .src-row .src-links .context-report-link { opacity: 0; transition: opacity var(--motion-fast); }
+  .src-row:hover .src-links .context-report-link, .src-row:focus-within .src-links .context-report-link { opacity: 1; }
+}
+.src-upd { white-space: nowrap; }
+@media (max-width: 699px) { .src-links { flex-wrap: nowrap; overflow: hidden; } }
+
+/* About and privacy: reading column plus a contact card. */
+.info-layout { display: grid; grid-template-columns: minmax(0, 46rem) minmax(260px, 22rem); gap: 32px 56px; align-items: start; }
+.info-layout .prose, .info-layout .faq-section, .about-layout.info-layout { max-width: none; }
+.contact-card { position: sticky; top: 96px; padding: 20px 22px; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-lg); }
+.contact-card h2 { margin: 0 0 6px; font-size: 1.1rem; }
+.contact-card p { margin: 0 0 12px; color: var(--color-text-secondary); font-size: .9rem; line-height: 1.7; }
+.contact-card ul { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.contact-link { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 12px; color: var(--color-text-primary); font-weight: 600; text-decoration: none; background: var(--color-canvas); border-radius: 10px; }
+.contact-link svg { width: 18px; height: 18px; color: var(--color-text-brand); }
+.contact-link:hover { background: var(--color-surface-soft); }
+@media (max-width: 900px) { .info-layout { grid-template-columns: 1fr; } .contact-card { position: static; } }

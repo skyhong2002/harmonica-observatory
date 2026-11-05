@@ -52,7 +52,7 @@ test('unsafe media and unknown sources remain honest; video playback requires us
 });
 
 test('empty state describes retrieval status without claiming sources published nothing', () => {
-  for (const [locale, message] of [['en', 'No active stories have been retrieved yet'], ['zh-Hant', '尚未取得有效限動'], ['ja', '有効なストーリーはまだ取得できていません'], ['ko', '아직 유효한 스토리를 가져오지 못했습니다']]) {
+  for (const [locale, message] of [['en', 'No stories to show right now'], ['zh-Hant', '目前沒有可顯示的限動'], ['ja', '今表示できるストーリーはありません'], ['ko', '지금 보여 줄 스토리가 없어요']]) {
     setLocale(locale);
     assert.ok(storiesView({ stories: [] }).includes(message));
   }

@@ -195,7 +195,15 @@ function listView(kind, data) {
       : kind === "sources"
         ? link("/submit/", t("submit") + icon("plus"), "button button-outline")
         : "";
-  return `${pageHeading(kind, bodyKey, extra)}${filterBar(state, catalog, kind, following)}<div class="results-bar"><p role="status">${t("results", { count: number(sorted.length) })}</p>${kind === "sources" && state.followed ? `<span>${t("followHint")}</span>` : ""}</div>${kind === "sources" ? directoryHeader(state.sort, state.descending) : ""}<div class="${cls}">${sorted.length ? sorted.slice(0, limit).map(card).join("") : emptySources()}</div>${sorted.length > limit ? `<div class="pagination"><p>${t("showing", { shown: number(limit), total: number(sorted.length) })}</p><button class="button button-outline" data-action="more">${t("loadMore")}${icon("plus")}</button></div>` : ""}`;
+  return `${pageHeading(kind, bodyKey, extra)}${kind === "sources" ? followTabs("sources") : ""}${filterBar(state, catalog, kind, following)}<div class="results-bar"><p role="status">${t("results", { count: number(sorted.length) })}</p>${kind === "sources" && state.followed ? `<span>${t("followHint")}</span>` : ""}</div>${kind === "sources" ? directoryHeader(state.sort, state.descending) : ""}<div class="${cls}">${sorted.length ? sorted.slice(0, limit).map(card).join("") : emptySources()}</div>${sorted.length > limit ? `<div class="pagination"><p>${t("showing", { shown: number(limit), total: number(sorted.length) })}</p><button class="button button-outline" data-action="more">${t("loadMore")}${icon("plus")}</button></div>` : ""}`;
+}
+// "All / Following" tabs so the personal view is not hidden in a dropdown.
+function followTabs(kind) {
+  const following_ = kind === "posts" ? state.kind === "following" : state.followed;
+  const base = kind === "posts" ? "/post/" : "/source/";
+  const lang = "lang=" + encodeURIComponent(getLocale());
+  const tab = (active, href, label) => `<a class="follow-tab" href="${href}" ${active ? 'aria-current="page"' : ""}>${label}</a>`;
+  return `<nav class="follow-tabs" aria-label="${t("filter")}">${tab(!following_, base + "?" + lang, t("all"))}${tab(following_, base + "?" + (kind === "posts" ? "kind=following" : "followed=1") + "&" + lang, `${icon("heart")}${t("following")} <span class="follow-count">${number(following.size)}</span>`)}</nav>`;
 }
 function emptySources() {
   if (state.followed && !following.size && !state.q && !state.country && !state.type)
@@ -213,13 +221,13 @@ function sourceForPath() {
 }
 function body() {
   if (!catalog && loadFailed)
-    return `<div class="load-error"><h1 class="sr-only">${t("loadError")}</h1>${empty({ filtered: false, symbol: "info", title: t("loadError"), body: t("loadErrorBody"), actions: `<button class="button button-primary" data-action="retry">${t("retry")}</button>${link("/feeds/", t("feeds"), "button button-outline")}` })}</div>`;
+    return `<div class="load-error"><h1 class="sr-only">${t("loadError")}</h1>${empty({ filtered: false, symbol: "info", title: t("loadError"), body: t("loadErrorBody"), actions: `<button class="button button-primary" data-action="retry">${t("retry")}</button>${link("/status/", t("status"), "button button-outline")}` })}</div>`;
   if (!catalog)
     return `<div class="skeleton" aria-busy="true"><h1 class="skeleton-label">${icon("globe")}<span>${t("loading")}</span></h1><div class="skeleton-bar skeleton-title"></div><div class="skeleton-bar skeleton-text"></div><div class="skeleton-grid">${'<div class="skeleton-card"><div class="skeleton-media"></div><div class="skeleton-bar"></div><div class="skeleton-bar skeleton-short"></div></div>'.repeat(3)}</div></div>`;
   const key = routes[path()];
   const data = filtered();
   if (key === "discover") return observatoryHome(catalog, state, following, limit);
-  if (key === "posts") return pageHeading("posts", null) + timelineView(catalog, state, following, limit);
+  if (key === "posts") return pageHeading("posts", null) + followTabs("posts") + timelineView(catalog, state, following, limit);
   if (key === "scores") return scoresView(catalog, state, limit);
   if (key === "scoreSources") return scoreSourcesView(catalog, state, limit);
   if (key === "events") return eventsView(catalog, state, following, limit);

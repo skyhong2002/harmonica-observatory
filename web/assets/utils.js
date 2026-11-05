@@ -213,7 +213,18 @@ export function avatar(source) {
 export function postDisplayText(post, value) {
   const text = String(value || '');
   const generated = post.isStory && post.platform === 'instagram' && /^Instagram story (@[A-Za-z0-9_.]+)$/.exec(text);
-  return generated && getLocale() !== 'en' ? `Instagram ${t('story')} ${generated[1]}` : text;
+  return generated && getLocale() !== 'en' ? `Instagram ${t('story')} ${generated[1]}` : dropPreviewLine(text);
+}
+// Some collected posts begin with a one-line truncated preview ("…" or "...")
+// followed by the full text; show the full text once.
+function dropPreviewLine(text) {
+  const split = text.indexOf('\n');
+  if (split < 0) return text;
+  const first = text.slice(0, split), rest = text.slice(split + 1);
+  if (!/(\.\.\.|…)\s*$/.test(first)) return text;
+  const squash = value => value.replace(/\s+/g, '');
+  const preview = squash(first.replace(/(\.\.\.|…)\s*$/, '')).slice(0, 60);
+  return preview.length >= 12 && squash(rest).startsWith(preview) ? rest : text;
 }
 // Filtered views offer to clear the filters; unfiltered empty views explain
 // why there is nothing yet and offer the next useful place instead.

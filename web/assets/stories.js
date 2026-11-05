@@ -2,7 +2,7 @@ import { t, getLocale, locales } from './i18n.js';
 import { esc, safeUrl, image, link, initials, timestamp } from './utils.js';
 
 const words = {
-  empty: ['No active stories have been retrieved yet', '尚未取得有效限動', '有効なストーリーはまだ取得できていません', '아직 유효한 스토리를 가져오지 못했습니다'],
+  empty: ['No stories to show right now', '目前沒有可顯示的限動', '今表示できるストーリーはありません', '지금 보여 줄 스토리가 없어요'],
   preview: ['Story preview', '限動預覽', 'ストーリープレビュー', '스토리 미리보기'],
   missing: ['Preview unavailable', '預覽目前無法載入', 'プレビューを読み込めません', '미리보기를 불러올 수 없습니다'],
   expires: ['Shown until', '展示至', '表示期限', '표시 기한'],
