@@ -41,16 +41,16 @@ async function shoot(page, file, size, { anchor, viewportOnly } = {}) {
   }
   const full = await page.evaluate(() => document.documentElement.scrollHeight);
   const height = Math.max(size.height, Math.min(full - top, size.maxHeight));
-  if (size.isMobile) {
-    // Mobile full-page captures drop iframe paint (the Google Calendar embed
-    // came out blank), so grow the viewport to the shot height instead.
+  {
+    // Full-page captures drop the paint of iframes below the first screen (the
+    // Google Calendar embed came out blank), so grow the viewport to the shot
+    // height instead, at both sizes.
     await page.setViewportSize({ width: size.width, height: Math.round(Math.min(height, full - top)) || size.height });
     await page.waitForTimeout(2500);
     await page.evaluate((y) => window.scrollTo(0, y), top);
     await page.waitForTimeout(400);
     return page.screenshot({ path: file });
   }
-  return page.screenshot({ path: file, fullPage: true, clip: { x: 0, y: top, width: size.width, height: Math.min(height, full - top) } });
 }
 
 if (mode === 'site') {

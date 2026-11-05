@@ -90,7 +90,7 @@ function originalPost(post, catalog, following, showAuthor = true, withActions =
   return `<section class="event-reference feed-content" data-event-post="${esc(post.id)}">${post.contentKind === 'website_snapshot' ? `<p class="event-reference-label">${l('snapshot')}</p>` : ''}${showAuthor ? eventAuthor(post, catalog) : ''}${post.text ? `<p class="feed-text ${expanded ? 'is-expanded' : ''}">${esc(post.text)}</p>${expanded ? '' : `<button type="button" class="feed-expand" data-expand-post aria-expanded="false">${t('readMore')}</button>`}` : ''}${withActions ? `<div class="event-reference-actions">${source ? followButton(source, following) : ''}${link(post.url, t('original'), 'text-link')}</div>` : ''}</section>`;
 }
 // A calendar-style date block in the event's own timezone (civil dates stay put).
-function dateBlock(event) {
+export function dateBlock(event) {
   const start = String(event.start || '');
   const civil = /^\d{4}-\d{2}-\d{2}$/.test(start);
   const when = new Date(civil ? start + 'T00:00:00Z' : start);
