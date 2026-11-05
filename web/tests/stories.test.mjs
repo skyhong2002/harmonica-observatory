@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
 import { activeStories, storiesView, bindStories, storyObservedMarkup } from '../assets/stories.js';
 import { setLocale } from '../assets/i18n.js';
+import { isRedesign } from '../assets/redesign.js';
 
 const localeDocument = new JSDOM('', { url: 'https://example.org/' });
 Object.defineProperty(globalThis, 'document', { value: localeDocument.window.document, configurable: true });
@@ -67,8 +68,15 @@ test('empty story surfaces explain a budget pause consistently in all four local
     for (const render of [storiesView, storyStrip]) {
       const dom = new JSDOM(render(data));
       const empty = dom.window.document.querySelector('[role="status"]');
-      assert.ok(empty.textContent.includes(t('storyCollectionPaused')));
-      assert.ok(empty.textContent.includes(t('budgetDeferred')));
+      if (isRedesign()) {
+        // New interface: the plain message and the status link; retrieval details stay on the status page.
+        assert.ok(!empty.textContent.includes(t('storyCollectionPaused')));
+        assert.ok(!empty.textContent.includes(t('budgetDeferred')));
+        assert.ok(empty.querySelector('a.ob-story-status-link'));
+      } else {
+        assert.ok(empty.textContent.includes(t('storyCollectionPaused')));
+        assert.ok(empty.textContent.includes(t('budgetDeferred')));
+      }
       assert.equal(empty.querySelector('a').getAttribute('href'), `/status/?lang=${locale}`);
       dom.window.close();
     }
@@ -88,10 +96,10 @@ for (const locale of ['en', 'zh-Hant', 'ja', 'ko']) test(`empty-state refresh pr
   const link = root.querySelector('.ob-story-empty a');
   link.focus();
   assert.equal(doc.activeElement, link);
-  assert.ok(root.querySelector('.ob-story-empty').textContent.includes(t('budgetDeferred')));
+  assert.equal(root.querySelector('.ob-story-empty').textContent.includes(t('budgetDeferred')), !isRedesign());
   doc.dispatchEvent(new dom.window.Event('visibilitychange'));
   await settle();
-  assert.ok(root.querySelector('.ob-story-empty').textContent.includes(t('collectionScheduled')));
+  assert.equal(root.querySelector('.ob-story-empty').textContent.includes(t('collectionScheduled')), !isRedesign());
   assert.ok(!root.querySelector('.ob-story-empty').textContent.includes(t('budgetDeferred')));
   assert.equal(doc.activeElement, root.querySelector('.ob-story-empty a'));
   assert.equal(doc.activeElement.getAttribute('href'), `/status/?lang=${locale}`);

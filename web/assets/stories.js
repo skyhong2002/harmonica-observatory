@@ -51,7 +51,13 @@ function redesignedStoryCard(story, sources) {
     : link(story.url, picture, 'ob-story-media-link', `aria-label="${esc(name + ' · ' + t('original'))}"`);
   // Prefer the catalog's cached avatar to an expiring social-CDN address.
   const avatar = image(source?.avatar || story.avatar, '', '');
-  return `<article class="ob-story-card" data-story-id="${esc(story.id || story.url || '')}" data-story-expires="${esc(story.expiresAt)}"><div class="ob-story-thumb">${media}<span class="ob-story-fallback" role="status" ${poster || video ? 'hidden' : ''}>${esc(word('missing'))}</span><span class="ob-story-rule" aria-hidden="true"></span></div><div class="ob-story-caption"><div class="ob-story-header"><span class="ob-story-avatar"><span aria-hidden="true">${esc(initials(name))}</span>${avatar}</span><div class="ob-story-identity"><strong title="${esc(name)}">${esc(name)}</strong></div></div><div class="ob-story-footer"><span class="ob-story-expiry">${esc(word('expires'))} ${timestamp(story.expiresAt)}</span>${link(story.url, esc(t('original')), 'ob-story-original')}</div></div></article>`;
+  return `<article class="ob-story-card" data-story-id="${esc(story.id || story.url || '')}" data-story-expires="${esc(story.expiresAt)}"><div class="ob-story-thumb">${media}<span class="ob-story-fallback" role="status" ${poster || video ? 'hidden' : ''}>${esc(word('missing'))}</span><span class="ob-story-rule" aria-hidden="true"></span></div><div class="ob-story-caption"><div class="ob-story-header"><span class="ob-story-avatar"><span aria-hidden="true">${esc(initials(name))}</span>${avatar}</span><div class="ob-story-identity"><strong title="${esc(name)}">${esc(name)}</strong></div></div><div class="ob-story-footer"><span class="ob-story-expiry">${expiryContent(story.expiresAt)}</span>${link(story.url, esc(t('original')), 'ob-story-original')}</div></div></article>`;
+}
+// "Shown until" stays joined to the date (an unbreakable label, then
+// non-breaking spaces); a narrow card may only move the clock time down.
+function expiryContent(expiresAt) {
+  const time = timestamp(expiresAt).replace(/>([^<]*)<\/time>$/, (_, text) => `>${text.split(' · ').map(part => part.replace(/ /g, '\u00a0')).join('\u00a0· ')}</time>`);
+  return `<span class="ob-story-expiry-label">${esc(word('expires'))}</span>\u00a0${time}`;
 }
 
 function observedContent(catalog) {
@@ -62,6 +68,9 @@ export function storyObservedMarkup(catalog) {
   return `<span class="home-updated" data-story-observed>${observedContent(catalog)}</span>`;
 }
 export function storyEmptyMarkup(catalog) {
+  // New interface: the plain message and the status link; retrieval details
+  // (budget, schedule) belong on the status page.
+  if (isRedesign()) return `<p class="ob-story-empty story-empty" role="status">${esc(word('empty'))} <a class="ob-story-status-link" href="/status/?lang=${encodeURIComponent(getLocale())}">${esc(t('status'))}</a></p>`;
   const status = catalog.status?.stories || {};
   const reason = ['credit_budget', 'daily_result_limit', 'user_daily_exhausted', 'free_capacity_exhausted', 'pool_budget_pacing', 'public_unavailable_credit_reserve'].includes(status.reasonCode)
     ? 'budgetDeferred' : status.reasonCode === 'no_sources_due' ? 'collectionScheduled' : '';
@@ -126,7 +135,7 @@ export function bindStories(root, { catalog, refreshCatalog, onRefresh, refreshO
           if (kept.dataset.storyExpires !== story.expiresAt) {
             kept.dataset.storyExpires = story.expiresAt;
             const expiry = kept.querySelector('.ob-story-footer > span');
-            if (expiry) expiry.innerHTML = `${esc(word('expires'))} ${timestamp(story.expiresAt)}`;
+            if (expiry) expiry.innerHTML = isRedesign() ? expiryContent(story.expiresAt) : `${esc(word('expires'))} ${timestamp(story.expiresAt)}`;
           }
           continue;
         }

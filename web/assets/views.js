@@ -28,10 +28,10 @@ import {
   textMatch,
 } from "./utils.js";
 const viewLabels = {
-  en: { share: "Share", collapse: "Show less", name: "Name", updated: "Updated", links: "Links", endUnknown: "End time not announced", snapshot: "Website snapshot", observed: "Observed", website: "Website", sort: "Sort" },
-  "zh-Hant": { share: "分享", collapse: "收合", name: "名稱", updated: "更新", links: "來源連結", endUnknown: "結束時間未公告", snapshot: "網站頁面快照", observed: "觀測時間", website: "網站", sort: "排序" },
-  ja: { share: "共有", collapse: "閉じる", name: "名前", updated: "更新", links: "リンク", endUnknown: "終了時刻は未発表", snapshot: "ウェブページの保存記録", observed: "確認日時", website: "ウェブサイト", sort: "並べ替え" },
-  ko: { share: "공유", collapse: "접기", name: "이름", updated: "업데이트", links: "링크", endUnknown: "종료 시각 미발표", snapshot: "웹페이지 스냅샷", observed: "확인 시각", website: "웹사이트", sort: "정렬" },
+  en: { share: "Share", collapse: "Show less", name: "Name", updated: "Updated", links: "Links", endUnknown: "End time not announced", snapshot: "Website snapshot", observed: "Observed", website: "Website", sort: "Sort", followSource: "Follow source", more: "More actions", ascending: "Ascending", descending: "Descending" },
+  "zh-Hant": { share: "分享", collapse: "收合", name: "名稱", updated: "更新", links: "來源連結", endUnknown: "結束時間未公告", snapshot: "網站頁面快照", observed: "觀測時間", website: "網站", sort: "排序", followSource: "追蹤來源", more: "更多動作", ascending: "遞增", descending: "遞減" },
+  ja: { share: "共有", collapse: "閉じる", name: "名前", updated: "更新", links: "リンク", endUnknown: "終了時刻は未発表", snapshot: "ウェブページの保存記録", observed: "確認日時", website: "ウェブサイト", sort: "並べ替え", followSource: "情報源をフォロー", more: "その他の操作", ascending: "昇順", descending: "降順" },
+  ko: { share: "공유", collapse: "접기", name: "이름", updated: "업데이트", links: "링크", endUnknown: "종료 시각 미발표", snapshot: "웹페이지 스냅샷", observed: "확인 시각", website: "웹사이트", sort: "정렬", followSource: "출처 팔로우", more: "더 보기 작업", ascending: "오름차순", descending: "내림차순" },
 };
 const vl = (key) => (viewLabels[getLocale()] || viewLabels.en)[key];
 const sourceLinkLabel = (label) => /^(網站|website|web site)$/i.test(String(label || "").trim()) ? vl("website") : label || t("original");
@@ -53,7 +53,16 @@ function compactDate(value) {
 const sourcePostCount = (s, catalog) => catalog?.posts?.filter(p => p.sourceId === s.id).length;
 export function directoryHeader(sort = "name", descending = false) {
   const heading = (key, label) => `<button type="button" class="src-sort ${sort === key ? "active" : ""}" data-source-sort="${key}" aria-label="${esc(vl("sort") + ": " + label)}">${esc(label)}<span aria-hidden="true">${sort === key ? descending ? "↓" : "↑" : "↕"}</span></button>`;
-  return `<div class="src-head"><span>${heading("name", vl("name"))}</span><span>${heading("country", t("country"))}</span><span>${heading("type", t("type"))}</span><span class="src-th-links">${vl("links")}</span><span>${heading("posts", t("posts"))}</span><span>${heading("updated", vl("updated"))}</span><span class="src-th-follow">${t("follow")}</span></div>`;
+  const head = `<div class="src-head"><span>${heading("name", vl("name"))}</span><span>${heading("country", t("country"))}</span><span>${heading("type", t("type"))}</span><span class="src-th-links">${vl("links")}</span><span>${heading("posts", t("posts"))}</span><span>${heading("updated", vl("updated"))}</span><span class="src-th-follow">${t("follow")}</span></div>`;
+  return isRedesign() ? sortSelect(sort, descending) + head : head;
+}
+// New interface, phones: one labelled "Sort" menu plus a direction toggle
+// replace the row of small column-header buttons (CSS shows one or the other).
+// The toggle reuses data-source-sort: pressing the current key flips direction.
+function sortSelect(sort, descending) {
+  const keys = [["name", vl("name")], ["country", t("country")], ["type", t("type")], ["posts", t("posts")], ["updated", vl("updated")]];
+  const direction = vl(descending ? "descending" : "ascending");
+  return `<div class="src-sort-bar"><label>${esc(vl("sort"))}<select data-source-sort-select>${keys.map(([key, label]) => `<option value="${key}" ${sort === key ? "selected" : ""}>${esc(label)}</option>`).join("")}</select></label><button type="button" class="src-sort-direction" data-source-sort="${esc(sort)}" aria-label="${esc(vl("sort") + ": " + direction)}"><span aria-hidden="true">${descending ? "↓" : "↑"}</span>${esc(direction)}</button></div>`;
 }
 export function sortSources(rows, sort = "name", descending = false, catalog = {}) {
   const collator = new Intl.Collator(getLocale(), { numeric: true, sensitivity: "base" });
@@ -75,6 +84,14 @@ export function togglePostExpansion(button) {
   button.closest(".feed-content")?.querySelector(".feed-text")?.classList.toggle("is-expanded", expanded);
   button.textContent = expanded ? vl("collapse") : t("readMore");
 }
+// New interface: the same footer as feed cards — follow source, the original
+// link, then share and report in "⋯". On a source page the page has its own
+// follow button, so redesign.css hides the card's (.source-updates-grid).
+function redesignedPostActions(p, s, label, followed) {
+  const follow = s ? `<button type="button" class="feed-action ${followed ? "is-following" : ""}" data-follow="${esc(s.id)}" aria-pressed="${!!followed}" aria-label="${esc(t(followed ? "unfollow" : "follow") + " " + label)}">${icon(followed ? "check" : "heart")}<span>${esc(followed ? t("following") : vl("followSource"))}</span></button>` : "";
+  const report = reportLink({ ...p, name: p.title || label, countryCode: p.countryCode || s?.countryCode });
+  return `<div class="feed-actions">${follow}${link(p.url, t("original"), "feed-action feed-original")}<details class="more-actions"><summary aria-label="${esc(vl("more"))}" title="${esc(vl("more"))}"><span aria-hidden="true">⋯</span></summary><div class="more-actions-menu"><button type="button" class="feed-action" data-share="${esc(p.url || "")}" data-share-title="${esc(label)}">${icon("arrow")}<span>${vl("share")}</span></button>${report}</div></details></div>`;
+}
 export function postCard(p, sources, following = new Set(), events = []) {
   const s = sources.find(s => s.id === p.sourceId);
   const label = s ? sourceDisplayName(s) : p.sourceName || t("source");
@@ -85,7 +102,10 @@ export function postCard(p, sources, following = new Set(), events = []) {
   const followed = s && following.has(s.id);
   const linkedEvents = events.filter(e => (p.eventIds || []).includes(e.id) || (p.url && (e.url === p.url || e.sourceUrl === p.url)));
   const country = countryName(p.countryCode || s?.countryCode, p.country || s?.country);
-  return `<article class="post-card feed-post"><div class="feed-avatar-wrap">${link(s ? sourceHref(s) : p.sourceUrl, avatar({ ...s, ...p, avatar: s?.avatar || p.avatar, name: label }), "feed-avatar-link")}</div><div class="feed-content"><div class="feed-head"><strong class="feed-name">${link(s ? sourceHref(s) : p.sourceUrl, esc(label), "", `title="${esc(label)}"`)}</strong><span class="feed-time">${timeLabel}</span></div><div class="feed-meta"><span class="feed-topic">${esc(country)}</span><span aria-hidden="true">·</span>${link(p.url, esc(platformName(p.platform)), "feed-plat")}${p.isStory ? `<span class="tag story-tag">${t("story")}</span>` : ""}</div>${snapshot ? `<p class="notice">${esc(vl("snapshot"))}</p>` : ""}${p.title && p.title !== p.text && !(p.text || "").startsWith(p.title) && !(p.isStory && /^Instagram story @/i.test(p.title)) ? `<h3 class="feed-title">${esc(postDisplayText(p, p.title))}</h3>` : ""}${p.isStory && /^Instagram (story|\S+) @/i.test(text) && !/\n/.test(text) && text.length < 60 ? "" : `<p class="post-text feed-text ${expandable ? "" : "is-expanded"}">${esc(text)}</p>`}${expandable ? `<button type="button" class="feed-expand" data-expand-post aria-expanded="false">${t("readMore")}</button>` : ""}${image(p.image, "post-image feed-img", "")}${p.isStory && (p.sourceAvailable === false || p.storyState === "expired" || p.storyState === "unknown" || (p.expiresAt && Date.parse(p.expiresAt) < Date.now())) ? `<p class="muted story-expired">${t("storyExpired")}</p>` : ""}${linkedEvents.length ? `<div class="feed-evs">${linkedEvents.map(e => link(e.url || e.sourceUrl, `<span class="feed-ev-date">${esc(shortDate(e.start, { timeZone: e.timezone || "UTC" }))}</span><span class="feed-ev-title">${esc(eventText(e))}</span>`, "feed-ev")).join("")}</div>` : ""}<div class="feed-actions">${s ? `<button type="button" class="feed-action ${followed ? "is-following" : ""}" data-follow="${esc(s.id)}" aria-pressed="${!!followed}" aria-label="${esc(t(followed ? "unfollow" : "follow") + " " + label)}">${icon(followed ? "check" : "heart")}<span>${t(followed ? "following" : "follow")}</span></button>` : ""}<button type="button" class="feed-action" data-share="${esc(p.url || "")}" data-share-title="${esc(label)}">${icon("arrow")}<span>${vl("share")}</span></button>${link(p.url, t("original"), "feed-action feed-original")}${reportLink({ ...p, name: p.title || label, countryCode: p.countryCode || s?.countryCode })}</div></div></article>`;
+  // New interface: an archived story says so once, as the story tag's tooltip,
+  // instead of a notice line on every story card.
+  const archived = p.isStory && (p.sourceAvailable === false || p.storyState === "expired" || p.storyState === "unknown" || (p.expiresAt && Date.parse(p.expiresAt) < Date.now()));
+  return `<article class="post-card feed-post"><div class="feed-avatar-wrap">${link(s ? sourceHref(s) : p.sourceUrl, avatar({ ...s, ...p, avatar: s?.avatar || p.avatar, name: label }), "feed-avatar-link")}</div><div class="feed-content"><div class="feed-head"><strong class="feed-name">${link(s ? sourceHref(s) : p.sourceUrl, esc(label), "", `title="${esc(label)}"`)}</strong><span class="feed-time">${timeLabel}</span></div><div class="feed-meta"><span class="feed-topic">${esc(country)}</span><span aria-hidden="true">·</span>${link(p.url, esc(platformName(p.platform)), "feed-plat")}${p.isStory ? `<span class="tag story-tag"${archived && isRedesign() ? ` title="${esc(t("storyExpired"))}"` : ""}>${t("story")}</span>` : ""}</div>${snapshot ? `<p class="notice">${esc(vl("snapshot"))}</p>` : ""}${p.title && p.title !== p.text && !(p.text || "").startsWith(p.title) && !(p.isStory && /^Instagram story @/i.test(p.title)) ? `<h3 class="feed-title">${esc(postDisplayText(p, p.title))}</h3>` : ""}${p.isStory && /^Instagram (story|\S+) @/i.test(text) && !/\n/.test(text) && text.length < 60 ? "" : `<p class="post-text feed-text ${expandable ? "" : "is-expanded"}">${esc(text)}</p>`}${expandable ? `<button type="button" class="feed-expand" data-expand-post aria-expanded="false">${t("readMore")}</button>` : ""}${image(p.image, "post-image feed-img", "")}${archived && !isRedesign() ? `<p class="muted story-expired">${t("storyExpired")}</p>` : ""}${linkedEvents.length ? `<div class="feed-evs">${linkedEvents.map(e => link(e.url || e.sourceUrl, `<span class="feed-ev-date">${esc(shortDate(e.start, { timeZone: e.timezone || "UTC" }))}</span><span class="feed-ev-title">${esc(eventText(e))}</span>`, "feed-ev")).join("")}</div>` : ""}${isRedesign() ? redesignedPostActions(p, s, label, followed) : `<div class="feed-actions">${s ? `<button type="button" class="feed-action ${followed ? "is-following" : ""}" data-follow="${esc(s.id)}" aria-pressed="${!!followed}" aria-label="${esc(t(followed ? "unfollow" : "follow") + " " + label)}">${icon(followed ? "check" : "heart")}<span>${t(followed ? "following" : "follow")}</span></button>` : ""}<button type="button" class="feed-action" data-share="${esc(p.url || "")}" data-share-title="${esc(label)}">${icon("arrow")}<span>${vl("share")}</span></button>${link(p.url, t("original"), "feed-action feed-original")}${reportLink({ ...p, name: p.title || label, countryCode: p.countryCode || s?.countryCode })}</div>`}</div></article>`;
 }
 export function eventDateLabel(e, options = {}) {
   return shortEventDate(e, options);

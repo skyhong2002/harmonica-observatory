@@ -2,50 +2,35 @@
 
 :root[data-redesign] {
 
-/* Event list: a poster thumbnail column on the left, details filling the rest
-   of the row. Cards without a usable poster use the full width. */
+/* Event cards: the date block, title, time and place always start at the
+   same left edge; a poster, when there is one, is a thumbnail at the right of
+   that header. Post text, actions and a video use the full card width. */
 .rich-event-header h2 { text-wrap: balance; }
-.rich-event-card { grid-template-columns: minmax(0, 1fr); grid-template-areas: "header" "copy" "gallery"; }
-.rich-event-card:has(> .event-media:not(.event-media-unavailable), > .event-video) {
-  display: grid; grid-template-columns: 200px minmax(0, 1fr); grid-template-rows: auto 1fr auto;
-  grid-template-areas: "media header" "media copy" "media gallery"; align-items: start;
+.rich-event-card {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: none; align-items: start;
+  grid-template-areas: "header media" "video video" "gallery gallery" "copy copy";
 }
 .rich-event-card > .rich-event-header { grid-area: header; }
-.rich-event-card > .rich-event-copy { grid-area: copy; }
-.rich-event-card > .event-gallery { grid-area: gallery; margin: 0 20px 14px; }
-.rich-event-card > .event-media, .rich-event-card > .event-video { grid-area: media; align-self: start; margin: 20px 0 20px 20px; }
-.rich-event-card > .event-media { display: flex; align-items: center; justify-content: center; min-height: 0; padding: 8px; background: var(--color-surface-soft); border-radius: 10px; }
-.rich-event-card > .event-media .event-media-link { display: flex; justify-content: center; width: 100%; }
+.rich-event-card > .rich-event-copy { grid-area: copy; padding-top: 4px; }
+.rich-event-card > .event-gallery { grid-area: gallery; margin: 0 20px 4px; }
+.rich-event-card > .event-media {
+  grid-area: media; align-self: start; display: flex; align-items: center; justify-content: center;
+  width: 136px; min-height: 0; aspect-ratio: 4 / 5; margin: 20px 20px 0 0; padding: 6px;
+  background: var(--color-surface-soft); border-radius: 10px;
+}
+.rich-event-card > .event-media .event-media-link { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+.rich-event-card > .event-media .event-poster { width: 100%; max-width: 100%; height: 100%; max-height: none; object-fit: contain; border-radius: 6px; }
 /* A poster that failed to load stays hidden (as in redesign.css). */
 .rich-event-card > .event-media.event-media-unavailable { display: none; }
-.rich-event-card > .event-media .event-poster { width: 100%; max-width: 100%; height: auto; max-height: 260px; object-fit: contain; border-radius: 6px; }
-.rich-event-card > .event-video { width: calc(100% - 20px); max-height: 300px; border-radius: 10px; background: #141814; }
-.rich-event-card > .rich-event-copy { padding-top: 4px; }
-@media (min-width: 1500px) {
-  .rich-event-card:has(> .event-media:not(.event-media-unavailable), > .event-video) { grid-template-columns: 220px minmax(0, 1fr); }
-  .rich-event-card > .event-media .event-poster { max-height: 290px; }
-}
-
-/* Phones: the date chip and the title use the full width; a small poster
-   sits beside the time and place lines below the title. The header is
-   flattened into the card grid so the poster can join those lines. */
+.rich-event-card > .event-video { grid-area: video; width: calc(100% - 40px); max-height: 300px; margin: 0 20px 4px; border-radius: 10px; background: #141814; }
+.rich-event-card:has(> .event-media:not(.event-media-unavailable)) > .rich-event-header { padding-right: 16px; }
 @media (max-width: 760px) {
   .rich-event-header h2 { font-size: 1.08rem; line-height: 1.45; overflow-wrap: break-word; }
-  .rich-event-card:has(> .event-media:not(.event-media-unavailable)) {
-    grid-template-columns: minmax(0, 1fr) 72px; grid-template-rows: none; grid-template-areas: none; column-gap: 12px;
-  }
-  .rich-event-card:has(> .event-media:not(.event-media-unavailable)) > .rich-event-header,
-  .rich-event-card:has(> .event-media:not(.event-media-unavailable)) .rich-event-heading { display: contents; }
-  .rich-event-card:has(> .event-media:not(.event-media-unavailable)) .rich-event-header > .event-date-block { grid-column: 1 / -1; justify-self: start; margin: 16px 15px 10px; }
-  .rich-event-card:has(> .event-media:not(.event-media-unavailable)) .rich-event-heading > * { grid-column: 1 / -1; min-width: 0; margin-inline: 15px; }
-  .rich-event-card:has(> .event-media:not(.event-media-unavailable)) .rich-event-heading > .rich-event-facts { grid-column: 1; margin: 0 0 4px 15px; }
-  .rich-event-card:has(> .event-media:not(.event-media-unavailable)) > .event-media { grid-row: auto; grid-column: 2; align-self: start; margin: 4px 15px 0 0; padding: 4px; border-radius: 8px; }
-  .rich-event-card:has(> .event-media:not(.event-media-unavailable)) > .event-media .event-poster { max-height: 104px; border-radius: 4px; }
-  .rich-event-card:has(> .event-media:not(.event-media-unavailable)) > :is(.rich-event-copy, .event-gallery) { grid-row: auto; grid-column: 1 / -1; }
-  /* A video plays full width under the details. */
-  .rich-event-card:has(> .event-video) { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "header" "media" "copy" "gallery"; }
-  .rich-event-card > .event-video { width: calc(100% - 30px); max-height: 240px; margin: 0 15px; }
-  .rich-event-card > .event-gallery { margin: 0 15px 12px; }
+  .rich-event-card > .event-media { width: 72px; margin: 16px 15px 0 0; padding: 4px; border-radius: 8px; }
+  .rich-event-card > .event-media .event-poster { border-radius: 4px; }
+  .rich-event-card:has(> .event-media:not(.event-media-unavailable)) > .rich-event-header { padding-right: 12px; }
+  .rich-event-card > .event-video { width: calc(100% - 30px); max-height: 240px; margin: 0 15px 4px; }
+  .rich-event-card > .event-gallery { margin: 0 15px 4px; }
 }
 
 /* Home "Coming up": time leads, titles get three balanced lines so sessions
@@ -55,9 +40,11 @@
 .home-now-events .home-upcoming-link, .home-upcoming-link { align-items: start; }
 .home-upcoming-copy > .home-upcoming-place svg { margin: 0 4px 0 0; vertical-align: -2px; }
 
-/* Events list: a comfortable reading width on the page's left edge; the
+/* Events list: one column on phones and tablets, two on desktop, in date
+   order left to right then down; cards sit at the top of their row. The
    timezone appears beside the time only when it differs from the visitor's. */
-.rich-events-grid, .rich-events-grid ~ .pagination, .rich-events-grid ~ .page-notes { max-width: 62rem; }
+.rich-events-grid { grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 1100px) { .rich-events-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; } }
 .rich-event-time .rich-event-zone { display: inline-block; margin: 0 0 0 6px; color: var(--color-text-muted); font-size: .8rem; font-weight: 600; white-space: nowrap; }
 
 /* Home intro: tagline, one line and the numbers (the top navigation covers
@@ -69,7 +56,7 @@
 .home-calendar .google-calendar-filters { gap: 2px 4px; }
 .home-calendar .google-calendar-filters label { min-height: 40px; padding: 6px 8px 6px 0; font-size: .86rem; }
 .home-calendar .google-calendar-filters label + label { padding-left: 8px; }
-.google-calendar-frame iframe { height: 440px; }
+.google-calendar-frame iframe { height: 560px; }
 @media (max-width: 640px) { .google-calendar-frame iframe { height: 460px; } }
 
 /* Home page notes: snapshot time, timezone and calendar subscriptions. */
@@ -85,8 +72,19 @@
 .ob-story-caption .ob-story-header { align-items: center; }
 .ob-story-caption .ob-story-footer { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 10px; padding: 0; border-top: 0; }
 .ob-story-caption .ob-story-original { min-height: 28px; }
+/* Expiry: "Shown until" and the date never split; when a narrow card cannot
+   fit the line, only the clock time moves down (redesign.css keeps the time
+   on one line elsewhere). */
+.ob-story-caption .ob-story-expiry-label { white-space: nowrap; }
+.ob-story-caption .ob-story-expiry time { white-space: inherit; }
 
-
-/* The events filter bar shares the list's reading width. */
-.main-container:has(.rich-events-grid) > .filter-bar { max-width: 62rem; }
+/* Home "now" band on desktop: story cards share the column (up to 300px
+   each, then the strip scrolls); the "Coming up" column takes what the
+   stories leave, so there is no empty gap between them. */
+@media (min-width: 1101px) {
+  .home-now-grid:has(> .home-now-events) { grid-template-columns: minmax(0, max-content) minmax(26rem, 1fr); }
+  .home-now-stories .ob-story-card { flex: 0 1 auto; width: 300px; min-width: 200px; }
+  /* Desktop cards are wide enough for "Shown until <date> · <time>" on one line. */
+  .home-now-stories .ob-story-caption .ob-story-expiry { white-space: nowrap; }
+}
 }

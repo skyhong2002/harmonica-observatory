@@ -169,6 +169,8 @@ test('event cards omit repeated declarations without hiding snapshot status, tim
   assert.equal(document.querySelectorAll('.rich-event-card a.event-original-link').length,1);
   assert.equal(document.querySelectorAll('.rich-event-card .event-reference-actions').length,0);
   assert.equal(document.querySelectorAll('.rich-event-card [data-follow]').length,1);
+  // The follow button names what is followed: the source.
+  assert.equal(document.querySelector('.rich-event-card [data-follow] span').textContent,'Follow source');
   assert.equal(document.querySelectorAll('.rich-event-card .more-actions').length,1);
   assert.ok(document.querySelector('.rich-event-time .rich-event-zone'));
   // The general rule and the event subscriptions live in the page notes.

@@ -54,9 +54,25 @@
 }
 
 
-/* Directory rows on phones: keep link icons and the report flag on one tidy line. */
+/* Directory rows on phones: the counts sit beside "country · type", so the
+   link icons get a full row with 36px targets and 8px gaps. */
 @media (max-width: 699px) {
-  .src-row .src-links { flex-wrap: wrap; gap: 2px 4px; }
+  .source-card.src-row { grid-template-areas: "name name follow" "types count updated" "links links links"; }
+  .src-row .src-links { flex-wrap: wrap; gap: 6px 8px; }
+  .src-row .src-links .src-link-icon { flex-basis: 36px; width: 36px; height: 36px; }
+  .src-row .src-links .src-link-icon svg { width: 20px; height: 20px; }
+}
+
+/* Directory sort: column-header buttons on desktop; on phones one labelled
+   "Sort" menu with a direction toggle. */
+.src-sort-bar { display: none; }
+@media (max-width: 699px) {
+  .src-head { display: none; }
+  .src-sort-bar { display: flex; align-items: center; gap: 8px; margin: 2px 0 4px; }
+  .src-sort-bar label { display: flex; flex: 1 1 auto; align-items: center; gap: 10px; min-width: 0; color: var(--color-text-secondary); font-size: .88rem; font-weight: 600; white-space: nowrap; }
+  .src-sort-bar select { flex: 1 1 auto; width: auto; min-width: 0; min-height: 44px; font-size: .92rem; }
+  .src-sort-direction { display: inline-flex; flex: none; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; color: var(--color-text-primary); font: inherit; font-size: .9rem; font-weight: 600; cursor: pointer; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-sm); }
+  .src-sort-direction span { color: var(--color-text-brand); }
 }
 
 /* Home: a short statement of what the site is, key numbers and main entries. */
@@ -456,7 +472,16 @@
 /* Source page: every post is from this source, so its country is not repeated
    on each card; tall story images and posters are capped and shown whole. */
 .source-updates-grid .feed-meta .feed-topic, .source-updates-grid .feed-meta .feed-topic + [aria-hidden] { display: none; }
-.source-updates-grid .post-image.feed-img, .source-updates-grid .post-card:has(.story-tag) .feed-img { max-height: 360px; width: 100%; object-fit: contain; object-position: center; background: var(--color-surface-soft); }
+.source-updates-grid .post-image.feed-img { max-height: 360px; width: 100%; object-fit: contain; object-position: center; background: var(--color-surface-soft); }
+/* Story images fill the card width, cropped from the top, without grey side bars. */
+.source-updates-grid .post-card:has(.story-tag) .post-image.feed-img { max-height: 360px; width: 100%; object-fit: cover; object-position: top; background: none; }
+
+/* Post cards outside the feed (source page): one action row — original
+   source, then share and report in "⋯", like the feed cards. */
+.feed-content > .feed-actions { flex-wrap: nowrap; align-items: center; gap: 4px; margin-top: 10px; }
+.feed-content > .feed-actions .feed-original { color: var(--color-text-brand); font-weight: 700; white-space: nowrap; }
+.feed-content > .feed-actions .more-actions { margin-left: auto; }
+.feed-content > .feed-actions .more-actions-menu .context-report-link { display: inline-flex; align-items: center; }
 
 /* Scores on phones: one card per record, without a rule between each field. */
 @media (max-width: 699px) {
@@ -476,4 +501,25 @@
 
 /* Prose pages: a reading column of about 40 CJK characters on desktop. */
 .info-layout .prose, .info-layout .faq-section, .page-heading p { max-width: 40rem; }
+
+/* Wide screens (1500px+): helper and meta text — dates, labels, counts,
+   card actions, tags, the footer — reads at about 14px instead of 12–13px.
+   Every selector here is smaller than this below 1500px, so nothing shrinks. */
+@media (min-width: 1500px) {
+  .observatory-timeline .timeline-meta, .feed-meta, .feed-time, .eyebrow, .filter-bar label, .search-label > span, .follow-count,
+  .event-date-month, .event-date-weekday, .status-table small, .status-table td p,
+  .score-row-meta .score-country, .score-notes > summary, .score-tab span,
+  .observatory-timeline .timeline-action, .observatory-timeline .timeline-actions .feed-open-link, .feed-latest-meta, .event-author-meta,
+  .source-name-value, .source-language-label, .source-alternatives > summary, .source-alternatives-content h4, .source-translation-note,
+  .profile-tags .tag, .feed-plat, .feed-action, .feed-meta .tag, .story-expired, .feed-expand,
+  .src-head, .src-row .follow-button span, .src-count, .src-upd, .src-upd time,
+  .score-tab, .score-tab > span, .score-table th, .score-table .score-credits span, .score-table .score-notes, .score-table .score-notes p,
+  .score-table .score-publisher, .score-mobile-label, .score-evidence-link, .score-row-links .context-report-link,
+  .collection-group-heading h2 span, .collection-facts dt, .collection-primary, .collection-record > summary, .collection-original,
+  .status-pill, .status-metrics span, .page-heading .button, .pagination p,
+  .feed-card .tag, .feed-card .copy-button, .site-footer,
+  .collection-group-heading p, .community-banner p:not(.eyebrow), .profile-links .button { font-size: max(.84rem, 14px); }
+  .page-notes ul, .home-updated, .rich-event-zone, .ob-story-caption .ob-story-footer, .google-calendar-context, .home-upcoming-copy > span { font-size: max(.86rem, 14px); }
+  .home-intro-copy > p { font-size: 1.1rem; }
+}
 }

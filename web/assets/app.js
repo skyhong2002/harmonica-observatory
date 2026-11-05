@@ -583,6 +583,16 @@ app.addEventListener("change", (event) => {
     if (wasFocused) document.querySelector("#language-select")?.focus({ preventScroll: true });
     return;
   }
+  // New interface, phones: the directory "Sort" menu sets the key like a
+  // column-header button (a new key starts ascending).
+  if (node.hasAttribute("data-source-sort-select")) {
+    const wasFocused = document.activeElement === node;
+    state.descending = state.sort === node.value ? state.descending : false;
+    state.sort = node.value;
+    updateUrl(); render();
+    if (wasFocused) app.querySelector("[data-source-sort-select]")?.focus({ preventScroll: true });
+    return;
+  }
   if (node.dataset.filter) {
     const filterName = node.dataset.filter;
     const wasFocused = document.activeElement === node;

@@ -7,10 +7,10 @@ import { reportLink } from './reporting.js';
 import { pageNotes } from './page-notes.js';
 import { sourceDisplayName, sourceSummaryMarkup } from './source-names.js';
 const labels = {
-  'zh-Hant': { moreActions: '更多動作', reference: '相關原始貼文', snapshot: '相關網站原文', description: '活動整理資訊', endUnknown: '結束時間未公告', poster: '活動圖片', moreImages: '更多活動圖片', video: '相關影片', videoUnavailable: '影片暫時無法載入，查看原始影片', unavailable: '圖片暫時無法載入，請查看原始來源。', share: '分享', zoneNote: '活動時間以活動當地時區顯示；與你所在的時區不同時，時間旁會標示該時區。', subscribe: '訂閱活動' },
-  en: { moreActions: 'More actions', reference: 'Related original post', snapshot: 'Original website content', description: 'Event information', endUnknown: 'End time not announced', poster: 'Event image', moreImages: 'More event images', video: 'Related video', videoUnavailable: 'Video unavailable. View the original video.', unavailable: 'Image unavailable. Please view the original source.', share: 'Share', zoneNote: 'Event times are shown in each event’s local timezone; when it differs from yours, the timezone is named beside the time.', subscribe: 'Subscribe to events' },
-  ja: { moreActions: 'その他の操作', reference: '関連する元の投稿', snapshot: '関連ウェブサイトの原文', description: 'イベント情報', endUnknown: '終了時刻は未発表', poster: 'イベント画像', moreImages: 'その他のイベント画像', video: '関連動画', videoUnavailable: '動画を読み込めません。元の動画を見る', unavailable: '画像を読み込めません。元の情報をご確認ください。', share: '共有', zoneNote: 'イベントの時刻は開催地のタイムゾーンで表示します。お使いのタイムゾーンと異なる場合は、時刻の横にタイムゾーンを表示します。', subscribe: 'イベントを購読' },
-  ko: { moreActions: '더 보기 작업', reference: '관련 원본 게시물', snapshot: '관련 웹사이트 원문', description: '행사 정보', endUnknown: '종료 시각 미발표', poster: '행사 이미지', moreImages: '행사 이미지 더 보기', video: '관련 동영상', videoUnavailable: '동영상을 불러올 수 없습니다. 원본 동영상 보기', unavailable: '이미지를 불러올 수 없습니다. 원본 출처를 확인하세요.', share: '공유', zoneNote: '행사 시간은 행사 현지 시간대로 표시합니다. 내 시간대와 다르면 시간 옆에 해당 시간대를 표시합니다.', subscribe: '행사 구독' },
+  'zh-Hant': { followSource: '追蹤來源', moreActions: '更多動作', reference: '相關原始貼文', snapshot: '相關網站原文', description: '活動整理資訊', endUnknown: '結束時間未公告', poster: '活動圖片', moreImages: '更多活動圖片', video: '相關影片', videoUnavailable: '影片暫時無法載入，查看原始影片', unavailable: '圖片暫時無法載入，請查看原始來源。', share: '分享', zoneNote: '活動時間以活動當地時區顯示；與你所在的時區不同時，時間旁會標示該時區。', subscribe: '訂閱活動' },
+  en: { followSource: 'Follow source', moreActions: 'More actions', reference: 'Related original post', snapshot: 'Original website content', description: 'Event information', endUnknown: 'End time not announced', poster: 'Event image', moreImages: 'More event images', video: 'Related video', videoUnavailable: 'Video unavailable. View the original video.', unavailable: 'Image unavailable. Please view the original source.', share: 'Share', zoneNote: 'Event times are shown in each event’s local timezone; when it differs from yours, the timezone is named beside the time.', subscribe: 'Subscribe to events' },
+  ja: { followSource: '情報源をフォロー', moreActions: 'その他の操作', reference: '関連する元の投稿', snapshot: '関連ウェブサイトの原文', description: 'イベント情報', endUnknown: '終了時刻は未発表', poster: 'イベント画像', moreImages: 'その他のイベント画像', video: '関連動画', videoUnavailable: '動画を読み込めません。元の動画を見る', unavailable: '画像を読み込めません。元の情報をご確認ください。', share: '共有', zoneNote: 'イベントの時刻は開催地のタイムゾーンで表示します。お使いのタイムゾーンと異なる場合は、時刻の横にタイムゾーンを表示します。', subscribe: 'イベントを購読' },
+  ko: { followSource: '출처 팔로우', moreActions: '더 보기 작업', reference: '관련 원본 게시물', snapshot: '관련 웹사이트 원문', description: '행사 정보', endUnknown: '종료 시각 미발표', poster: '행사 이미지', moreImages: '행사 이미지 더 보기', video: '관련 동영상', videoUnavailable: '동영상을 불러올 수 없습니다. 원본 동영상 보기', unavailable: '이미지를 불러올 수 없습니다. 원본 출처를 확인하세요.', share: '공유', zoneNote: '행사 시간은 행사 현지 시간대로 표시합니다. 내 시간대와 다르면 시간 옆에 해당 시간대를 표시합니다.', subscribe: '행사 구독' },
 };
 const l = key => (labels[getLocale()] || labels.en)[key];
 
@@ -82,7 +82,9 @@ export function eventDescriptionMarkup(event) {
 }
 function followButton(source, following) {
   const followed = following.has(source.id), name = sourceDisplayName(source);
-  return `<button type="button" class="feed-action ${followed ? 'is-following' : ''}" data-follow="${esc(source.id)}" aria-pressed="${!!followed}" aria-label="${esc(t(followed ? 'unfollow' : 'follow') + ' ' + name)}">${icon(followed ? 'check' : 'heart')}<span>${t(followed ? 'following' : 'follow')}</span></button>`;
+  // New interface: the button says what is followed (the source, not the event).
+  const label = followed ? t('following') : isRedesign() ? l('followSource') : t('follow');
+  return `<button type="button" class="feed-action ${followed ? 'is-following' : ''}" data-follow="${esc(source.id)}" aria-pressed="${!!followed}" aria-label="${esc(t(followed ? 'unfollow' : 'follow') + ' ' + name)}">${icon(followed ? 'check' : 'heart')}<span>${label}</span></button>`;
 }
 function originalPost(post, catalog, following, showAuthor = true, withActions = true, withFollow = true) {
   const source = catalog.sources?.find(source => source.id === post.sourceId);

@@ -172,3 +172,43 @@ test('new interface: status explains its snapshot once in the page notes, and th
   assert.equal(document.querySelector('.page-heading p').textContent.replace(/↗/g, ''), t('aboutBody'));
  }
 });
+
+test('new interface post cards: original source link, share and report in "⋯", one quiet archived-story hint; legacy keeps its row and notice', async()=>{
+ const { isRedesign } = await import('../assets/redesign.js');
+ const { sourceDetail, directoryHeader } = await import('../assets/views.js');
+ const story={sourceId:'a',text:'Story text',url:'https://example.org/story',publishedAt:'2026-01-01',platform:'instagram',isStory:true,storyState:'expired',sourceAvailable:false,image:'https://example.org/s.jpg'};
+ for(const [locale,original,follow] of [['zh-Hant','原始來源','追蹤來源'],['en','Original source','Follow source'],['ja','原文を見る','情報源をフォロー'],['ko','원문 보기','출처 팔로우']]){
+  setLocale(locale);
+  document.body.innerHTML=postCard(story,sources);
+  const actions=document.querySelector('.feed-actions');
+  assert.equal(actions.querySelector('.feed-original').getAttribute('href'),story.url);
+  assert.match(actions.querySelector('.feed-original').textContent,new RegExp(original));
+  assert.ok(actions.querySelector('[data-share]'));
+  assert.ok(actions.querySelector('a[href^="/submit/"]'));
+  if(isRedesign()){
+   assert.equal(document.querySelector('.story-expired'),null);
+   assert.equal(document.querySelector('.story-tag').getAttribute('title'),t('storyExpired'));
+   assert.ok(actions.querySelector('.more-actions > .more-actions-menu [data-share]'));
+   assert.ok(actions.querySelector('.more-actions > .more-actions-menu a[href^="/submit/"]'));
+   assert.equal(actions.querySelector('[data-follow]').textContent.trim(),follow);
+   // Source page: the page's own follow button is the only visible one (redesign.css hides the card's).
+   document.body.innerHTML=sourceDetail(sources[0],{sources,posts:[story],events:[]},new Set());
+   assert.equal(document.querySelectorAll('.source-updates-grid .more-actions').length,1);
+  } else {
+   assert.equal(document.querySelector('.story-expired').textContent,t('storyExpired'));
+   assert.equal(document.querySelector('.more-actions'),null);
+  }
+ }
+ // Directory sort: phones get one labelled menu in the new interface; the header buttons stay.
+ setLocale('zh-Hant');
+ document.body.innerHTML=directoryHeader('posts',true);
+ assert.equal(document.querySelectorAll('.src-head [data-source-sort]').length,5);
+ if(isRedesign()){
+  const select=document.querySelector('.src-sort-bar select[data-source-sort-select]');
+  assert.deepEqual([...select.options].map(o=>o.value),['name','country','type','posts','updated']);
+  assert.equal(select.value,'posts');
+  assert.match(document.querySelector('.src-sort-bar label').textContent,/排序/);
+  assert.equal(document.querySelector('.src-sort-direction').dataset.sourceSort,'posts');
+  assert.match(document.querySelector('.src-sort-direction').textContent,/遞減/);
+ } else assert.equal(document.querySelector('.src-sort-bar'),null);
+});

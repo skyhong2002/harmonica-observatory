@@ -215,16 +215,25 @@ export function postDisplayText(post, value) {
   const generated = post.isStory && post.platform === 'instagram' && /^Instagram story (@[A-Za-z0-9_.]+)$/.exec(text);
   return generated && getLocale() !== 'en' ? `Instagram ${t('story')} ${generated[1]}` : dropPreviewLine(text);
 }
-// Some collected posts begin with a one-line truncated preview ("…" or "...")
-// followed by the full text; show the full text once.
+// Some collected posts begin with a one-line preview followed by the full
+// text; show the full text once. The preview is either truncated ("…" or
+// "...") or, for Threads, the whole first line repeated. Threads lines carry
+// "@handle ↩️:" / "@handle 🔁:" markers (and reposts quote "@other:" inline)
+// that differ between the two, so the comparison ignores handle markers,
+// emoji, quote marks and (zero-width) spacing; the full text keeps its own wording.
+const handlePrefix = /^\s*@[\w.]+[\s\p{Extended_Pictographic}\uFE0F\u200D]*:\s*/u;
+const handleMarkers = /@[\w.]+[\s\p{Extended_Pictographic}\uFE0F\u200D]*:/gu;
+export const withoutHandlePrefix = value => String(value || '').replace(handlePrefix, '');
+const comparable = value => String(value || '').replace(handleMarkers, '').replace(/[\s\p{Extended_Pictographic}\uFE0F\u200B-\u200D\u2060\uFEFF"'“”「」『』]/gu, '');
 function dropPreviewLine(text) {
   const split = text.indexOf('\n');
   if (split < 0) return text;
   const first = text.slice(0, split), rest = text.slice(split + 1);
-  if (!/(\.\.\.|…)\s*$/.test(first)) return text;
-  const squash = value => value.replace(/\s+/g, '');
-  const preview = squash(first.replace(/(\.\.\.|…)\s*$/, '')).slice(0, 60);
-  return preview.length >= 12 && squash(rest).startsWith(preview) ? rest : text;
+  const truncated = /(\.\.\.|…)\s*$/.test(first);
+  if (!truncated && !handlePrefix.test(first)) return text;
+  const preview = comparable(first.replace(/(\.\.\.|…)\s*$/, ''));
+  if (preview.length < 12) return text;
+  return comparable(rest).startsWith(truncated ? preview.slice(0, 60) : preview) ? rest : text;
 }
 // Filtered views offer to clear the filters; unfiltered empty views explain
 // why there is nothing yet and offer the next useful place instead.

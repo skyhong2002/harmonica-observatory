@@ -197,3 +197,14 @@ test('score facets show only the interface language while source filter values a
  }
  setLocale('zh-Hant');assert.equal(divisionLabel('國中團體組'),'國中團體組');
 });
+
+test('the repertoire search placeholder names what it matches: titles, composers and arrangers',()=>{
+ for(const [locale,placeholder] of [['zh-Hant','搜尋曲名、作曲者、編曲者…'],['en','Search titles, composers, arrangers…'],['ja','曲名・作曲者・編曲者を検索…'],['ko','곡명, 작곡가, 편곡자 검색…']]){
+  setLocale(locale);
+  document.body.innerHTML=scoresView(catalog,{});
+  assert.equal(document.querySelector('#catalog-search').getAttribute('placeholder'),placeholder);
+ }
+ assert.deepEqual(filterScores(rows,{q:'bach'}).map(r=>r.id),['a']);
+ assert.deepEqual(filterScores(rows,{q:'林'}).map(r=>r.id),['a']);
+ assert.deepEqual(filterScores(rows,{q:'gamma'}).map(r=>r.id),['c']);
+});

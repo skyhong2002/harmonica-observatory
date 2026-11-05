@@ -75,3 +75,23 @@ test('feed summary is concise and linked authors use one interface-language name
  assert.ok(document.querySelector('.feed-text').textContent.includes('完整原文'));
  window.close();
 });
+
+test('new interface card footer: follow source, the shared original-source label, then share and report in "⋯"',()=>{
+ if(!isRedesign())return;
+ const window=setup();
+ for(const [locale,follow,original] of [['zh-Hant','追蹤來源','原始來源'],['en','Follow source','Original source'],['ja','情報源をフォロー','原文を見る'],['ko','출처 팔로우','원문 보기']]){
+  setLocale(locale);document.querySelector('main').innerHTML=timelineCard(catalog.posts[0],catalog.sources,new Set());
+  const footer=document.querySelector('.home-feed-footer');
+  assert.equal(footer.querySelector('[data-follow]').textContent.trim(),follow);
+  assert.equal(footer.querySelector('.feed-open-link').textContent.replace('↗','').trim(),original);
+  assert.equal(footer.querySelectorAll('.timeline-actions').length,1);
+  assert.ok(footer.querySelector('.more-actions .more-actions-menu [data-share]'));
+  assert.ok(footer.querySelector('.more-actions .more-actions-menu a[href^="/submit/"]'));
+ }
+ // A Threads title that only differs from the text by its "@handle ↩️:" prefix is not shown twice.
+ setLocale('en');
+ const post={...catalog.posts[0],image:'',title:'@handle: The same opening sentence of this reply…',text:'@handle ↩️: The same opening sentence of this reply, and then the rest.'};
+ document.querySelector('main').innerHTML=timelineCard(post,catalog.sources,new Set());
+ assert.equal(document.querySelector('.home-feed-title'),null);
+ window.close();
+});

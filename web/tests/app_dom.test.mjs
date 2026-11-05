@@ -263,6 +263,24 @@ test("application DOM journey across languages, routing, filters and community f
       }
     },
   );
+  await t.test("new interface: the phone directory Sort menu and direction toggle drive the same sort state", () => {
+    if (!isRedesign()) return;
+    change("#language-select", "en");
+    assert.equal($("[data-source-sort-select]").value, "name");
+    change("[data-source-sort-select]", "updated");
+    let query = new URLSearchParams(window.location.search);
+    assert.equal(query.get("sort"), "updated");
+    assert.equal(query.get("descending"), null);
+    assert.equal($("[data-source-sort-select]").value, "updated");
+    assert.ok($('.src-head [data-source-sort="updated"]').classList.contains("active"));
+    click(".src-sort-direction");
+    assert.equal(new URLSearchParams(window.location.search).get("descending"), "1");
+    assert.match($(".src-sort-direction").textContent, /Descending/);
+    change("[data-source-sort-select]", "name");
+    query = new URLSearchParams(window.location.search);
+    assert.equal(query.get("sort"), null);
+    assert.equal(query.get("descending"), null);
+  });
   await t.test("internal navigation retains locale and source metadata", () => {
     change("#language-select", "ko");
     click(".source-card h3 a");
