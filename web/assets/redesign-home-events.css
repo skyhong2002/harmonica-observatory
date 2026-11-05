@@ -1,0 +1,4 @@
+/* "New interface" home and event styles (only with <html data-redesign>). */
+
+:root[data-redesign] {
+}
