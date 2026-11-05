@@ -332,7 +332,6 @@ html:lang(ko) body { word-break: keep-all; overflow-wrap: anywhere; }
 .new-contribution > summary h2 { margin: 0; font-size: 1.1rem; }
 .new-contribution > summary svg { width: 20px; height: 20px; color: var(--color-text-brand); }
 .new-contribution[open] > summary { border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom: 0; }
-.new-contribution[open] > summary svg { transform: rotate(45deg); }
 .new-contribution > .form-panel { margin: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
 
 /* Signed-in header button reads as a state, not just a link. */
@@ -386,3 +385,38 @@ html:lang(ko) body { word-break: keep-all; overflow-wrap: anywhere; }
 .contact-link svg { width: 18px; height: 18px; color: var(--color-text-brand); }
 .contact-link:hover { background: var(--color-surface-soft); }
 @media (max-width: 900px) { .info-layout { grid-template-columns: 1fr; } .contact-card { position: static; } }
+
+
+/* Phones: one row of six icon tabs instead of two rows of wide cells. */
+@media (max-width: 640px) {
+  .legacy-site-header.nav-refresh .site-nav { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2px; }
+  .legacy-site-header.nav-refresh .site-nav > .nav-item, .legacy-site-header.nav-refresh .nav-more > summary.nav-item { flex-direction: column; gap: 2px; min-height: 54px; padding: 6px 2px; font-size: .72rem; line-height: 1.25; border-radius: 10px; }
+  .legacy-site-header.nav-refresh .site-nav > .nav-item > svg, .legacy-site-header.nav-refresh .nav-more > summary > svg { display: block; flex: 0 0 22px; width: 22px; height: 22px; }
+  .legacy-site-header.nav-refresh .nav-more > summary.nav-item::after { display: none; }
+  .legacy-site-header.nav-refresh .nav-label { overflow-wrap: normal; word-break: keep-all; text-align: center; }
+  .site-header.legacy-site-header { padding-block: 10px 6px; row-gap: 6px; }
+}
+
+/* Source page: posts are from this source, so drop the repeated author and
+   follow controls; cap tall story images; card frames like the feed. */
+.source-updates-grid .post-card { display: block; margin: 0 0 16px; padding: 16px 18px; break-inside: avoid; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); }
+.source-updates-grid .feed-avatar-wrap, .source-updates-grid .feed-name, .source-updates-grid [data-follow] { display: none; }
+.source-updates-grid .post-card:has(.story-tag) .feed-img { max-height: 380px; width: 100%; object-fit: cover; object-position: top; }
+.source-updates-grid .feed-img { border-radius: 8px; }
+
+/* Events: one dated list; poster beside the details on wide screens. */
+.rich-events-grid { grid-template-columns: 1fr; max-width: 68rem; gap: 16px; }
+@media (min-width: 900px) {
+  .rich-event-card { display: grid; grid-template-columns: minmax(0, 1fr) 260px; grid-template-areas: "header media" "copy media" "gallery media"; align-items: start; }
+  .rich-event-card > .rich-event-header { grid-area: header; }
+  .rich-event-card > .rich-event-copy { grid-area: copy; }
+  .rich-event-card > .event-gallery { grid-area: gallery; margin-bottom: 14px; }
+  .rich-event-card > .event-media, .rich-event-card > .event-video { grid-area: media; margin: 20px 20px 20px 0; }
+  .rich-event-card > .event-media { min-height: 200px; align-items: center; }
+  .event-poster { max-height: 320px; }
+}
+.event-media-unavailable { display: none; }
+
+/* Contribute: the fold uses a chevron that turns, not a close-looking cross. */
+.new-contribution[open] > summary svg { transform: rotate(90deg); }
+@media (max-width: 640px) { .google-calendar-toolbar { justify-content: flex-start; } }

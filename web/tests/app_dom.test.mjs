@@ -316,11 +316,12 @@ test("application DOM journey across languages, routing, filters and community f
       ["tokyo"],
     );
     assert.equal($("[data-follow=tokyo]").getAttribute("aria-pressed"), "true");
-    change("[data-filter=followed]", true);
+    // The All / Following tabs replace the old checkbox.
+    click('.follow-tab[href*="followed=1"]');
     assert.equal(window.document.querySelectorAll(".source-card").length, 1);
     click("[data-follow=tokyo]");
     assert.equal(window.document.querySelectorAll(".source-card").length, 0);
-    click("[data-action=reset]");
+    click('.follow-tab:not([href*="followed=1"])');
   });
   await t.test(
     "contribution capacity includes operator pool and API errors clear token",

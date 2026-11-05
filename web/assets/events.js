@@ -146,7 +146,9 @@ export function bindEvents(root) {
   let frame = 0;
   const layout = () => {
     frame = 0;
-    const masonry = window.innerWidth > 760;
+    // Events read as one dated list at every width; a two-column masonry
+    // scrambled the date order. Kept as a hook should columns return.
+    const masonry = false;
     grid?.classList.toggle('events-masonry', masonry);
     for (const card of cards) {
       card.style.gridRowEnd = masonry ? `span ${Math.ceil((card.getBoundingClientRect().height + 20) / 8)}` : '';

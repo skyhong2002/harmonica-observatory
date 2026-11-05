@@ -195,7 +195,7 @@ function listView(kind, data) {
       : kind === "sources"
         ? link("/submit/", t("submit") + icon("plus"), "button button-outline")
         : "";
-  return `${pageHeading(kind, bodyKey, extra)}${kind === "sources" ? followTabs("sources") : ""}${filterBar(state, catalog, kind, following)}<div class="results-bar"><p role="status">${t("results", { count: number(sorted.length) })}</p>${kind === "sources" && state.followed ? `<span>${t("followHint")}</span>` : ""}</div>${kind === "sources" ? directoryHeader(state.sort, state.descending) : ""}<div class="${cls}">${sorted.length ? sorted.slice(0, limit).map(card).join("") : emptySources()}</div>${sorted.length > limit ? `<div class="pagination"><p>${t("showing", { shown: number(limit), total: number(sorted.length) })}</p><button class="button button-outline" data-action="more">${t("loadMore")}${icon("plus")}</button></div>` : ""}`;
+  return `${pageHeading(kind, bodyKey, extra)}${kind === "sources" ? followTabs("sources") : ""}${filterBar(state, catalog, kind, following)}<div class="results-bar"><p role="status">${t("results", { count: number(sorted.length) })}</p>${kind === "sources" && state.followed && sorted.length ? `<span>${t("followHint")}</span>` : ""}</div>${kind === "sources" ? directoryHeader(state.sort, state.descending) : ""}<div class="${cls}">${sorted.length ? sorted.slice(0, limit).map(card).join("") : emptySources()}</div>${sorted.length > limit ? `<div class="pagination"><p>${t("showing", { shown: number(limit), total: number(sorted.length) })}</p><button class="button button-outline" data-action="more">${t("loadMore")}${icon("plus")}</button></div>` : ""}`;
 }
 // "All / Following" tabs so the personal view is not hidden in a dropdown.
 function followTabs(kind) {

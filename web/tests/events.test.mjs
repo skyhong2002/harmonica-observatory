@@ -94,12 +94,12 @@ test('playable original video uses its poster once and never autoplays', () => {
   assert.equal(document.querySelector('.event-poster'), null); window.close();
 });
 
-test('dense event layout responds to expanding content and returns to normal mobile flow', async () => {
+test('events stay in one dated list at every width, without masonry spans', async () => {
   const window = setup(); const root = document.querySelector('main'); root.innerHTML = eventsView(catalog, {});
   const card = root.querySelector('.rich-event-card'); let height = 400; card.getBoundingClientRect = () => ({ height });
   const callbacks = []; window.ResizeObserver = class { constructor(callback) { callbacks.push(callback); } observe() {} disconnect() {} };
-  const cleanup = bindEvents(root); assert.equal(card.style.gridRowEnd, 'span 53');
-  height = 800; callbacks[0](); await new Promise(resolve => setTimeout(resolve, 30)); assert.equal(card.style.gridRowEnd, 'span 103');
+  const cleanup = bindEvents(root); assert.equal(card.style.gridRowEnd, '');
+  height = 800; callbacks[0](); await new Promise(resolve => setTimeout(resolve, 30)); assert.equal(card.style.gridRowEnd, '');
   window.innerWidth = 390; window.dispatchEvent(new window.Event('resize')); await new Promise(resolve => setTimeout(resolve, 30));
   assert.equal(card.style.gridRowEnd, ''); assert.equal(root.querySelector('.events-masonry'), null); cleanup(); window.close();
 });
