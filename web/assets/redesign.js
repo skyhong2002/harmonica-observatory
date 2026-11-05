@@ -1,7 +1,6 @@
-// "New interface" beta switch. Off by default; the choice lives in this
-// browser only. While on, <html data-redesign="on"> scopes redesign.css and
-// the modules render the redesigned markup. `?redesign=on|off` sets it too,
-// so a preview link can open either version.
+// Temporary review hook while the new interface replaces the original one.
+// Visitors get no switch; `?redesign=on|off` (kept in localStorage) lets the
+// review screenshots show either version. Removed before the PR.
 const KEY = 'observatory-redesign';
 
 export function isRedesign() {

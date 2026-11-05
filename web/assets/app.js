@@ -1,4 +1,4 @@
-import { isRedesign, setRedesign, initializeRedesign } from "./redesign.js";
+import { isRedesign, initializeRedesign } from "./redesign.js";
 import { bindDirectoryColumns } from "./directory-columns.js";
 import { sourceDisplayName, sourceSummaryText } from "./source-names.js";
 import { observatoryHome } from "./home.js";
@@ -446,15 +446,6 @@ if (path() === '/') {
 app.addEventListener("click", (event) => {
   const googleAuth = event.target.closest('[data-google-auth]');
   if (googleAuth) { handleGoogleAuth(googleAuth, render); return; }
-  const redesignToggle = event.target.closest("[data-redesign-toggle]");
-  if (redesignToggle) {
-    setRedesign(!isRedesign());
-    const scroll = window.scrollY;
-    render();
-    window.scrollTo(0, scroll);
-    document.querySelector("[data-redesign-toggle]")?.focus({ preventScroll: true });
-    return;
-  }
   if (handleShellClick(event)) return;
   const expand = event.target.closest("[data-expand-post]");
   if (expand) { togglePostExpansion(expand); return; }

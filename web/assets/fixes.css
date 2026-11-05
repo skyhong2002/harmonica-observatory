@@ -91,15 +91,3 @@ html:lang(ko) body { word-break: keep-all; overflow-wrap: anywhere; }
 .apify-intro { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 20px; padding: 14px 16px; color: var(--color-text-secondary); font-size: .92rem; line-height: 1.7; background: var(--color-info-surface); border-radius: var(--radius-md); }
 .apify-intro svg { flex: 0 0 20px; width: 20px; height: 20px; margin-top: 3px; color: var(--color-text-brand); }
 .apify-intro p { margin: 0; }
-
-/* "New interface" switch: shown to everyone (in More and the footer). */
-.nav-redesign-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; margin-top: 10px; padding: 0 6px; }
-.nav-redesign-row span { display: grid; gap: 1px; }
-.nav-redesign-row strong { color: var(--color-text-secondary); font-size: .82rem; font-weight: 600; }
-.nav-redesign-row small { color: var(--color-text-muted); font-size: .72rem; }
-.redesign-switch { position: relative; flex: 0 0 auto; width: 48px; height: 28px; padding: 0; background: var(--color-border-strong); border: 0; border-radius: 999px; cursor: pointer; transition: background var(--motion-fast); }
-.redesign-switch > span { position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; background: var(--color-surface); border-radius: 50%; box-shadow: 0 1px 3px rgb(0 0 0 / 20%); transition: transform var(--motion-fast); }
-.redesign-switch[aria-checked="true"] { background: var(--color-action-primary); }
-.redesign-switch[aria-checked="true"] > span { transform: translateX(20px); }
-.redesign-switch:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
-.footer-redesign { padding: 0; color: var(--color-text-brand); font: inherit; text-decoration: underline; text-underline-offset: 3px; background: none; border: 0; cursor: pointer; }
