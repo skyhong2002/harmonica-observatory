@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
+import { isRedesign } from '../assets/redesign.js';
 
 test('shell preserves preferences, exposes four languages and follows appearance changes', async () => {
   const dom = new JSDOM('<html><head><meta name="theme-color"></head><body><main id="main"></main></body></html>', {url:'https://harmonica.observe.tw/?lang=en'});
@@ -51,6 +52,10 @@ test('shell preserves preferences, exposes four languages and follows appearance
     assert.equal(document.querySelector('.brand small'),null);
     assert.ok(footer().includes('© ' + new Date().getFullYear() + ' ' + brand));
     if (locale !== 'zh-Hant') assert.ok(!footer().includes('口琴觀測站'));
+    // The new interface tells the project origin on About and lists open data on /feeds/, not in every footer.
+    assert.equal(footer().includes('github.com/skyhong2002/chumei'), !isRedesign());
+    assert.equal(footer().includes('/api/v1/catalog'), !isRedesign());
+    assert.ok(footer().includes('href="/feeds/"'));
     assert.doesNotMatch(document.body.textContent,/Atlas|undefined/);
     assert.equal(document.querySelector('#language-select').value,locale);
   }

@@ -135,7 +135,14 @@ def post_title(post: dict, locale: str) -> str:
     return title
 
 
-def render_document(template: str, path: str, catalog: dict, origin: str, locale: str = 'en') -> str:
+NOT_FOUND = {'en': ('Page not found', 'The link may be outdated, or the page has moved.'),
+             'zh-Hant': ('找不到頁面', '連結可能已過期，或頁面已經搬移。'),
+             'ja': ('ページが見つかりません', 'リンクが古いか、ページが移動した可能性があります。'),
+             'ko': ('페이지를 찾을 수 없어요', '링크가 오래되었거나 페이지가 이동했을 수 있어요.')}
+
+
+def render_document(template: str, path: str, catalog: dict, origin: str, locale: str = 'en',
+                    not_found: bool = False) -> str:
     locale = normalize_locale(locale)
     words = WORDS[locale]
     route = path.strip('/').split('/')[0] or 'home'
@@ -152,6 +159,9 @@ def render_document(template: str, path: str, catalog: dict, origin: str, locale
     score_guide = path.rstrip('/') == '/scores/sources'
     if score_guide:
         page, description = SCORE_GUIDE[locale]
+    if not_found:
+        source, score_guide = None, False
+        page, description = NOT_FOUND[locale]
     title = page + ' · ' + words['brand']
     canonical = origin.rstrip('/') + localized_path(canonical_path, locale)
     document = re.sub(r'<html\b[^>]*>', '<html lang="' + locale + '">', template, count=1)
@@ -159,6 +169,8 @@ def render_document(template: str, path: str, catalog: dict, origin: str, locale
     document = re.sub(r'<meta\s+name=["\']description["\'][^>]*>', '', document, flags=re.I)
     document = re.sub(r'<link\s+rel=["\']canonical["\'][^>]*>', '', document, flags=re.I)
     head = '\n<meta name="description" content="' + e(description) + '">\n'
+    if not_found:
+        head += '<meta name="robots" content="noindex">\n'
     head += '<link rel="canonical" href="' + e(canonical) + '">\n'
     for language in LOCALES + ('x-default',):
         href = origin.rstrip('/') + localized_path(canonical_path, language if language in LOCALES else DEFAULT_LOCALE)

@@ -1,3 +1,4 @@
+import { isRedesign, initializeRedesign } from "./redesign.js";
 import { bindDirectoryColumns } from "./directory-columns.js";
 import { sourceDisplayName, sourceSummaryText } from "./source-names.js";
 import { observatoryHome } from "./home.js";
@@ -5,8 +6,9 @@ import { bindStories } from "./stories.js";
 import { bindGoogleCalendar } from "./google-calendar.js";
 import { eventsView, bindEvents } from "./events.js";
 import { scoresView, scoreSourcesView } from "./scores.js";
-import { navigation, accountNavigation, footer, initializeShell, handleShellClick } from "./shell.js";
-import { timelineView, bindTimeline } from "./timeline.js";
+import { navigation, accountNavigation, footer, initializeShell, handleShellClick, pageName } from "./shell.js";
+import { timelineView, bindTimeline, timelineNotes } from "./timeline.js";
+import { pageNotes } from "./page-notes.js";
 import { t, getLocale, setLocale } from "./i18n.js";
 import {
   esc,
@@ -14,6 +16,7 @@ import {
   icon,
   number,
   empty,
+  hasFilters,
   pastEvent,
   textMatch,
   toast,
@@ -23,7 +26,10 @@ import {
   directoryHeader,
   sortSources,
   togglePostExpansion,
+  toggleSummaryExpansion,
+  revealClampedSummary,
   filterBar,
+  filtersActive,
   pageHeading,
   sourceCard,
   postCard,
@@ -194,7 +200,29 @@ function listView(kind, data) {
       : kind === "sources"
         ? link("/submit/", t("submit") + icon("plus"), "button button-outline")
         : "";
-  return `${pageHeading(kind, bodyKey, extra)}${filterBar(state, catalog, kind, following)}<div class="results-bar"><p role="status">${t("results", { count: number(sorted.length) })}</p>${kind === "sources" && state.followed ? `<span>${t("followHint")}</span>` : ""}</div>${kind === "sources" ? directoryHeader(state.sort, state.descending) : ""}<div class="${cls}">${sorted.length ? sorted.slice(0, limit).map(card).join("") : empty()}</div>${sorted.length > limit ? `<div class="pagination"><p>${t("showing", { shown: number(limit), total: number(sorted.length) })}</p><button class="button button-outline" data-action="more">${t("loadMore")}${icon("plus")}</button></div>` : ""}`;
+  // New interface: one count per list — "showing x of y" by load-more, plus
+  // this result count only while a search or filter narrows the list.
+  const resultsBar = !isRedesign()
+    ? `<div class="results-bar"><p role="status">${t("results", { count: number(sorted.length) })}</p>${kind === "sources" && state.followed && sorted.length ? `<span>${t("followHint")}</span>` : ""}</div>`
+    : filtersActive(state) ? `<div class="results-bar"><p role="status">${t("results", { count: number(sorted.length) })}</p></div>` : "";
+  const notes = isRedesign() && kind === "sources" && state.followed && sorted.length ? pageNotes([esc(t("followHint"))]) : "";
+  return `${pageHeading(kind, bodyKey, extra)}${kind === "sources" && isRedesign() ? followTabs("sources") : ""}${filterBar(state, catalog, kind, following)}${resultsBar}${kind === "sources" && sorted.length ? directoryHeader(state.sort, state.descending) : ""}<div class="${cls}">${sorted.length ? sorted.slice(0, limit).map(card).join("") : emptySources()}</div>${sorted.length > limit ? `<div class="pagination"><p>${t("showing", { shown: number(limit), total: number(sorted.length) })}</p><button class="button button-outline" data-action="more">${t("loadMore")}${icon("plus")}</button></div>` : ""}${notes}`;
+}
+// "All / Following" tabs so the personal view is not hidden in a dropdown.
+function followTabs(kind) {
+  const following_ = kind === "posts" ? state.kind === "following" : state.followed;
+  const base = kind === "posts" ? "/post/" : "/source/";
+  const lang = "lang=" + encodeURIComponent(getLocale());
+  const tab = (active, href, label) => `<a class="follow-tab" href="${href}" ${active ? 'aria-current="page"' : ""}>${label}</a>`;
+  return `<nav class="follow-tabs" aria-label="${t("filter")}">${tab(!following_, base + "?" + lang, t("all"))}${tab(following_, base + "?" + (kind === "posts" ? "kind=following" : "followed=1") + "&" + lang, `${icon("heart")}${t("following")} <span class="follow-count">${number(following.size)}</span>`)}</nav>`;
+}
+function emptySources() {
+  if (state.followed && !following.size && !state.q && !state.country && !state.type)
+    return empty({ filtered: false, symbol: "heart", title: t("noFollowedTitle"), body: t("noFollowedBody"),
+      actions: link("/source/", t("browseAllSources"), "button button-outline") });
+  if (hasFilters(state)) return empty();
+  return empty({ filtered: false, symbol: "users", title: t("emptySourcesTitle"), body: t("emptySourcesBody"),
+    actions: link("/submit/", t("submit") + icon("plus"), "button button-outline") });
 }
 function sourceForPath() {
   let slug;
@@ -202,13 +230,25 @@ function sourceForPath() {
   if (!path().startsWith("/source/") && !path().startsWith("/post/source/")) return null;
   return catalog?.sources.find(source => source.id === slug || source.publicId === slug || source.url === path() || source.url?.split("/").filter(Boolean).at(-1) === slug);
 }
+// New interface loading state: the outline of the home page (title, key
+// numbers, tall story posters beside a short list of events).
+function loadingSkeleton() {
+  const bar = (cls = "") => `<div class="skeleton-bar ${cls}"></div>`;
+  const stat = `<div class="skeleton-stat">${bar("skeleton-stat-value")}${bar("skeleton-stat-label")}</div>`;
+  const story = `<div class="skeleton-story"><div class="skeleton-media"></div>${bar()}${bar("skeleton-short")}</div>`;
+  const row = `<div class="skeleton-row"><div class="skeleton-media skeleton-date"></div><div class="skeleton-row-copy">${bar()}${bar("skeleton-short")}</div></div>`;
+  return `<div class="skeleton" aria-busy="true"><h1 class="skeleton-label">${icon("globe")}<span>${t("loading")}</span></h1><div class="skeleton-body" aria-hidden="true">${bar("skeleton-title")}${bar("skeleton-text")}<div class="skeleton-stats">${stat.repeat(4)}</div><div class="skeleton-now"><div class="skeleton-stories">${bar("skeleton-heading")}<div class="skeleton-strip">${story.repeat(4)}</div></div><div class="skeleton-events">${bar("skeleton-heading")}${row.repeat(4)}</div></div></div></div>`;
+}
 function body() {
-  if (!catalog)
+  if (!catalog && !isRedesign())
     return `<div class="initial-loading" ${loadFailed ? "" : 'aria-busy="true"'}>${icon(loadFailed ? "info" : "globe")}<h1>${t(loadFailed ? "loadError" : "loading")}</h1>${loadFailed ? `<p>${t("loadErrorBody")}</p><button class="button button-primary" data-action="retry">${t("retry")}</button>` : '<div class="loading-dots"><i></i><i></i><i></i></div>'}</div>`;
+  if (!catalog && loadFailed)
+    return `<div class="load-error"><h1 class="sr-only">${t("loadError")}</h1>${empty({ filtered: false, symbol: "info", title: t("loadError"), body: t("loadErrorBody"), actions: `<button class="button button-primary" data-action="retry">${t("retry")}</button>${link("/status/", t("status"), "button button-outline")}` })}</div>`;
+  if (!catalog) return loadingSkeleton();
   const key = routes[path()];
   const data = filtered();
   if (key === "discover") return observatoryHome(catalog, state, following, limit);
-  if (key === "posts") return pageHeading("posts", null) + timelineView(catalog, state, following, limit);
+  if (key === "posts") return pageHeading("posts", null) + (isRedesign() ? followTabs("posts") : "") + timelineView(catalog, state, following, limit) + (isRedesign() ? pageNotes(timelineNotes()) : "");
   if (key === "scores") return scoresView(catalog, state, limit);
   if (key === "scoreSources") return scoreSourcesView(catalog, state, limit);
   if (key === "events") return eventsView(catalog, state, following, limit);
@@ -224,7 +264,7 @@ function body() {
     const source = sourceForPath();
     return sourceDetail(source, catalog, following, limit);
   }
-  return `${pageHeading("notFound", "countryNote")}${link("/", t("home"), "button button-primary")}`;
+  return `<section class="not-found">${icon("compass")}<p class="eyebrow">404</p>${pageHeading("notFound", "notFoundBody")}<div class="not-found-actions">${link("/", t("home"), "button button-primary")}${link("/post/", t("posts"), "button button-outline")}${link("/events/", t("events"), "button button-outline")}${link("/source/", t("sources"), "button button-outline")}</div></section>`;
 }
 function render({ focus = false } = {}) {
   const refreshStoriesOnMount = path() === "/" && previousRenderedPath !== null && previousRenderedPath !== "/";
@@ -242,9 +282,9 @@ function render({ focus = false } = {}) {
   directoryCleanup?.();
   renderVersion++;
   setLocale(getLocale());
-  const current = routes[path()] || "sources";
+  const current = routes[path()] || (path().startsWith("/source/") || path().startsWith("/post/source/") ? "sources" : "notFound");
   const detail = sourceForPath();
-  document.title = `${detail ? sourceDisplayName(detail) : t(current)} · ${t("brand")}`;
+  document.title = `${detail ? sourceDisplayName(detail) : pageName(current) || t(current)} · ${t("brand")}`;
   updateMetadata();
   const isTimeline = ["/", "/post/"].includes(path());
   document.body.classList.remove("feed-locked");
@@ -252,6 +292,9 @@ function render({ focus = false } = {}) {
     navigation(path(), routes, getSession()) +
     `<main id="main" class="main-container${path() === "/post/" ? " timeline-main" : path() === "/" ? " home-main" : ""}" tabindex="-1">${body()}</main>` +
     footer();
+  dropDuplicateReset(app);
+  collapseFilters(app);
+  if (isRedesign()) revealClampedSummary(app);
   directoryCleanup = bindDirectoryColumns(app);
   if (isTimeline && catalog) timelineCleanup = bindTimeline(app);
   if (path() === "/events/" && catalog) eventsCleanup = bindEvents(app);
@@ -277,6 +320,31 @@ function render({ focus = false } = {}) {
   if (focus) document.querySelector("#main")?.focus({ preventScroll: true });
 }
 
+// New interface: when a filtered list is empty, its empty card already offers
+// "Clear filters", so the filter bar does not repeat the button.
+function dropDuplicateReset(root) {
+  if (!isRedesign() || !root.querySelector(".empty-state [data-action=reset]")) return;
+  root.querySelectorAll(".filter-bar > .clear-filter").forEach(node => node.remove());
+}
+// Phones: fold the filter controls under one "Filter (n)" toggle so results
+// start on the first screen (every list page has at least two). Open while
+// any filter is applied. "Clear filters" stays outside the fold, beside the
+// toggle (redesign.css), so it is reachable while the fold is closed.
+function collapseFilters(root) {
+  if (!isRedesign() || !window.matchMedia?.("(max-width: 640px)").matches) return;
+  for (const bar of root.querySelectorAll(".filter-bar")) {
+    const controls = [...bar.children].filter(node => node.matches("label:not(.search-label)"));
+    if (controls.length < 2) continue;
+    // The event period is shown as tabs, so its hidden select is not a filter.
+    const active = controls.filter(node => !node.querySelector('select[data-filter="period"]') && (node.querySelector("select")?.selectedIndex > 0 || node.querySelector("input[type=checkbox]")?.checked)).length;
+    const details = document.createElement("details");
+    details.className = "filter-more";
+    details.open = active > 0;
+    details.innerHTML = `<summary>${icon("layers")}<span>${t("filter")}${active ? ` (${number(active)})` : ""}</span></summary><div class="filter-more-body"></div>`;
+    details.lastElementChild.append(...controls);
+    bar.append(details, ...bar.querySelectorAll(":scope > .clear-filter"));
+  }
+}
 function updateMetadata() {
   const source = sourceForPath();
   const descriptionText = source && sourceSummaryText(source) || t("aboutBody");
@@ -390,17 +458,22 @@ async function load() {
     }
   }
 }
+initializeRedesign();
 initializeShell();
 if (path() === '/') {
   const authError = new URLSearchParams(location.search).get('auth_error');
   if (authError) toast(t(authError === 'cancelled' ? 'loginCancelled' : 'loginFailed'));
 }
+// The profile summary clamp starts and stops at the phone width (redesign.css).
+window.matchMedia?.("(max-width: 699px)").addEventListener?.("change", () => { if (isRedesign()) revealClampedSummary(app); });
 app.addEventListener("click", (event) => {
   const googleAuth = event.target.closest('[data-google-auth]');
   if (googleAuth) { handleGoogleAuth(googleAuth, render); return; }
   if (handleShellClick(event)) return;
   const expand = event.target.closest("[data-expand-post]");
   if (expand) { togglePostExpansion(expand); return; }
+  const summary = event.target.closest("[data-expand-summary]");
+  if (summary) { toggleSummaryExpansion(summary); return; }
   const sort = event.target.closest("[data-source-sort]");
   if (sort) {
     state.descending = state.sort === sort.dataset.sourceSort ? !state.descending : false;
@@ -524,6 +597,16 @@ app.addEventListener("change", (event) => {
     }
     if (menuOpen) document.querySelector(".nav-more").open = true;
     if (wasFocused) document.querySelector("#language-select")?.focus({ preventScroll: true });
+    return;
+  }
+  // New interface, phones: the directory "Sort" menu sets the key like a
+  // column-header button (a new key starts ascending).
+  if (node.hasAttribute("data-source-sort-select")) {
+    const wasFocused = document.activeElement === node;
+    state.descending = state.sort === node.value ? state.descending : false;
+    state.sort = node.value;
+    updateUrl(); render();
+    if (wasFocused) app.querySelector("[data-source-sort-select]")?.focus({ preventScroll: true });
     return;
   }
   if (node.dataset.filter) {

@@ -212,7 +212,7 @@ test('active story tile disappears at actual expiry while its archive remains in
   assert.equal(root.querySelectorAll('.story-item').length,1,'still active just before expiry');
   t.mock.timers.tick(1+25);
   assert.equal(root.querySelectorAll('.story-item').length,0);
-  assert.ok(root.querySelector('.story-empty').textContent.includes('No active stories'));
+  assert.ok(root.querySelector('.story-empty').textContent.includes('No stories to show'));
   assert.equal(data.posts.find(p=>p.isStory).storyState,'expired');
   cleanup();window.close();
 });

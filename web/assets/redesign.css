@@ -1,0 +1,659 @@
+/* "New interface" (beta) styles. Everything here only applies when the
+   visitor turns the switch on, which sets <html data-redesign>. */
+
+@keyframes skeleton-shine { to { background-position: -200% 0; } }
+
+:root[data-redesign] {
+
+/* Layout: one page grid for every section, wider on large desktop screens. */
+@media (min-width: 1500px) { & { --page-width: min(1320px, calc(100% - 96px)); } }
+@media (min-width: 1900px) {
+  & { font-size: 17px; --page-width: min(1400px, calc(100% - 128px)); }
+}
+.main-container:not(.home-main), & body.feed-locked .feed-main:not(.home-main),
+.site-footer, & body.feed-locked .site-footer,
+.home-section-inner, .home-stories .home-section-inner { width: var(--page-width); }
+.site-header.legacy-site-header { padding-inline: max(24px, calc((100% - var(--page-width)) / 2)); }
+@media (max-width: 640px) {
+  & { --page-width: calc(100% - 32px); }
+  .site-header.legacy-site-header { padding-inline: 16px; }
+}
+
+/* Readable post text on wide screens. */
+.observatory-timeline .feed-latest-excerpt { font-size: .92rem; line-height: 1.65; }
+.observatory-timeline .feed-text-toggle { font-size: .88rem; }
+
+
+/* Empty, error and 404 states: centred card with an icon, a reason and next steps. */
+.empty-state {
+  display: grid; justify-items: center; gap: 6px; max-width: 34rem; margin: 24px auto; padding: 40px 24px;
+  background: var(--color-surface); border: 1px dashed var(--color-border-strong); border-radius: var(--radius-lg);
+}
+.empty-state > svg { width: 40px; height: 40px; margin: 0 0 6px; padding: 9px; color: var(--color-text-brand); background: var(--color-surface-soft); border-radius: 50%; }
+.empty-state h2 { margin: 0; color: var(--color-text-primary); font-size: 1.15rem; line-height: 1.45; }
+.empty-state p { max-width: 28rem; margin: 0; color: var(--color-text-secondary); font-size: .92rem; line-height: 1.7; text-wrap: pretty; }
+
+/* Source page: the profile shares the page grid with the posts below it. */
+.org-page > .back-link, .org-page > .source-profile { max-width: none; }
+.source-profile { grid-template-columns: 96px minmax(0, 1fr) auto; gap: 24px; padding-bottom: 28px; }
+.source-profile .profile-avatar .avatar { width: 96px; height: 96px; }
+.source-profile > div:not(.profile-avatar) { max-width: 52rem; }
+.source-profile > .button { grid-column: 3; grid-row: 1; justify-self: end; align-self: start; }
+/* Phones: only the avatar sits beside the country and name; the summary,
+   tags, links and follow button use the full width below. */
+@media (max-width: 699px) {
+  .source-profile { grid-template-columns: 64px minmax(0, 1fr); gap: 0 14px; }
+  .source-profile .profile-avatar { grid-column: 1; grid-row: 1 / span 2; align-self: center; }
+  .source-profile .profile-avatar .avatar { width: 64px; height: 64px; }
+  .source-profile > div:not(.profile-avatar) { display: contents; }
+  .source-profile > div:not(.profile-avatar) > * { grid-column: 1 / -1; min-width: 0; }
+  .source-profile > div:not(.profile-avatar) > .eyebrow { grid-column: 2; align-self: end; margin: 0 0 2px; }
+  .source-profile > div:not(.profile-avatar) > h1 { grid-column: 2; align-self: start; margin: 0; }
+  .source-profile > div:not(.profile-avatar) > h1 + * { margin-top: 12px; }
+  .source-profile > .button { grid-column: 1 / -1; grid-row: auto; justify-self: stretch; margin-top: 14px; }
+}
+
+
+/* Directory rows on phones, three lines: name and a labelled follow pill;
+   "country · type" ending in up to four link icons (with more: three icons
+   and "+n links", which opens the source page); post count and update date. The row's ::before/::after
+   are zero-height flex items that end the first two lines. */
+.src-links-more { display: none; }
+@media (max-width: 699px) {
+  .source-card.src-row { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; }
+  .source-card.src-row::before, .source-card.src-row::after { content: ""; flex: 0 0 100%; height: 0; }
+  .source-card.src-row::before { order: 3; }
+  .source-card.src-row::after { order: 6; }
+  .src-row > .src-c-name { order: 1; flex: 1 1 0; }
+  .src-row > .src-c-follow { order: 2; }
+  .src-row > .src-country { display: none; }
+  .src-row > .src-c-chips { order: 4; flex: 1 1 0; min-width: 0; }
+  .src-row > .src-links { order: 5; flex: none; flex-wrap: nowrap; gap: 0; padding-left: 0; overflow: visible; }
+  .src-row > .src-count { order: 7; padding-left: 50px; }
+  .src-row > .src-upd { order: 8; }
+  .src-row .src-links .src-link-icon { flex-basis: 32px; width: 32px; height: 32px; }
+  .src-row .src-links .src-link-icon svg { width: 18px; height: 18px; }
+  .src-row .src-links .src-link-icon:nth-child(n+5) { display: none; }
+  .src-links-more { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; padding: 0 4px; color: var(--color-text-secondary); font-size: .8rem; font-weight: 700; text-decoration: none; border-radius: 6px; }
+  .follow-button.src-c-follow { flex: none; width: auto; min-width: 0; height: 44px; padding: 0 14px; gap: 6px; font-size: .86rem; font-weight: 700; }
+  .src-c-follow > span { display: inline; }
+}
+
+/* Directory sort: column-header buttons on desktop; on phones one labelled
+   "Sort" menu with a direction toggle. */
+.src-sort-bar { display: none; }
+@media (max-width: 699px) {
+  .src-head { display: none; }
+  .src-sort-bar { display: flex; align-items: center; gap: 8px; margin: 2px 0 4px; }
+  .src-sort-bar label { display: flex; flex: 1 1 auto; align-items: center; gap: 10px; min-width: 0; color: var(--color-text-secondary); font-size: .88rem; font-weight: 600; white-space: nowrap; }
+  .src-sort-bar select { flex: 1 1 auto; width: auto; min-width: 0; min-height: 44px; font-size: .92rem; }
+  .src-sort-direction { display: inline-flex; flex: none; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; color: var(--color-text-primary); font: inherit; font-size: .9rem; font-weight: 600; cursor: pointer; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-sm); }
+  .src-sort-direction span { color: var(--color-text-brand); }
+}
+
+/* Home: a short statement of what the site is, key numbers and main entries. */
+.home-intro { padding: 44px 0 8px; }
+.home-intro-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 28px 56px; align-items: end; }
+.home-intro-copy h1 { margin: 0 0 10px; color: var(--color-text-primary); font-size: clamp(1.7rem, 2.4vw, 2.5rem); font-weight: 800; line-height: 1.3; letter-spacing: 0; text-wrap: balance; }
+.home-intro-copy > p { max-width: 40rem; margin: 0; color: var(--color-text-secondary); font-size: 1.02rem; line-height: 1.75; text-wrap: pretty; }
+.home-stats { display: flex; flex-wrap: wrap; gap: 10px 32px; margin: 22px 0 0; }
+.home-stats > div { display: flex; flex-direction: column-reverse; }
+.home-stats dd { margin: 0; color: var(--color-text-brand); font-size: 1.65rem; font-weight: 800; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.home-stats dt { color: var(--color-text-muted); font-size: .84rem; }
+.home-entries { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.home-entry { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 14px 16px; color: var(--color-text-primary); font-weight: 700; text-decoration: none; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); transition: border-color var(--motion-fast), background var(--motion-fast); }
+.home-entry > svg:first-child { flex: 0 0 36px; width: 36px; height: 36px; padding: 8px; color: var(--color-text-brand); background: var(--color-surface-soft); border-radius: 10px; }
+.home-entry > span { flex: 1; min-width: 0; }
+.home-entry > svg:last-child { width: 18px; height: 18px; color: var(--color-text-muted); }
+.home-entry:hover { border-color: var(--color-border-strong); background: var(--color-surface-soft); }
+.home-intro + .home-stories { padding-top: 36px; }
+@media (max-width: 900px) { .home-intro-grid { grid-template-columns: 1fr; } }
+@media (max-width: 640px) {
+  .home-intro { padding: 26px 0 0; }
+  .home-intro-copy h1 { font-size: 1.5rem; }
+  .home-intro-copy > p { font-size: .95rem; }
+  .home-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; margin-top: 16px; }
+  .home-stats dd { font-size: 1.35rem; }
+  .home-entry { min-height: 56px; padding: 10px 12px; gap: 10px; font-size: .92rem; }
+  .home-entry > svg:first-child { flex-basis: 32px; width: 32px; height: 32px; padding: 7px; }
+  .home-intro + .home-stories { padding-top: 28px; }
+}
+
+/* Stories: identity and expiry sit under the image, never over poster text. */
+.ob-story-card { display: flex; flex-direction: column; gap: 10px; }
+.ob-story-caption { display: grid; gap: 6px; min-width: 0; }
+.ob-story-caption .ob-story-header { position: static; display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 8px; padding: 0; color: var(--color-text-primary); text-shadow: none; background: none; pointer-events: auto; }
+.ob-story-caption .ob-story-avatar { width: 32px; color: var(--color-text-brand); background: var(--color-surface-soft); border-color: var(--color-border-subtle); box-shadow: none; font-size: .78rem; }
+.ob-story-caption .ob-story-identity strong { color: var(--color-text-primary); font-size: .92rem; font-weight: 700; line-height: 1.4; }
+.ob-story-caption .ob-story-identity time { color: var(--color-text-muted); font-size: .8rem; line-height: 1.4; }
+.ob-story-caption .ob-story-footer { position: static; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px 10px; padding: 6px 0 0; color: var(--color-text-muted); font-size: .78rem; text-shadow: none; background: none; border-top: 1px solid var(--color-border-subtle); pointer-events: auto; }
+.ob-story-caption .ob-story-footer time { text-shadow: none; white-space: nowrap; }
+.ob-story-caption .ob-story-footer { flex-direction: column; flex-wrap: nowrap; align-items: flex-start; justify-content: flex-start; gap: 0; }
+.ob-story-caption .ob-story-expiry { max-width: 100%; white-space: nowrap; }
+/* Narrow cards (phones): if the line cannot fit, the date and time move down together. */
+@container (max-width: 200px) { .ob-story-caption .ob-story-expiry { white-space: normal; } }
+.ob-story-caption .ob-story-original { display: inline-flex; align-items: center; }
+.ob-story-caption .ob-story-original { min-height: 32px; color: var(--color-text-brand); font-weight: 700; }
+.ob-story-caption .ob-story-original:hover { color: var(--color-text-primary); }
+.ob-story-caption .ob-story-original:focus-visible { outline-color: var(--color-focus-ring); }
+.ob-story-card { flex-basis: clamp(150px, 42vw, 260px); }
+.ob-story-thumb { border-radius: 12px; background: #141814; }
+.ob-story-empty .ob-story-status-link { display: block; width: fit-content; margin-top: 8px; padding-top: 8px; color: var(--color-text-brand); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.ob-story-empty .ob-story-status-link:hover { color: var(--color-text-primary); }
+.ob-story-empty, .google-calendar-empty { max-width: 40rem; padding: 18px 20px; color: var(--color-text-secondary); line-height: 1.7; background: var(--color-surface); border: 1px dashed var(--color-border-strong); border-radius: var(--radius-md); }
+
+/* Events: lead with a calendar date block, then title, time and place. */
+.rich-event-header { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 16px; align-items: start; padding: 20px 20px 14px; }
+.event-date-block { display: grid; justify-items: center; gap: 0; padding: 8px 4px 9px; color: var(--color-text-brand); text-align: center; background: var(--color-surface-soft); border-radius: 12px; }
+.event-date-block strong { font-size: 1.75rem; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.event-date-month, .event-date-weekday { font-size: .76rem; font-weight: 700; line-height: 1.4; }
+.event-date-weekday { color: var(--color-text-muted); font-weight: 600; }
+.rich-event-card.is-past .event-date-block { color: var(--color-text-muted); background: var(--color-canvas); }
+.rich-event-heading { min-width: 0; }
+.rich-event-header h2 { font-size: 1.2rem; margin: 0 0 8px; }
+.rich-event-time, .rich-event-location { font-size: .9rem; }
+.rich-event-time { color: var(--color-text-primary); font-weight: 600; }
+.event-poster { background: transparent; }
+.rich-event-copy .event-author { margin: 4px 0 10px; }
+.rich-event-copy .event-author .avatar { width: 36px; height: 36px; flex-basis: 36px; font-size: .8rem; }
+.rich-event-copy .event-author-identity { gap: 1px; }
+.rich-event-copy .event-author-identity strong { font-size: .88rem; }
+.rich-event-actions { gap: 4px 18px; }
+@media (max-width: 760px) {
+  .rich-event-header { grid-template-columns: 54px minmax(0, 1fr); gap: 12px; padding: 16px 15px 12px; }
+  .event-date-block strong { font-size: 1.45rem; }
+}
+
+/* Loading: the outline of the home page instead of a lone spinner — title,
+   key numbers, then tall story posters beside a short list of events. */
+.skeleton { display: grid; gap: 14px; padding: 44px 0 24px; }
+.skeleton-label { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--color-text-secondary); font-size: 1rem; font-weight: 600; }
+.skeleton-label svg { width: 20px; height: 20px; color: var(--color-text-brand); }
+.skeleton-body { display: grid; gap: 14px; }
+.skeleton-bar, .skeleton-media { border-radius: 8px; background: linear-gradient(90deg, var(--color-surface-soft) 25%, color-mix(in srgb, var(--color-surface-soft) 55%, var(--color-surface)) 50%, var(--color-surface-soft) 75%); background-size: 200% 100%; animation: skeleton-shine 1.4s ease-in-out infinite; }
+.skeleton-bar { height: 14px; }
+.skeleton-title { width: min(30rem, 80%); height: clamp(1.7rem, 2.4vw, 2.5rem); }
+.skeleton-text { width: min(40rem, 90%); }
+.skeleton-short { width: 60%; }
+.skeleton-stats { display: flex; gap: 32px; margin-top: 8px; }
+.skeleton-stat { display: grid; gap: 8px; }
+.skeleton-stat-value { width: 4.5rem; height: 26px; }
+.skeleton-stat-label { width: 5.5rem; height: 12px; }
+.skeleton-now { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 26rem); gap: 32px 48px; align-items: start; margin-top: 28px; }
+.skeleton-heading { width: 9rem; height: 22px; margin-bottom: 14px; }
+.skeleton-strip { display: flex; gap: 12px; overflow: hidden; }
+.skeleton-story { display: grid; flex: 0 0 clamp(150px, 42vw, 260px); gap: 8px; }
+.skeleton-story .skeleton-media { aspect-ratio: 9 / 16; border-radius: 12px; }
+.skeleton-events { display: grid; gap: 10px; }
+.skeleton-events .skeleton-heading { margin-bottom: 4px; }
+.skeleton-row { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 12px; align-items: center; padding: 14px; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); }
+.skeleton-date { height: 56px; border-radius: 12px; }
+.skeleton-row-copy { display: grid; gap: 8px; }
+@media (prefers-reduced-motion: reduce) { .skeleton-bar, .skeleton-media { animation: none; } }
+@media (max-width: 1100px) { .skeleton-now { grid-template-columns: 1fr; } }
+@media (max-width: 640px) {
+  .skeleton { padding-top: 26px; }
+  .skeleton-title { height: 1.6rem; }
+  .skeleton-stats { gap: 14px; margin-top: 2px; }
+  .skeleton-stat-value { width: 3rem; height: 20px; }
+  .skeleton-stat-label { width: 3.5rem; }
+  .skeleton-now { gap: 24px; margin-top: 14px; }
+  .skeleton-story { flex: 1 1 0; }
+  .skeleton-story:nth-child(n+3) { display: none; }
+  .skeleton-row:nth-child(n+5), .skeleton-text { display: none; }
+}
+.load-error { padding: 32px 0; }
+
+/* Density: larger text in the directory, scores and subscription lists. */
+.source-card.src-row h3 { font-size: .98rem; }
+.src-country, .src-link { font-size: .86rem; }
+.src-upd, .src-count { font-size: .84rem; }
+.src-head { font-size: .82rem; }
+.src-sort { min-height: 40px; }
+.score-row-meta, .score-table .score-row-meta { font-size: .86rem; }
+.collection-facts > div, .collection-record dl > div, .collection-provider { font-size: .88rem; }
+.score-source-list .collection-title { font-size: 1.06rem; }
+/* A book without a cover keeps the illustrated layout with a quiet tile. */
+.collection-cover-placeholder { display: grid; place-items: center; aspect-ratio: 1; color: var(--color-text-muted); background: var(--color-surface-soft); border-radius: 4px; }
+.collection-cover-placeholder svg { width: 32%; height: auto; max-width: 40px; opacity: .7; }
+.feed-grid { max-width: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 40px; }
+.feed-card h2 { font-size: 1rem; }
+@media (max-width: 760px) { .feed-grid { grid-template-columns: 1fr; } }
+@media (max-width: 699px) {
+  .src-upd, .src-count { white-space: nowrap; }
+  .src-count[data-label]::before, .src-upd[data-label]::before { content: attr(data-label) " "; color: var(--color-text-muted); font-weight: 500; }
+  .filter-bar .checkbox-filter { min-height: 44px; padding: 0 12px; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-sm); }
+  .filter-bar .checkbox-filter input { width: 20px; height: 20px; }
+}
+
+/* Directory on phones: let the stats row size to its labels instead of
+   fixed 36px/55px columns that pushed the date off-screen. */
+@media (max-width: 699px) {
+  .src-links { min-width: 0; }
+  .src-count, .src-upd { font-size: .78rem; }
+}
+
+/* Loading and error states on the full-bleed home route keep the page grid. */
+.home-main > .skeleton, .home-main > .load-error { width: var(--page-width); margin-inline: auto; }
+
+/* Home calendar: the next events as native rows, then the official embed. */
+.home-upcoming { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 0 0 28px; padding: 0; list-style: none; }
+.home-upcoming-link { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 12px; height: 100%; padding: 14px; color: var(--color-text-primary); text-decoration: none; background: var(--color-canvas); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); }
+.home-upcoming-link:hover { border-color: var(--color-border-strong); }
+.home-upcoming-link > .external { display: none; }
+.home-upcoming .event-date-block strong { font-size: 1.4rem; }
+.home-upcoming-copy { display: grid; gap: 3px; min-width: 0; }
+.home-upcoming-copy strong { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: .95rem; line-height: 1.45; }
+.home-upcoming-copy > span { display: flex; gap: 4px; align-items: flex-start; color: var(--color-text-secondary); font-size: .82rem; line-height: 1.45; }
+.home-upcoming-copy > span svg { flex: 0 0 14px; width: 14px; height: 14px; margin-top: 2px; }
+.home-upcoming-copy > span:last-child { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.home-calendar-subtitle { margin: 0 0 12px; color: var(--color-text-secondary); font-size: 1rem; font-weight: 700; }
+.google-calendar-frame iframe { height: 520px; min-height: 0; }
+@media (max-width: 1100px) { .home-upcoming { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) {
+  .home-upcoming { grid-template-columns: 1fr; gap: 8px; }
+  .home-upcoming-link { padding: 12px; }
+  .google-calendar-frame iframe { height: 520px; min-height: 0; }
+}
+
+
+/* Event cards on phones: the date becomes a compact chip above the title. */
+@media (max-width: 760px) {
+  .rich-event-header { grid-template-columns: 1fr; gap: 10px; }
+  .rich-event-header .event-date-block { display: inline-flex; justify-self: start; align-items: baseline; gap: 6px; padding: 4px 12px; border-radius: 999px; }
+  .rich-event-header .event-date-block strong { font-size: 1.05rem; }
+}
+
+
+/* Subscriptions grouped by kind, each with one line on what it is for. */
+.feed-groups { display: grid; gap: 28px; }
+.feed-group > header h2 { margin: 0 0 4px; font-size: 1.15rem; }
+.feed-group > header p { margin: 0 0 6px; color: var(--color-text-secondary); font-size: .9rem; }
+
+/* Directory: one line of description fills the name column on desktop; the
+   report flag sits apart from the source links. */
+@media (min-width: 900px) {
+  .src-c-name { flex-direction: column; align-items: stretch; justify-content: center; }
+  .src-summary { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; margin: 2px 0 0 54px; color: var(--color-text-muted); font-size: .84rem; line-height: 1.5; }
+}
+.src-links .context-report-link { margin-left: 6px; padding-left: 10px; color: var(--color-text-muted); border-left: 1px solid var(--color-border-subtle); }
+/* Phones: three lines per source — name, "country · type", links and stats. */
+@media (max-width: 699px) {
+  .src-country-mobile { display: none; }
+  .src-c-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; font-size: .84rem; }
+  .src-country-inline { display: inline; color: var(--color-text-secondary); font-weight: 600; }
+  .src-country-inline::after { content: "·"; margin-left: 6px; color: var(--color-text-muted); }
+  .src-c-chips .source-types { display: inline-flex; }
+  .src-links .context-report-link { display: none; }
+  .source-card.src-row { row-gap: 2px; padding-block: 10px; }
+}
+
+/* Home "now" band: stories beside the next events on desktop. */
+.home-now-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 26rem); gap: 32px 48px; align-items: start; }
+.home-now-stories { min-width: 0; }
+.home-now-events .home-upcoming { grid-template-columns: 1fr; gap: 10px; margin: 0; }
+.home-now-events .home-section-heading h2 { font-size: 1.5rem; }
+@media (max-width: 1100px) { .home-now-grid { grid-template-columns: 1fr; } .home-now-events .home-upcoming { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) {
+  .home-now-events .home-upcoming { grid-template-columns: 1fr; }
+  .home-now-events .home-section-heading h2 { font-size: 1.3rem; }
+  /* First screen on phones: one line of numbers, entries as a swipe row. */
+  .home-intro-copy > p { display: none; }
+  .home-stats { display: flex; flex-wrap: nowrap; gap: 14px; margin-top: 10px; overflow-x: auto; scrollbar-width: none; }
+  .home-stats > div { flex: 0 0 auto; }
+  .home-stats dd { font-size: 1.15rem; }
+  .home-stats dt { font-size: .74rem; white-space: nowrap; }
+  .home-entries { display: flex; gap: 8px; margin-inline: -16px; padding: 2px 16px 6px; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; }
+  .home-entry { flex: 0 0 auto; min-height: 48px; padding: 8px 14px 8px 8px; scroll-snap-align: start; border-radius: 999px; }
+  .home-entry > svg:last-child { display: none; }
+  .home-intro-grid { gap: 14px; }
+  .home-intro-copy h1 { font-size: 1.35rem; margin-bottom: 0; }
+}
+
+/* Event cards: compact poster, year on past dates, secondary actions in "⋯". */
+.event-media { padding: 0 20px; }
+.event-poster { width: auto; max-width: 100%; max-height: 260px; margin: 0; }
+.event-reference .feed-text { -webkit-line-clamp: 3; }
+.event-date-year { color: var(--color-text-muted); font-size: .7rem; font-weight: 700; line-height: 1.3; }
+.more-actions { position: relative; margin-left: auto; }
+.more-actions > summary { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 36px; color: var(--color-text-secondary); font-size: 1.2rem; list-style: none; cursor: pointer; border-radius: 8px; }
+.more-actions > summary::-webkit-details-marker { display: none; }
+.more-actions > summary:hover, .more-actions[open] > summary { background: var(--color-surface-soft); }
+.more-actions-menu { position: absolute; right: 0; bottom: calc(100% + 6px); z-index: 5; display: grid; gap: 2px; min-width: 10rem; padding: 6px; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: 10px; box-shadow: var(--shadow-raised); }
+.more-actions-menu > * { justify-content: flex-start; min-height: 40px; padding: 6px 10px !important; }
+@media (max-width: 760px) { .event-poster { max-height: 220px; } .event-media { padding: 0 15px; } }
+
+/* Filters on phones fold under one toggle. */
+.filter-more { flex: 1 1 100%; }
+.filter-more > summary { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 14px; color: var(--color-text-primary); font-size: .9rem; font-weight: 700; list-style: none; cursor: pointer; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: 999px; }
+.filter-more > summary::-webkit-details-marker { display: none; }
+.filter-more > summary svg { width: 18px; height: 18px; color: var(--color-text-brand); }
+.filter-more-body { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 10px; margin-top: 8px; }
+.filter-more-body > *, .filter-more-body label, .filter-more-body select { width: 100%; max-width: none; min-width: 0; flex: none; }
+.filter-more-body label { gap: 3px; }
+.filter-more-body select { min-height: 44px; }
+/* "Clear filters" is a small text button on the toggle's row. */
+.filter-bar:has(> .filter-more) { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: start; }
+.filter-bar:has(> .filter-more) > .search-label { grid-column: 1 / -1; }
+.filter-bar > .filter-more { grid-column: 1 / -1; grid-row: 2; }
+.filter-bar > .filter-more ~ .clear-filter { position: relative; z-index: 1; grid-column: 2; grid-row: 2; align-self: start; justify-self: end; min-height: 44px; padding: 0 4px; font-size: .86rem; }
+
+/* Contribute: what Apify is, live contributions first, new form folded. */
+.contribution-main { display: flex; flex-direction: column; gap: 20px; }
+.contribution-main.has-contributions .ownership-section { order: -1; }
+.contribution-main .apify-intro { order: -2; display: flex; gap: 10px; align-items: flex-start; margin: 0; padding: 14px 16px; color: var(--color-text-secondary); font-size: .92rem; line-height: 1.7; background: var(--color-info-surface); border-radius: var(--radius-md); }
+.apify-intro svg { flex: 0 0 20px; width: 20px; height: 20px; margin-top: 3px; color: var(--color-text-brand); }
+.apify-intro p { margin: 0; }
+.new-contribution > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; list-style: none; cursor: pointer; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); }
+.new-contribution > summary::-webkit-details-marker { display: none; }
+.new-contribution > summary h2 { margin: 0; font-size: 1.1rem; }
+.new-contribution > summary svg { width: 20px; height: 20px; color: var(--color-text-brand); }
+.new-contribution[open] > summary { border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom: 0; }
+.new-contribution > .form-panel { margin: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
+
+
+/* Wide screens: the calendar embed shows a month grid. */
+@media (min-width: 901px) { .google-calendar-frame iframe { height: 640px; } }
+
+/* Post cards: one action row — follow source, open source, then "⋯". */
+.observatory-timeline .home-feed-footer { flex-wrap: wrap; row-gap: 6px; }
+.observatory-timeline .timeline-actions { display: flex; flex: 1 1 auto; flex-wrap: nowrap; align-items: center; justify-content: flex-end; gap: 4px 14px; }
+.observatory-timeline .timeline-actions .feed-open-link { color: var(--color-text-brand); font-size: .86rem; font-weight: 700; white-space: nowrap; }
+.observatory-timeline .timeline-actions .more-actions { margin-left: 0; }
+.observatory-timeline .more-actions-menu.feed-card-links { display: grid; width: auto; flex: none; justify-content: stretch; }
+.observatory-timeline .more-actions-menu .context-report-link { font-size: .86rem; }
+
+/* Events: past cards read as finished; a missing poster is a quiet placeholder. */
+.past-badge { display: inline-block; margin-left: 8px; padding: 1px 8px; color: var(--color-text-secondary); font-size: .72rem; font-weight: 700; letter-spacing: .02em; background: var(--color-surface-soft); border-radius: 999px; }
+.rich-event-card.is-past .event-poster { filter: grayscale(.55); opacity: .85; }
+.rich-event-card.is-past h2 { color: var(--color-text-secondary); }
+.event-media { display: flex; justify-content: center; margin: 0 20px; padding: 14px; background: var(--color-canvas); border-radius: 10px; }
+.event-media-unavailable .event-media-link { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 64px; color: var(--color-text-muted); font-size: .84rem; }
+.event-media-unavailable .event-media-link::before { content: ""; width: 18px; height: 18px; border: 1.6px solid currentColor; border-radius: 4px; }
+@media (max-width: 760px) { .event-media { margin: 0 15px; padding: 10px; } }
+
+/* All / Following tabs. */
+.follow-tabs { display: inline-flex; gap: 4px; margin: 4px 0 6px; padding: 4px; background: var(--color-surface-soft); border-radius: 999px; }
+.follow-tab { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 6px 16px; color: var(--color-text-secondary); font-size: .9rem; font-weight: 700; text-decoration: none; border-radius: 999px; }
+.follow-tab svg { width: 16px; height: 16px; }
+.follow-tab[aria-current="page"] { color: var(--color-text-brand); background: var(--color-surface); box-shadow: 0 1px 3px rgb(0 0 0 / 10%); }
+.follow-count { min-width: 1.4em; padding: 0 6px; color: var(--color-text-muted); font-size: .76rem; text-align: center; background: var(--color-canvas); border-radius: 999px; }
+
+/* Directory: the report flag appears on row hover or focus; dates stay on one line. */
+@media (min-width: 900px) {
+  .src-row .src-links .context-report-link { opacity: 0; transition: opacity var(--motion-fast); }
+  .src-row:hover .src-links .context-report-link, .src-row:focus-within .src-links .context-report-link { opacity: 1; }
+}
+.src-upd { white-space: nowrap; }
+
+/* About and privacy: reading column plus a contact card. */
+.info-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 24rem); gap: 32px 56px; align-items: start; }
+.info-layout .prose, .info-layout .faq-section, .about-layout.info-layout { max-width: none; }
+.contact-card { position: sticky; top: 96px; padding: 20px 22px; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-lg); }
+.contact-card h2 { margin: 0 0 6px; font-size: 1.1rem; }
+.contact-card p { margin: 0 0 12px; color: var(--color-text-secondary); font-size: .9rem; line-height: 1.7; }
+.contact-card ul { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.contact-link { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 12px; color: var(--color-text-primary); font-weight: 600; text-decoration: none; background: var(--color-canvas); border-radius: 10px; }
+.contact-link svg { width: 18px; height: 18px; color: var(--color-text-brand); }
+.contact-link:hover { background: var(--color-surface-soft); }
+/* About: the short FAQ lines take the free width beside the contact card.
+   Privacy: the prose keeps a reading measure and the card sits right beside
+   it, so the empty space is the page margin, not a hole mid-page. */
+.about-layout.info-layout .faq-section { max-width: none; }
+.info-layout:not(.about-layout) { grid-template-columns: minmax(0, 42rem) minmax(280px, 24rem); justify-content: start; column-gap: 64px; }
+.info-layout:not(.about-layout) .prose { max-width: none; }
+@media (max-width: 900px) { .info-layout, .info-layout:not(.about-layout) { grid-template-columns: 1fr; } .contact-card { position: static; } }
+
+
+/* Phones: one row of six icon tabs instead of two rows of wide cells. */
+@media (max-width: 640px) {
+  .legacy-site-header.nav-refresh .site-nav { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2px; }
+  .legacy-site-header.nav-refresh .site-nav > .nav-item, .legacy-site-header.nav-refresh .nav-more > summary.nav-item { flex-direction: column; gap: 2px; min-height: 54px; padding: 6px 2px; font-size: .72rem; line-height: 1.25; border-radius: 10px; }
+  .legacy-site-header.nav-refresh .site-nav > .nav-item > svg, .legacy-site-header.nav-refresh .nav-more > summary > svg { display: block; flex: 0 0 22px; width: 22px; height: 22px; }
+  .legacy-site-header.nav-refresh .nav-more > summary.nav-item::after { display: none; }
+  .legacy-site-header.nav-refresh .nav-label { overflow-wrap: normal; word-break: keep-all; text-align: center; }
+  .site-header.legacy-site-header { padding-block: 10px 6px; row-gap: 6px; }
+}
+
+/* Source page: posts are from this source, so drop the repeated author and
+   follow controls; cap tall story images; card frames like the feed. */
+.source-updates-grid .post-card { display: block; margin: 0 0 16px; padding: 16px 18px; break-inside: avoid; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); }
+.source-updates-grid .feed-avatar-wrap, .source-updates-grid .feed-name, .source-updates-grid [data-follow] { display: none; }
+.source-updates-grid .post-card:has(.story-tag) .feed-img { max-height: 380px; width: 100%; object-fit: cover; object-position: top; }
+.source-updates-grid .feed-img { border-radius: 8px; }
+
+/* Events: one dated list; poster beside the details on wide screens. */
+.rich-events-grid { grid-template-columns: 1fr; max-width: 68rem; gap: 16px; }
+@media (min-width: 900px) {
+  .rich-event-card { display: grid; grid-template-columns: minmax(0, 1fr) 260px; grid-template-areas: "header media" "copy media" "gallery media"; align-items: start; }
+  .rich-event-card > .rich-event-header { grid-area: header; }
+  .rich-event-card > .rich-event-copy { grid-area: copy; }
+  .rich-event-card > .event-gallery { grid-area: gallery; margin-bottom: 14px; }
+  .rich-event-card > .event-media, .rich-event-card > .event-video { grid-area: media; margin: 20px 20px 20px 0; }
+  .rich-event-card > .event-media { min-height: 200px; align-items: center; }
+  .event-poster { max-height: 320px; }
+}
+.event-media-unavailable { display: none; }
+
+/* Contribute: the fold uses a chevron that turns, not a close-looking cross. */
+.new-contribution[open] > summary svg { transform: rotate(90deg); }
+@media (max-width: 640px) { .google-calendar-toolbar { justify-content: flex-start; } }
+
+
+/* Round 7: source-page images stay inside their cards (the feed layout
+   pulled them left under the hidden avatar column). */
+.source-updates-grid .post-image.feed-img { margin: 12px 0 0; width: 100%; max-width: 100%; }
+/* Events: two lines of the original post, still visible; cards use the full width. */
+.rich-events-grid { max-width: none; }
+.event-reference .feed-text { -webkit-line-clamp: 2; }
+/* Phones: the same page names as on desktop, each on one line. */
+@media (max-width: 640px) {
+  .legacy-site-header.nav-refresh .site-nav .nav-label { display: block; max-width: 100%; font-size: .72rem; white-space: nowrap; overflow-wrap: normal; letter-spacing: -.01em; }
+}
+/* Very wide screens: a wider page and larger secondary text. */
+@media (min-width: 2200px) { & { --page-width: min(1560px, calc(100% - 160px)); } }
+.home-updated, .rich-event-zone, .ob-story-caption .ob-story-footer, .google-calendar-context, .home-upcoming-copy > span { font-size: .86rem; }
+.event-author-meta, .feed-latest-meta { font-size: .82rem; }
+/* Directory header: quiet column dividers until hovered. */
+@media (min-width: 900px) {
+  .src-column-resize::after { background: transparent; }
+  .src-head:hover .src-column-resize::after { background: var(--color-border-subtle); }
+}
+
+/* Secondary text: darker muted colour (about 6:1 on the cream canvas) and at
+   least ~13px for meta lines, labels, dates and table notes. */
+& { --color-text-muted: #556055; }
+&[data-theme="dark"] { --color-text-muted: #a5b19f; }
+@media (prefers-color-scheme: dark) { &:not([data-theme="light"]) { --color-text-muted: #a5b19f; } }
+.observatory-timeline .timeline-meta, .feed-meta, .feed-time, .eyebrow, .filter-bar label, .follow-count,
+.event-date-month, .event-date-weekday, .status-table small, .status-table td p,
+.score-row-meta .score-country, .score-notes > summary, .score-tab span { font-size: max(.8rem, 13px); }
+.observatory-timeline .timeline-meta, .feed-meta { line-height: 1.5; }
+
+/* Keyboard focus: a clear ring on every link and control. */
+:is(a, button, summary, input, select, textarea, [tabindex]):focus-visible { outline: 3px solid var(--color-focus-ring); outline-offset: 2px; }
+.ob-story-caption .ob-story-original:focus-visible { outline: 3px solid var(--color-focus-ring); }
+
+/* Headings: balanced lines, no orphaned last character; Japanese breaks at phrases. */
+:is(h1, h2, h3) { text-wrap: balance; }
+:is(h1, h2, h3):lang(ja) { word-break: auto-phrase; }
+
+
+/* Page notes: subscriptions, timezones and counting rules gathered at the
+   foot of a page (page-notes.js). */
+.page-notes { margin: 48px 0 8px; padding: 20px 0 0; color: var(--color-text-secondary); border-top: 1px solid var(--color-border-subtle); }
+.page-notes h2 { margin: 0 0 10px; color: var(--color-text-primary); font-size: .95rem; font-weight: 700; }
+.page-notes ul { display: grid; gap: 6px; margin: 0; padding: 0 0 0 1.1em; font-size: .86rem; line-height: 1.7; }
+.page-notes a { color: var(--color-text-brand); }
+.page-notes .page-notes-links { display: inline-flex; flex-wrap: wrap; gap: 4px 14px; }
+
+/* De-noise round: small labels, actions and badges in post cards, directory
+   rows, scores and source profiles read at 13px or more. */
+.observatory-timeline .timeline-action, .observatory-timeline .timeline-actions .feed-open-link, .feed-latest-meta,
+.source-name-value, .source-language-label, .source-alternatives > summary, .source-alternatives-content h4, .source-translation-note,
+.profile-tags .tag, .feed-plat, .feed-action, .feed-meta .tag, .story-expired,
+.src-row .follow-button span, .src-count, .src-upd, .src-upd time,
+.score-tab, .score-tab > span, .score-table th, .score-table .score-credits span, .score-table .score-notes, .score-table .score-notes p,
+.score-table .score-publisher, .score-mobile-label, .score-evidence-link, .score-row-links .context-report-link,
+.collection-group-heading h2 span, .collection-facts dt, .collection-primary, .collection-record > summary, .collection-original,
+.status-pill, .status-metrics span, .page-heading .button { font-size: max(.82rem, 13px); }
+.source-language-label { color: var(--color-text-muted); }
+
+/* Source page: every post is from this source, so its country is not repeated
+   on each card; tall story images and posters are capped and shown whole. */
+.source-updates-grid .feed-meta .feed-topic, .source-updates-grid .feed-meta .feed-topic + [aria-hidden] { display: none; }
+.source-updates-grid .post-image.feed-img { max-height: 360px; width: 100%; object-fit: contain; object-position: center; background: var(--color-surface-soft); }
+/* Story images fill the card width, cropped from the top, without grey side bars. */
+.source-updates-grid .post-card:has(.story-tag) .post-image.feed-img { max-height: 360px; width: 100%; object-fit: cover; object-position: top; background: none; }
+
+/* Post cards outside the feed (source page): one action row — original
+   source, then share and report in "⋯", like the feed cards. */
+.feed-content > .feed-actions { flex-wrap: nowrap; align-items: center; gap: 4px; margin-top: 10px; }
+.feed-content > .feed-actions .feed-original { color: var(--color-text-brand); font-weight: 700; white-space: nowrap; }
+.feed-content > .feed-actions .more-actions { margin-left: auto; }
+.feed-content > .feed-actions .more-actions-menu .context-report-link { display: inline-flex; align-items: center; }
+
+/* Scores on phones: one card per record, without a rule between each field. */
+@media (max-width: 699px) {
+  .score-list { border-top: 0; }
+  .score-table tbody { display: grid; gap: 10px; }
+  .score-table .score-row { grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 14px 16px; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); }
+  .score-table .score-row td { border: 0; }
+  .score-table tbody tr:hover { background: var(--color-surface); }
+  .score-table .score-row-meta { flex-direction: row; flex-wrap: wrap; gap: 0 8px; }
+  .score-table .score-row-meta > span:empty { display: none; }
+  .score-table .score-row-meta > span { white-space: nowrap; }
+  .score-table .score-row-meta > span:not(:empty):has(~ span:not(:empty))::after { content: "·"; margin-left: 8px; color: var(--color-text-muted); }
+  .score-table .score-publisher { display: flex; flex-wrap: wrap; gap: 0 6px; }
+  .score-mobile-label { display: inline; margin: 0; }
+  .score-table .score-notes { margin: 0; }
+}
+
+/* Prose pages: a reading column of about 40 CJK characters on desktop. */
+.info-layout .prose, .info-layout .faq-section, .page-heading p { max-width: 40rem; }
+.about-layout.info-layout .faq-section, .info-layout:not(.about-layout) .prose { max-width: none; }
+
+/* Wide screens (1500px+): helper and meta text — dates, labels, counts,
+   card actions, tags, the footer — reads at about 14px instead of 12–13px.
+   Every selector here is smaller than this below 1500px, so nothing shrinks. */
+@media (min-width: 1500px) {
+  .observatory-timeline .timeline-meta, .feed-meta, .feed-time, .eyebrow, .filter-bar label, .search-label > span, .follow-count,
+  .event-date-month, .event-date-weekday, .status-table small, .status-table td p,
+  .score-row-meta .score-country, .score-notes > summary, .score-tab span,
+  .observatory-timeline .timeline-action, .observatory-timeline .timeline-actions .feed-open-link, .feed-latest-meta, .event-author-meta,
+  .source-name-value, .source-language-label, .source-alternatives > summary, .source-alternatives-content h4, .source-translation-note,
+  .profile-tags .tag, .feed-plat, .feed-action, .feed-meta .tag, .story-expired, .feed-expand,
+  .src-head, .src-row .follow-button span, .src-count, .src-upd, .src-upd time,
+  .score-tab, .score-tab > span, .score-table th, .score-table .score-credits span, .score-table .score-notes, .score-table .score-notes p,
+  .score-table .score-publisher, .score-mobile-label, .score-evidence-link, .score-row-links .context-report-link,
+  .collection-group-heading h2 span, .collection-facts dt, .collection-primary, .collection-record > summary, .collection-original,
+  .status-pill, .status-metrics span, .page-heading .button, .pagination p,
+  .feed-card .tag, .feed-card .copy-button, .site-footer,
+  .collection-group-heading p, .community-banner p:not(.eyebrow), .profile-links .button,
+  .site-footer a, .field-hint, .consent-label span, .ownership-hint, .capacity-panel .small, .capacity-panel small, .capacity-figures span,
+  .submission-row .small, .sidebar-note p, .account-panel .small { font-size: max(.84rem, 14px); }
+  .status-table small, .field-hint, .ownership-hint, .capacity-panel .small, .capacity-panel small, .capacity-figures span, .site-footer a { color: var(--color-text-muted); }
+  .page-notes ul, .home-updated, .rich-event-zone, .ob-story-caption .ob-story-footer, .google-calendar-context, .home-upcoming-copy > span { font-size: max(.86rem, 14px); }
+  .home-intro-copy > p { font-size: 1.1rem; }
+}
+
+/* Feed cards (timeline and source page): tall images are capped and shown
+   whole on the soft surface instead of stretching the card. */
+.observatory-timeline .home-feed-thumb { max-height: 420px; }
+.source-updates-grid .post-image.feed-img, .source-updates-grid .post-card:has(.story-tag) .post-image.feed-img { max-height: 420px; }
+@media (max-width: 640px) {
+  .observatory-timeline .home-feed-thumb { max-height: 360px; }
+  .source-updates-grid .post-image.feed-img, .source-updates-grid .post-card:has(.story-tag) .post-image.feed-img { max-height: 360px; }
+}
+
+/* Directory on desktop: link icons are 28px targets with room between them. */
+@media (min-width: 700px) {
+  .src-row .src-links { gap: 6px; }
+  .src-links .src-link-icon { flex-basis: 28px; width: 28px; height: 28px; }
+}
+@media (max-width: 699px) {
+  .src-links-more { white-space: nowrap; font-weight: 600; }
+  .src-row .src-links:has(.src-links-more) .src-link-icon:nth-child(n+4) { display: none; }
+}
+
+/* Forms: a small "Required" / "Optional" tag after each field label. */
+.field-tag { display: inline-block; margin-left: 8px; padding: 0 6px; color: var(--color-text-muted); font-size: max(.72rem, 12px); font-weight: 500; line-height: 1.6; vertical-align: 1px; border: 1px solid var(--color-border-subtle); border-radius: 4px; }
+.field-tag.is-required { color: var(--color-text-brand); border-color: color-mix(in srgb, var(--color-text-brand) 35%, transparent); }
+
+/* About and privacy on desktop: the intro runs wider and the privacy prose
+   column grows to about 48rem, with the contact card beside it on the right. */
+@media (min-width: 901px) {
+  .page-heading:has(+ .info-layout) p { max-width: 56rem; text-wrap: pretty; }
+  .info-layout:not(.about-layout) { grid-template-columns: minmax(0, 48rem) minmax(280px, 24rem); }
+}
+
+/* Wide screens: status-table notes and footer links read at about 15px in
+   the darker secondary colour. */
+@media (min-width: 1500px) {
+  .status-table small, .site-footer a { font-size: max(.88rem, 15px); color: var(--color-text-secondary); }
+}
+
+/* Feeds: the title links to the feed; the format tag and copy button close
+   the row, which stays one line on phones. */
+.feed-card h2 .feed-title-link { color: var(--color-text-brand); text-decoration: none; }
+.feed-card h2 .feed-title-link:hover { text-decoration: underline; }
+.feed-card > .tag { order: 2; }
+.feed-card > .feed-actions { order: 3; }
+@media (max-width: 640px) {
+  .feed-card { flex-wrap: nowrap; gap: 10px; padding: 12px 0; }
+  .feed-card .feed-icon { width: 24px; height: 24px; }
+  .feed-card h2 { flex: 1 1 auto; flex-basis: auto; min-width: 0; font-size: .95rem; }
+  .feed-card .feed-actions { margin-left: 0; flex-wrap: nowrap; }
+  .feed-card .copy-button { min-height: 40px; white-space: nowrap; }
+}
+
+/* Post text: web addresses read as short link labels (utils.js). */
+.post-text-link { color: var(--color-text-brand); font-weight: 600; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.post-text-link:hover { color: var(--color-text-primary); }
+
+/* Post cards: a tighter action row — less space above and below the divider. */
+.observatory-timeline .home-feed-card { padding-bottom: 8px; }
+.observatory-timeline .home-feed-footer { margin-top: -4px; padding-top: 4px; }
+.observatory-timeline .timeline-action { min-height: 32px; }
+.observatory-timeline .home-feed-footer .more-actions > summary { height: 32px; }
+.source-updates-grid .post-card { padding-bottom: 8px; }
+.feed-content > .feed-actions { margin-top: 6px; }
+.feed-content > .feed-actions .more-actions > summary { height: 32px; }
+
+/* Source page on phones: the follow button shares the name's row; the
+   summary keeps to three lines with "read more"; at most three tags. */
+@media (max-width: 699px) {
+  .org-page > .back-link { margin-bottom: 10px; }
+  .source-profile { grid-template-columns: 56px minmax(0, 1fr) auto; gap: 0 12px; padding-bottom: 18px; }
+  .source-profile .profile-avatar .avatar { width: 56px; height: 56px; }
+  .source-profile > .button { grid-column: 3; grid-row: 1 / span 2; align-self: center; justify-self: end; width: auto; min-height: 40px; margin: 0; padding: 0 14px; }
+  .source-profile > div:not(.profile-avatar) > h1 { font-size: 1.45rem; line-height: 1.3; }
+  .source-profile > div:not(.profile-avatar) > h1 + * { margin-top: 8px; }
+  .source-profile .profile-types, .source-profile > div > .source-alternatives { margin-block: 2px 0; }
+  .source-profile .source-biography { margin: 6px 0 0; }
+  .source-profile .source-summary { margin: 0; }
+  .source-profile .source-biography:not(.is-expanded) .source-summary { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .source-profile .source-summary-toggle { justify-self: start; margin: 2px 0 0; }
+  .source-profile .profile-tags { margin-top: 8px; }
+  .source-profile .profile-tags .tag:nth-child(n+4) { display: none; }
+  .source-profile .profile-links { margin: 8px 0 0; }
+}
+@media (min-width: 700px) { .source-summary-toggle { display: none; } }
+
+/* Contribute: what withdrawing does, beside the button. */
+.withdraw-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
+.withdraw-row > .button { flex: none; }
+.withdraw-effect { flex: 1 1 16rem; margin: 0; color: var(--color-text-secondary); font-size: max(.84rem, 13px); line-height: 1.6; }
+
+/* Dark theme: secondary and muted text a step lighter on the dark surfaces
+   (muted about 8:1 on the card surface, 7:1 on the soft surface). */
+&[data-theme="dark"] { --color-text-secondary: #d3dccf; --color-text-muted: #b6c0b1; }
+@media (prefers-color-scheme: dark) { &:not([data-theme="light"]) { --color-text-secondary: #d3dccf; --color-text-muted: #b6c0b1; } }
+
+/* Wide screens: navigation labels about 15–16px; card meta (country, time)
+   at 14px or more in the darker secondary colour. */
+@media (min-width: 1500px) {
+  .legacy-site-header .site-nav > .nav-item, .legacy-site-header .nav-more > summary.nav-item, .legacy-site-header .site-nav .nav-label { font-size: max(.94rem, 15px); }
+  .feed-latest-meta, .feed-latest-meta time, .feed-meta, .feed-time, .feed-time time, .post-card .eyebrow, .event-author-meta, .rich-event-zone, .home-upcoming-copy > span, .ob-story-caption .ob-story-identity time { font-size: max(.86rem, 14px); color: var(--color-text-secondary); }
+}
+}

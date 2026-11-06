@@ -1,3 +1,4 @@
+import { isRedesign } from './redesign.js';
 import { t, getLocale, locales, languageNames } from './i18n.js';
 import { esc, icon, link } from './utils.js';
 
@@ -13,6 +14,22 @@ const labels = {
   preferences: ['Preferences', '瀏覽設定', '閲覧設定', '보기 설정'],
 };
 const text = (key) => labels[key][Math.max(0, locales.indexOf(getLocale()))];
+// One-line labels for the phone tab bar (Directory, Sheet music and the like wrap).
+const shortLabels = {
+  discover: ['Home', '首頁', 'ホーム', '홈'], posts: ['Updates', '動態', '投稿', '소식'], events: ['Events', '活動', '予定', '행사'],
+  sources: ['Sources', '名錄', '情報源', '출처'], scores: ['Scores', '樂譜', '楽譜', '악보'], more: ['More', '更多', 'その他', '더보기'],
+};
+const shortText = (key) => (shortLabels[key] || shortLabels.more)[Math.max(0, locales.indexOf(getLocale()))];
+// New interface: one short name per page, shared by the desktop nav, the phone
+// tab bar, the page heading and the document title.
+const pageNames = {
+  discover: ['Home', '首頁', 'ホーム', '홈'], posts: ['Updates', '動態', '投稿', '소식'], events: ['Events', '活動', 'イベント', '행사'],
+  sources: ['Sources', '來源名錄', '情報源', '출처'], scores: ['Scores', '樂譜', '楽譜', '악보'], more: ['More', '更多', 'その他', '더 보기'],
+};
+// The redesigned name for a primary page, or null (callers keep their own label).
+export function pageName(key) {
+  return isRedesign() && pageNames[key] ? pageNames[key][Math.max(0, locales.indexOf(getLocale()))] : null;
+}
 const themeKey = 'observatory-appearance';
 let initialized = false;
 let currentTheme = 'system';
@@ -52,14 +69,20 @@ function active(url, current) {
   return current === url || (url === '/source/' && current.startsWith('/source/')) || (url === '/scores/' && current.startsWith('/scores/'));
 }
 function navLink(url, key, current, extra = '') {
+  if (isRedesign()) {
+    const name = esc(pageName(key));
+    return `<a href="${url}" class="nav-item ${extra}" title="${name}" ${active(url, current) ? 'aria-current="page"' : ''}>${glyph(navIcons[key])}<span class="nav-label">${name}</span></a>`;
+  }
   const label = key === 'discover' ? text('home') : t(key);
-  return `<a href="${url}" class="nav-item ${extra}" title="${esc(label)}" ${active(url, current) ? 'aria-current="page"' : ''}>${glyph(navIcons[key])}<span class="nav-label">${label}</span></a>`;
+  return `<a href="${url}" class="nav-item ${extra}" title="${esc(label)}" ${active(url, current) ? 'aria-current="page"' : ''}>${glyph(navIcons[key])}<span class="nav-label">${label}</span><span class="nav-label-short" aria-hidden="true">${esc(shortText(key))}</span></a>`;
 }
 export function accountNavigation(session = null) {
   const label = session?.account ? t('accountTitle') : t('googleLoginShort');
   const content = session?.googleLoginEnabled && !session.account
     ? `<button type="button" class="button nav-account-button" data-google-auth="login" aria-label="${t('googleSignIn')}">${label}</button>`
-    : `<a class="button nav-account-button" href="/contribute/?lang=${encodeURIComponent(getLocale())}#google-account">${label}</a>`;
+    : session?.account
+      ? `<a class="button nav-account-button is-signed-in" href="/contribute/?lang=${encodeURIComponent(getLocale())}#google-account" ><span class="nav-account-avatar" aria-hidden="true">${icon('check')}</span><span>${label}</span></a>`
+      : `<a class="button nav-account-button" href="/contribute/?lang=${encodeURIComponent(getLocale())}#google-account">${label}</a>`;
   return `<div data-account-nav class="nav-account">${content}</div>`;
 }
 export function navigation(current = location.pathname, routes = {}, session = null) {
@@ -73,7 +96,7 @@ export function navigation(current = location.pathname, routes = {}, session = n
   return `<a class="skip-link" href="#main">${t('skip')}</a><header class="site-header legacy-site-header nav-refresh">
     <a class="brand" href="/" aria-label="${esc(brandLabel)}"><span class="brand-mark"><img src="/web/assets/observatory-mark.svg" width="34" height="34" alt="" aria-hidden="true"></span><span class="brand-wordmark"><span class="brand-name">${esc(brand)}</span>${english ? '<span class="brand-english" lang="en">HARMONICA OBSERVATORY</span>' : ''}</span></a>
     <nav class="site-nav" aria-label="${t('navigation')}">${primary.map(([url,key])=>navLink(url,key,current)).join('')}
-      <details class="nav-more"><summary class="nav-item" aria-controls="nav-more-content" aria-expanded="false" aria-label="${text('more')} · ${t('language')}">${glyph('globe')}<span class="nav-label">${text('more')}</span></summary>
+      <details class="nav-more"><summary class="nav-item" aria-controls="nav-more-content" aria-expanded="false" aria-label="${text('more')} · ${t('language')}">${glyph(isRedesign() ? 'menu' : 'globe')}${isRedesign() ? `<span class="nav-label">${esc(pageName('more'))}</span>` : `<span class="nav-label">${text('more')}</span><span class="nav-label-short" aria-hidden="true">${esc(shortText('more'))}</span>`}</summary>
         <div class="nav-more-menu" id="nav-more-content">
           <section class="nav-menu-section" aria-labelledby="nav-resource-title"><h2 class="nav-section-title" id="nav-resource-title">${text('participate')}</h2><div class="nav-resource-grid">${resources.map(entry=>menuLink(entry)).join('')}</div></section>
           <section class="nav-preferences" aria-labelledby="nav-preferences-title"><h2 class="nav-section-title" id="nav-preferences-title">${text('preferences')}</h2>
@@ -86,7 +109,11 @@ export function navigation(current = location.pathname, routes = {}, session = n
     </nav>${accountNavigation(session)}</header>`;
 }
 export function footer() {
-  return `<footer class="site-footer"><div class="footer-links">${[['/about/', 'about'], ['/privacy/', 'privacy'], ['/status/', 'status'], ['/feeds/', 'feeds'], ['/submit/', 'submit'], ['/scores/sources/', 'scoreSources']].map(([url, key]) => link(url, t(key))).join('')}</div><div class="footer-bottom"><span>© ${new Date().getFullYear()} ${esc(t('brand'))}</span>${link('https://github.com/skyhong2002/chumei', t('credit'))}${link('/api/v1/catalog', t('dataLink'))}</div></footer>`;
+  const links = `<div class="footer-links">${[['/about/', 'about'], ['/privacy/', 'privacy'], ['/status/', 'status'], ['/feeds/', 'feeds'], ['/submit/', 'submit'], ['/scores/sources/', 'scoreSources']].map(([url, key]) => link(url, t(key))).join('')}</div>`;
+  // New interface: the project origin is told once on About, and the open
+  // data (JSON) link lives with the other subscriptions on /feeds/.
+  if (isRedesign()) return `<footer class="site-footer">${links}<div class="footer-bottom"><span>© ${new Date().getFullYear()} ${esc(t('brand'))}</span></div></footer>`;
+  return `<footer class="site-footer">${links}<div class="footer-bottom"><span>© ${new Date().getFullYear()} ${esc(t('brand'))}</span>${link('https://github.com/skyhong2002/chumei', t('credit'))}${link('/api/v1/catalog', t('dataLink'))}</div></footer>`;
 }
 export function initializeShell() {
   applyTheme(storedTheme());

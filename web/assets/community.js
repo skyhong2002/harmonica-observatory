@@ -1,3 +1,4 @@
+import { isRedesign } from "./redesign.js";
 import { submissionContext, contextNote } from "./reporting.js";
 import { t, getLocale, countryName } from "./i18n.js";
 import {
@@ -68,8 +69,21 @@ export function syncCommunityUi() {
   if (account && !account.querySelector('[aria-busy="true"]')) account.outerHTML = accountPanel();
   const panel = document.querySelector(".capacity-panel");
   if (panel) panel.outerHTML = capacityPanel();
+  const hidden = signedInHidden();
+  document.querySelector(".ownership-hint")?.toggleAttribute("hidden", hidden.hint);
+  document.querySelector(".withdraw-note")?.toggleAttribute("hidden", hidden.withdraw);
   const owned = document.querySelector("#owned-contributions");
   if (owned && !owned.contains(document.activeElement)) owned.innerHTML = contributionRows();
+  // With live contributions, list them first and fold the new-contribution
+  // form, unless the visitor has started filling it in.
+  const main = document.querySelector(".contribution-main");
+  const fold = main?.querySelector(".new-contribution");
+  if (main && fold) {
+    const has = (session?.contributions || []).length > 0;
+    main.classList.toggle("has-contributions", has);
+    const touched = fold.contains(document.activeElement) || [...fold.querySelectorAll("input:not([type=checkbox]), textarea")].some(field => field.value);
+    if (!touched) fold.open = !has;
+  }
   const form = document.querySelector("#contribution-form, #submission-form");
   if (!form) return;
   const button = form.querySelector('button[type="submit"]');
@@ -110,7 +124,7 @@ export function scheduleView(schedule) {
   return `<div class="schedule-list">${Object.entries(platforms)
     .map(
       ([name, p]) =>
-        `<div><span>${esc(platformName(name))}<small>${t("results", { count: number(p.sourceCount) })}</small></span><strong>${Number.isFinite(p.estimatedDays) && p.estimatedDays > 0 ? t("estimateDays", { days: new Intl.NumberFormat(getLocale(), { maximumFractionDigits: 1 }).format(p.estimatedDays) }) : t(p.state === "insufficient_daily_budget" ? "noCapacity" : "estimateUnknown")}</strong></div>`,
+        `<div><span>${esc(platformName(name))}<small>${t("sourceCount", { count: number(p.sourceCount) })}</small></span><strong>${Number.isFinite(p.estimatedDays) && p.estimatedDays > 0 ? t("estimateDays", { days: new Intl.NumberFormat(getLocale(), { maximumFractionDigits: 1 }).format(p.estimatedDays) }) : t(p.state === "insufficient_daily_budget" ? "noCapacity" : "estimateUnknown")}</strong></div>`,
     )
     .join("")}</div>`;
 }
@@ -120,6 +134,12 @@ function impactView() {
 }
 export function capacityPanel() {
   return `<section class="capacity-panel"><p class="eyebrow">${t("capacity")}</p><div class="capacity-figures"><div><strong>${community ? number(community.crawlSchedule?.pool?.usableAccountCount ?? community.activeAccounts) : "—"}</strong><span>${t("activeAccounts")}</span></div><div><strong>${money(community?.crawlSchedule?.pool ? community.crawlSchedule.pool.remainingUsd : community?.budgetRemainingUsd)}</strong><span>${t("remainingBudget")}</span></div></div><p class="small">${t("quotaNote")}</p><hr><h3>${t("estimatedCycle")}</h3>${scheduleView(community?.crawlSchedule)}<p class="small">${t("estimateNote")}</p></section>`;
+}
+// New interface: a small "Required" / "Optional" tag after each field label,
+// matching the field's `required` attribute (which already tells assistive
+// technology, so the tag is aria-hidden).
+function fieldTag(required) {
+  return isRedesign() ? `<span class="field-tag${required ? " is-required" : ""}" aria-hidden="true">${t(required ? "fieldRequired" : "fieldOptional")}</span>` : "";
 }
 function feedback(formId) {
   return formFeedback?.formId === formId ? t(formFeedback.key) : !session ? t("sessionError") : "";
@@ -159,19 +179,37 @@ export async function handleGoogleAuth(button, rerender) {
     button.removeAttribute('aria-busy');
   }
 }
+// New interface: one line beside the button says what withdrawing does.
+function withdrawControl(c) {
+  const button = `<button class="button button-danger" data-withdraw="${esc(c.id)}">${t("withdraw")}</button>`;
+  return isRedesign() ? `<div class="withdraw-row">${button}<p class="withdraw-effect">${t("withdrawEffect")}</p></div>` : button;
+}
 function contributionRows() {
   const rows = session?.contributions || [];
   return rows.length
     ? rows
         .map(
           (c) =>
-            `<article class="owned-contribution" data-contribution-id="${esc(c.id)}"><div class="owned-heading"><h3>${esc(c.name)}</h3><span class="status-pill">${t(c.status === "revoked" ? "withdrawn" : ["active", "withdrawn", "exhausted", "invalid", "paused"].includes(c.status) ? c.status : "unavailable")}</span></div><dl><div><dt>${t("budget")}</dt><dd>${money(c.budgetUsd)}</dd></div><div><dt>${t("spent")}</dt><dd>${money(c.spentUsd)}</dd></div><div><dt>${t("reserved")}</dt><dd>${money(c.reservedUsd)}</dd></div><div><dt>${t("budgetRemaining")}</dt><dd>${money(c.budgetRemainingUsd)}</dd></div></dl>${!["revoked", "withdrawn"].includes(c.status) ? `<button class="button button-danger" data-withdraw="${esc(c.id)}">${t("withdraw")}</button>` : ""}</article>`,
+            `<article class="owned-contribution" data-contribution-id="${esc(c.id)}"><div class="owned-heading"><h3>${esc(c.name)}</h3><span class="status-pill">${t(c.status === "revoked" ? "withdrawn" : ["active", "withdrawn", "exhausted", "invalid", "paused"].includes(c.status) ? c.status : "unavailable")}</span></div><dl><div><dt>${t("budget")}</dt><dd>${money(c.budgetUsd)}</dd></div><div><dt>${t("spent")}</dt><dd>${money(c.spentUsd)}</dd></div><div><dt>${t("reserved")}</dt><dd>${money(c.reservedUsd)}</dd></div><div><dt>${t("budgetRemaining")}</dt><dd>${money(c.budgetRemainingUsd)}</dd></div></dl>${!["revoked", "withdrawn"].includes(c.status) ? withdrawControl(c) : ""}</article>`,
         )
         .join("")
     : `<p class="muted">${t("noContributions")}</p>`;
 }
+function signedInHidden() {
+  const signedIn = isRedesign() && !!session?.account;
+  return { hint: signedIn, withdraw: signedIn && (session?.contributions || []).length > 0 };
+}
 export function contributeView() {
-  return `${pageHeading("contribute", "contributeBody")}${accountPanel()}<div class="contribution-layout"><div><form id="contribution-form" class="form-panel"><h2>${t("newContribution")}</h2><label for="contribution-name">${t("contributionName")}</label><input id="contribution-name" name="name" required maxlength="40" placeholder="${t("namePlaceholder")}" autocomplete="nickname"><label for="contribution-token">${t("apiToken")}</label><input id="contribution-token" name="token" type="password" required minlength="20" maxlength="512" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="token-hint"><p id="token-hint" class="field-hint">${t("tokenHint")} ${link("https://console.apify.com/settings/integrations", t("tokenLink"), "text-link")}</p><label for="contribution-budget">${t("budget")}</label><div class="currency-input"><span>US$</span><input id="contribution-budget" name="budgetUsd" type="number" inputmode="decimal" min="0.01" max="100" step="0.01" required placeholder="1.00" aria-describedby="budget-hint"></div><p id="budget-hint" class="field-hint">${t("budgetHint")}</p><label class="consent-label"><input name="consent" type="checkbox" required><span>${t("consent")}</span></label><div id="form-message" class="form-message" role="status" aria-live="polite" tabindex="-1">${feedback("contribution-form")}</div><button class="button button-primary" type="submit" ${!session ? "disabled" : ""}>${t("contributionSubmit")}${icon("arrow")}</button><p class="field-hint">${link("/privacy/", t("privacy"), "text-link")}</p></form>${impactView()}<section class="ownership-section"><h2>${t("myContributions")}</h2><p class="small muted">${t("ownershipHint")}</p><div id="withdraw-message" class="form-message" role="status" aria-live="polite" tabindex="-1"></div><div id="owned-contributions">${contributionRows()}</div></section></div><aside>${capacityPanel()}<div class="sidebar-note"><h3>${t("faqWithdrawQ")}</h3><p>${t("faqWithdrawA")}</p>${link("/about/", t("faq"), "text-link")}</div></aside></div>`;
+  const owned = (session?.contributions || []).length > 0;
+  // New interface: list live contributions first and fold the new form.
+  const fold = isRedesign();
+  // New interface, signed in: the account panel already says contributions are
+  // linked to this Google account, so the "sign in to manage" hint is dropped;
+  // with live contributions the withdrawal answer is in the withdraw dialog.
+  const hidden = signedInHidden();
+  const ownershipHint = `<p class="small muted ownership-hint" ${hidden.hint ? "hidden" : ""}>${t("ownershipHint")}</p>`;
+  const withdrawNote = `<div class="sidebar-note withdraw-note" ${hidden.withdraw ? "hidden" : ""}><h3>${t("faqWithdrawQ")}</h3><p>${t("faqWithdrawA")}</p>${link("/about/", t("faq"), "text-link")}</div>`;
+  return `${pageHeading("contribute", "contributeBody")}${accountPanel()}<div class="contribution-layout"><div class="contribution-main${fold && owned ? " has-contributions" : ""}"><section class="apify-intro">${icon("info")}<p>${t("apifyIntro")}</p></section>${fold ? `<details class="new-contribution" ${owned ? "" : "open"}><summary><h2>${t("newContribution")}</h2>${icon("chevron")}</summary>` : ""}<form id="contribution-form" class="form-panel">${fold ? "" : `<h2>${t("newContribution")}</h2>`}<label for="contribution-name">${t("contributionName")}${fieldTag(true)}</label><input id="contribution-name" name="name" required maxlength="40" placeholder="${t("namePlaceholder")}" autocomplete="nickname"><label for="contribution-token">${t("apiToken")}${fieldTag(true)}</label><input id="contribution-token" name="token" type="password" required minlength="20" maxlength="512" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="token-hint"><p id="token-hint" class="field-hint">${t("tokenHint")} ${link("https://console.apify.com/settings/integrations", t("tokenLink"), "text-link")}</p><label for="contribution-budget">${t("budget")}${fieldTag(true)}</label><div class="currency-input"><span>US$</span><input id="contribution-budget" name="budgetUsd" type="number" inputmode="decimal" min="0.01" max="100" step="0.01" required placeholder="1.00" aria-describedby="budget-hint"></div><p id="budget-hint" class="field-hint">${t("budgetHint")}</p><label class="consent-label"><input name="consent" type="checkbox" required><span>${t("consent")}</span></label><div id="form-message" class="form-message" role="status" aria-live="polite" tabindex="-1">${feedback("contribution-form")}</div><button class="button button-primary" type="submit" ${!session ? "disabled" : ""}>${t("contributionSubmit")}${icon("arrow")}</button><p class="field-hint">${link("/privacy/", t("privacy"), "text-link")}</p></form>${fold ? "</details>" : ""}${impactView()}<section class="ownership-section"><h2>${t("myContributions")}</h2>${ownershipHint}<div id="withdraw-message" class="form-message" role="status" aria-live="polite" tabindex="-1"></div><div id="owned-contributions">${contributionRows()}</div></section></div><aside>${capacityPanel()}${withdrawNote}</aside></div>`;
 }
 const allCountryCodes =
   "AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW".split(
@@ -187,7 +225,7 @@ export function submitView(catalog) {
         .filter((c) => /^[A-Z]{2}$/.test(c)),
     ]),
   ].sort((a, b) => countryName(a).localeCompare(countryName(b), getLocale()));
-  return `${pageHeading("submit", "submitBody")}${accountPanel()}<div class="contribution-layout"><div><form id="submission-form" class="form-panel"><h2>${t("submit")}</h2><label for="submission-url">${t("publicUrl")}</label><input id="submission-url" name="url" type="url" required maxlength="2000" placeholder="https://" autocomplete="url" value="${esc(context.url)}"><label for="submission-country">${t("country")}</label><select name="countryCode" id="submission-country"><option value="">${t("unknownCountry")}</option>${codes.map((code) => `<option value="${code}" ${code === context.countryCode ? "selected" : ""}>${esc(countryName(code))}</option>`).join("")}</select><label for="submission-note">${t("note")}</label><textarea id="submission-note" name="note" maxlength="2000" rows="5" placeholder="${t("notePlaceholder")}">${esc(contextNote(context.name))}</textarea><div id="form-message" class="form-message" role="status" aria-live="polite" tabindex="-1">${feedback("submission-form")}</div><button class="button button-primary" type="submit" ${!session ? "disabled" : ""}>${t("submitAction")}${icon("arrow")}</button></form><section class="ownership-section"><h2>${t("mySubmissions")}</h2>${(session?.submissions || []).length ? (session.submissions || []).map((s) => `<article class="submission-row"><div>${link(s.url, esc(s.url), "submission-url")}<p class="small muted">${date(s.createdAt)} · ${esc(countryName(s.countryCode))}</p>${s.note ? `<p>${esc(s.note)}</p>` : ""}</div><span class="tag">${t(s.status === "accepted" ? "approved" : s.status === "reviewing" ? "reviewing" : ["pending", "approved", "rejected"].includes(s.status) ? s.status : "pending")}</span></article>`).join("") : `<p class="muted">${t("noSubmissions")}</p>`}</section></div><aside class="submission-aside"><div class="sidebar-note">${icon("globe")}<h2>${t("countryNote")}</h2><p>${t("originalLanguage")}</p><hr><h3>${t("faqDataQ")}</h3><p>${t("faqDataA")}</p></div></aside></div>`;
+  return `${pageHeading("submit", "submitBody")}${accountPanel()}<div class="contribution-layout"><div><form id="submission-form" class="form-panel"><h2>${t("submit")}</h2><label for="submission-url">${t("publicUrl")}${fieldTag(true)}</label><input id="submission-url" name="url" type="url" required maxlength="2000" placeholder="${isRedesign() ? "https://www.instagram.com/…" : "https://"}" autocomplete="url" value="${esc(context.url)}"><label for="submission-country">${t("country")}${fieldTag(false)}</label><select name="countryCode" id="submission-country"><option value="">${t("unknownCountry")}</option>${codes.map((code) => `<option value="${code}" ${code === context.countryCode ? "selected" : ""}>${esc(countryName(code))}</option>`).join("")}</select><label for="submission-note">${t("note")}${fieldTag(false)}</label><textarea id="submission-note" name="note" maxlength="2000" rows="5" placeholder="${t("notePlaceholder")}">${esc(contextNote(context.name))}</textarea><div id="form-message" class="form-message" role="status" aria-live="polite" tabindex="-1">${feedback("submission-form")}</div><button class="button button-primary" type="submit" ${!session ? "disabled" : ""}>${t("submitAction")}${icon("arrow")}</button></form><section class="ownership-section"><h2>${t("mySubmissions")}</h2>${(session?.submissions || []).length ? (session.submissions || []).map((s) => `<article class="submission-row"><div>${link(s.url, esc(s.url), "submission-url")}<p class="small muted">${date(s.createdAt)} · ${esc(countryName(s.countryCode))}</p>${s.note ? `<p>${esc(s.note)}</p>` : ""}</div><span class="tag">${t(s.status === "accepted" ? "approved" : s.status === "reviewing" ? "reviewing" : ["pending", "approved", "rejected"].includes(s.status) ? s.status : "pending")}</span></article>`).join("") : `<p class="muted">${t("noSubmissions")}</p>`}</section></div><aside class="submission-aside"><div class="sidebar-note">${icon("globe")}<h2>${t("countryNote")}</h2><p>${t("originalLanguage")}</p><hr><h3>${t("faqDataQ")}</h3><p>${t("faqDataA")}</p></div></aside></div>`;
 }
 export async function handleForm(form, rerender) {
   if (form.dataset.submitting) return;

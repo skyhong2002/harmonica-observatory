@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
+import { isRedesign } from '../assets/redesign.js';
 const dom = new JSDOM('<html><body></body></html>', { url: 'http://localhost/' });
 globalThis.document = dom.window.document;
 globalThis.localStorage = dom.window.localStorage;
@@ -36,7 +37,7 @@ test('repertoire links retain evidence and publisher separately, deduplicate URL
  document.body.innerHTML=scoreEvidenceLinks({...rows[0],links:[...rows[0].links,{url:'javascript:alert(1)',label:'unsafe'},{url:'https://example.org/extra',label:'<original>'}]});
  const links=[...document.querySelectorAll('a')];
  assert.deepEqual(links.map(a=>a.href),['https://example.org/official.pdf','https://example.org/publisher','https://example.org/extra']);
- assert.match(links[0].textContent,/Original evidence/);
+ assert.match(links[0].textContent,/Original source/);
  assert.match(links[1].textContent,/Publisher/);
  assert.match(links[2].textContent,/<original>/);
  assert.equal(document.querySelector('original'),null);
@@ -165,6 +166,13 @@ test('reviewed covers open their actual source and unverified announcements beco
   document.body.innerHTML=scoreSourcesView({scoreSources:[book,notice]});
   assert.equal(document.querySelector('.collection-cover a').href,book.imageSourceUrl);
   assert.ok(document.querySelector('.collection-reference-note').textContent.length>10);
+  // New interface: a book without a cover beside one with a cover gets the same
+  // layout with a placeholder tile; groups without any cover stay text-only.
+  document.body.innerHTML=scoreSourcesView({scoreSources:[book,{...book,title:'Bare book',images:[]},notice]});
+  const bare=[...document.querySelectorAll('.collection-row')].find(row=>row.textContent.includes('Bare book'));
+  assert.equal(bare.classList.contains('collection-illustrated'),isRedesign());
+  assert.equal(!!bare.querySelector('.collection-cover-placeholder'),isRedesign());
+  assert.equal(document.querySelector('[data-collection-kind="contacts"] .collection-cover'),null);
   assert.doesNotMatch(document.body.textContent,/undefined/);
  }
 });
@@ -180,12 +188,33 @@ test('score facets show only the interface language while source filter values a
   document.body.innerHTML=scoresView(catalog,{});
   const option=document.querySelector('[data-filter="division"] option[value="國中"]');
   assert.ok(option); assert.ok(!option.textContent.includes('國中'));
-  assert.equal(document.querySelector('.score-guide').open,false);
-  assert.equal(document.querySelector('.results-bar').textContent.includes(scoreLabels[locale].yearNote),false);
+  if(isRedesign()){
+   // The new interface moves the index and year rules to the page notes, not a fold or the count line.
+   assert.equal(document.querySelector('.score-guide'),null);
+   assert.ok(document.querySelector('.page-notes').textContent.includes(scoreLabels[locale].yearNote));
+   assert.equal(document.querySelector('.results-bar'),null,'no total count without a filter');
+   // What the list is (an index, not downloads) is said once, under the title.
+   assert.equal(document.querySelector('.page-heading p').textContent,scoreLabels[locale].indexLine);
+   assert.equal(document.querySelector('.page-notes').textContent.includes(scoreLabels[locale].indexNote),false);
+  } else {
+   assert.equal(document.querySelector('.score-guide').open,false);
+   assert.equal(document.querySelector('.results-bar').textContent.includes(scoreLabels[locale].yearNote),false);
+  }
   document.body.innerHTML=scoreSourcesView({scoreSources:[{...catalog.scoreSources[0],instrumentation:'半音階口琴',purchaseMethod:'Facebook 粉專洽詢'}]});
   assert.match(document.querySelector('.collection-facts').textContent,new RegExp(instrument));
   assert.ok(!document.querySelector('.collection-facts').textContent.includes('粉專洽詢'));
   assert.ok(document.querySelector('.collection-original').textContent.includes('原始說明'));
  }
  setLocale('zh-Hant');assert.equal(divisionLabel('國中團體組'),'國中團體組');
+});
+
+test('the repertoire search placeholder names what it matches: titles, composers and arrangers',()=>{
+ for(const [locale,placeholder] of [['zh-Hant','搜尋曲名、作曲者、編曲者…'],['en','Search titles, composers, arrangers…'],['ja','曲名・作曲者・編曲者を検索…'],['ko','곡명, 작곡가, 편곡자 검색…']]){
+  setLocale(locale);
+  document.body.innerHTML=scoresView(catalog,{});
+  assert.equal(document.querySelector('#catalog-search').getAttribute('placeholder'),placeholder);
+ }
+ assert.deepEqual(filterScores(rows,{q:'bach'}).map(r=>r.id),['a']);
+ assert.deepEqual(filterScores(rows,{q:'林'}).map(r=>r.id),['a']);
+ assert.deepEqual(filterScores(rows,{q:'gamma'}).map(r=>r.id),['c']);
 });

@@ -1,3 +1,4 @@
+import { isRedesign as redesignOn } from '../assets/redesign.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
@@ -88,7 +89,8 @@ test('country facets count the current content and other filters without couplin
   assert.equal(countryFacets({},data,'posts').find(c=>c.code==='JP').count,1);
   assert.equal(countryFacets({kind:'stories'},data,'posts').find(c=>c.code==='JP').count,1);
   document.body.innerHTML=filterBar({period:'past',q:''},data,'events');
-  assert.ok(document.querySelector('[data-action="reset"]'));
+  // The new interface shows the event period as tabs, so it alone is no filter to clear.
+  assert.equal(!!document.querySelector('[data-action="reset"]'),!redesignOn());
  }
 });
 
@@ -141,4 +143,119 @@ test('event cards show announced end times and label estimated calendar placehol
   assert.match(document.querySelector('.event-time').textContent,new RegExp(label));
   assert.doesNotMatch(document.querySelector('.event-time').textContent,/–/);
  }
+});
+
+test('"Clear filters" appears only for a real filter; in the new interface Following is a tab, not a filter', async () => {
+ const { filterBar } = await import('../assets/views.js');
+ const { isRedesign } = await import('../assets/redesign.js');
+ const data = { countries: [{ code: 'JP' }], sources: [{ id: 'a', countryCode: 'JP', type: 'club' }], posts: [{ countryCode: 'JP', sourceId: 'a', platform: 'instagram' }], events: [] };
+ setLocale('en');
+ for (const [kind, state] of [['sources', { followed: true }], ['posts', { kind: 'following' }]]) {
+  document.body.innerHTML = filterBar(state, data, kind, new Set());
+  assert.equal(!!document.querySelector('[data-action="reset"]'), !isRedesign());
+  document.body.innerHTML = filterBar({ ...state, country: 'JP' }, data, kind, new Set());
+  assert.ok(document.querySelector('[data-action="reset"]'));
+ }
+});
+test('new interface: status explains its snapshot once in the page notes, and the source page follows with a heart', async () => {
+ const { sourceDetail } = await import('../assets/views.js');
+ const { isRedesign } = await import('../assets/redesign.js');
+ setLocale('en');
+ document.body.innerHTML = statusView({ status: { services: [] } });
+ assert.equal(document.body.textContent.split(t('snapshotNote')).length - 1, 1);
+ assert.equal(!!document.querySelector('.page-notes'), isRedesign());
+ document.body.innerHTML = sourceDetail(sources[0], { posts: [], sources }, new Set());
+ assert.equal(!!document.querySelector('.source-profile [data-follow] path[d^="M20.8"]'), isRedesign());
+ const { aboutView } = await import('../assets/views.js');
+ for (const locale of ['en', 'zh-Hant', 'ja', 'ko']) {
+  setLocale(locale);
+  document.body.innerHTML = aboutView();
+  assert.equal(!!document.querySelector('.page-heading a[href="https://github.com/skyhong2002/chumei"]'), isRedesign(), 'project origin is linked once on About');
+  assert.equal(document.querySelector('.page-heading p').textContent.replace(/↗/g, ''), t('aboutBody'));
+ }
+});
+
+test('new interface post cards: original source link, share and report in "⋯", one quiet archived-story hint; legacy keeps its row and notice', async()=>{
+ const { isRedesign } = await import('../assets/redesign.js');
+ const { sourceDetail, directoryHeader } = await import('../assets/views.js');
+ const story={sourceId:'a',text:'Story text',url:'https://example.org/story',publishedAt:'2026-01-01',platform:'instagram',isStory:true,storyState:'expired',sourceAvailable:false,image:'https://example.org/s.jpg'};
+ for(const [locale,original,follow] of [['zh-Hant','原始來源','追蹤來源'],['en','Original source','Follow source'],['ja','原文を見る','情報源をフォロー'],['ko','원문 보기','출처 팔로우']]){
+  setLocale(locale);
+  document.body.innerHTML=postCard(story,sources);
+  const actions=document.querySelector('.feed-actions');
+  assert.equal(actions.querySelector('.feed-original').getAttribute('href'),story.url);
+  assert.match(actions.querySelector('.feed-original').textContent,new RegExp(original));
+  assert.ok(actions.querySelector('[data-share]'));
+  assert.ok(actions.querySelector('a[href^="/submit/"]'));
+  if(isRedesign()){
+   assert.equal(document.querySelector('.story-expired'),null);
+   assert.equal(document.querySelector('.story-tag').getAttribute('title'),t('storyExpired'));
+   assert.ok(actions.querySelector('.more-actions > .more-actions-menu [data-share]'));
+   assert.ok(actions.querySelector('.more-actions > .more-actions-menu a[href^="/submit/"]'));
+   assert.equal(actions.querySelector('[data-follow]').textContent.trim(),follow);
+   // Source page: the page's own follow button is the only visible one (redesign.css hides the card's).
+   document.body.innerHTML=sourceDetail(sources[0],{sources,posts:[story],events:[]},new Set());
+   assert.equal(document.querySelectorAll('.source-updates-grid .more-actions').length,1);
+  } else {
+   assert.equal(document.querySelector('.story-expired').textContent,t('storyExpired'));
+   assert.equal(document.querySelector('.more-actions'),null);
+  }
+ }
+ // Directory sort: phones get one labelled menu in the new interface; the header buttons stay.
+ setLocale('zh-Hant');
+ document.body.innerHTML=directoryHeader('posts',true);
+ assert.equal(document.querySelectorAll('.src-head [data-source-sort]').length,5);
+ if(isRedesign()){
+  const select=document.querySelector('.src-sort-bar select[data-source-sort-select]');
+  assert.deepEqual([...select.options].map(o=>o.value),['name','country','type','posts','updated']);
+  assert.equal(select.value,'posts');
+  assert.match(document.querySelector('.src-sort-bar label').textContent,/排序/);
+  assert.equal(document.querySelector('.src-sort-direction').dataset.sourceSort,'posts');
+  assert.match(document.querySelector('.src-sort-direction').textContent,/遞減/);
+ } else assert.equal(document.querySelector('.src-sort-bar'),null);
+});
+test('new interface: directory overflow links are labelled, feed titles open the feed, and form fields say required or optional', async () => {
+ const { isRedesign } = await import('../assets/redesign.js');
+ const { feedsView } = await import('../assets/views.js');
+ const { submitView, contributeView } = await import('../assets/community.js');
+ const links = n => Array.from({ length: n }, (_, i) => ({ url: `https://example.org/${i}`, label: 'Website' }));
+ setLocale('en');
+ document.body.innerHTML = sourceCard({ ...sources[0], links: links(5) }, new Set(), catalog) + sourceCard({ ...sources[1], links: links(6) }, new Set(), catalog);
+ const more = [...document.querySelectorAll('.src-links-more')].map(node => node.textContent);
+ assert.deepEqual(more, isRedesign() ? ['+2 links', '+3 links'] : []);
+ setLocale('zh-Hant');
+ document.body.innerHTML = sourceCard({ ...sources[0], links: links(4) }, new Set(), catalog);
+ assert.equal(document.querySelector('.src-links-more'), null);
+ const feeds = { feeds: [{ id: 'updates', title: 'updates', url: '/feeds/updates.xml', format: 'RSS' }] };
+ document.body.innerHTML = feedsView(feeds);
+ const card = document.querySelector('.feed-card');
+ assert.equal(card.querySelectorAll('.copy-button').length, 1);
+ if (isRedesign()) {
+  assert.equal(card.querySelector('h2 a').getAttribute('href'), '/feeds/updates.xml');
+  assert.equal(card.querySelector('.feed-actions .text-link'), null);
+ } else assert.equal(card.querySelector('.feed-actions .text-link').getAttribute('href'), '/feeds/updates.xml');
+ document.body.innerHTML = submitView({ countries: [] }) + contributeView();
+ for (const label of document.querySelectorAll('form label[for]')) {
+  const field = document.getElementById(label.htmlFor), tag = label.querySelector('.field-tag');
+  if (!isRedesign()) { assert.equal(tag, null); continue; }
+  assert.equal(tag.textContent, t(field.required ? 'fieldRequired' : 'fieldOptional'), label.htmlFor);
+  assert.equal(tag.getAttribute('aria-hidden'), 'true');
+ }
+ assert.equal(document.querySelector('#submission-url').placeholder, isRedesign() ? 'https://www.instagram.com/…' : 'https://');
+});
+
+test('source page summary: the new interface adds a hidden "read more" that reveals the clamped summary', async () => {
+  const { isRedesign } = await import('../assets/redesign.js');
+  const { sourceDetail, toggleSummaryExpansion } = await import('../assets/views.js');
+  setLocale('en');
+  const source = { id:'s', name:'Summary Source', countryCode:'JP', summary:'A long biography. '.repeat(20), tags:['a','b','c','d','e'] };
+  document.body.innerHTML = sourceDetail(source, { posts:[], sources:[source] }, new Set());
+  const button = document.querySelector('[data-expand-summary]');
+  if (!isRedesign()) { assert.equal(button, null); return; }
+  assert.ok(button.hidden, 'shown only when the clamp cuts the text');
+  assert.equal(document.querySelectorAll('.profile-tags .tag').length, 5, 'tags past three are hidden by CSS on phones, not dropped');
+  toggleSummaryExpansion(button);
+  assert.equal(button.getAttribute('aria-expanded'), 'true');
+  assert.ok(document.querySelector('.source-biography').classList.contains('is-expanded'));
+  assert.equal(button.textContent, 'Show less');
 });

@@ -70,7 +70,10 @@ export function bindDirectoryColumns(root) {
   const reset = root.ownerDocument.createElement('button');
   reset.type = 'button'; reset.className = 'src-columns-reset'; reset.textContent = labels.reset;
   (root.querySelector('.results-bar') || head.parentElement).append(reset);
-  const resetWidths = () => { apply(null); save(); updateValues(); };
+  // Only offer a reset once someone has actually changed the widths.
+  const syncReset = () => { reset.hidden = !widths; };
+  const resetWidths = () => { apply(null); save(); updateValues(); syncReset(); };
+  syncReset();
   reset.addEventListener('click', resetWidths);
   const target = event => event.target.closest('[data-column-resize]');
   const click = event => { if (target(event)) { event.preventDefault(); event.stopPropagation(); } };

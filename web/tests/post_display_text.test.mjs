@@ -18,3 +18,47 @@ test('only exact generated Instagram story labels translate; authored content st
   }
   window.close();
 });
+
+test('a truncated preview line is dropped when the full Threads reply below it repeats it after an "@handle ↩️:" prefix', () => {
+  const preview = '@jangli_harmonica: 但實際製作的過程並沒有想像中那麼簡單。 從地形、建築、角色設定到各種互動機制，幾乎每個環節都得反覆嘗試，有時候好不容易修好一個問題，...';
+  const full = '@jangli_harmonica ↩️: 但實際製作的過程並沒有想像中那麼簡單。\n從地形、建築、角色設定到各種互動機制，幾乎每個環節都得反覆嘗試，有時候好不容易修好一個問題，卻又冒出更多新的問題。';
+  const post = {platform:'threads'};
+  const shown = postDisplayText(post, `${preview}\n${full}`);
+  assert.equal(shown, full);
+  assert.equal(shown.split('@jangli_harmonica').length - 1, 1);
+  assert.equal(shown.split('但實際製作的過程').length - 1, 1);
+  // Plain previews still collapse, and unrelated first lines stay.
+  assert.equal(postDisplayText(post, '今天的音樂會非常精彩，謝謝大家來參加，...\n今天的音樂會非常精彩，謝謝大家來參加，下次見！'), '今天的音樂會非常精彩，謝謝大家來參加，下次見！');
+  assert.equal(postDisplayText(post, '@someone: 完全不同的開頭文字在這裡出現…\n@someone ↩️: 另一段內容與前一行無關。'), '@someone: 完全不同的開頭文字在這裡出現…\n@someone ↩️: 另一段內容與前一行無關。');
+});
+
+test('Threads previews collapse when the first line repeats in full or quotes a repost inline', () => {
+  const post = {platform:'threads'};
+  assert.equal(postDisplayText(post, '@jangli_harmonica: 原來等待的過程是有貪食蛇可以玩的嗎？！\n@jangli_harmonica : 原來等待的過程是有貪食蛇可以玩的嗎？！'), '@jangli_harmonica : 原來等待的過程是有貪食蛇可以玩的嗎？！');
+  const repost = '@jangli_harmonica 🔁: 挖苦挖苦好期待！我的老婆是魔法少女❤️❤️ 去年的華文徵稿選了三部作品～\n終於要陸續出版了(汗)。\n----\n「──要保守祕密喔。」';
+  assert.equal(postDisplayText(post, '@jangli_harmonica: 挖苦挖苦好期待！我的老婆是魔法少女❤️❤️ 🔁 @lsyeh_chika.publishing: "去年的華文徵稿選了三部作品～ 終於要陸續出版了(汗)。 ---- ...\n' + repost), repost);
+  // A complete first line without a handle marker is authored text, not a preview.
+  assert.equal(postDisplayText(post, '今天的音樂會非常精彩謝謝大家\n今天的音樂會非常精彩謝謝大家，下次見'), '今天的音樂會非常精彩謝謝大家\n今天的音樂會非常精彩謝謝大家，下次見');
+});
+
+test('new interface: web addresses in post text become short labels that open the full, validated address', async () => {
+  const {window} = new JSDOM('', {url: 'https://example.com'});
+  Object.assign(globalThis, {window, document:window.document, location:window.location, localStorage:window.localStorage});
+  const { linkedPostText, shortenedUrlText, shortUrlLabel } = await import('../assets/utils.js');
+  const text = '昨日のブログ https://ameblo.jp/risa-harmonica/entry-12983622338.html\n<b>&</b> javascript:alert(1) https://www.youtube.com/watch?v=ndVpQ894LII.';
+  assert.equal(shortUrlLabel('https://ameblo.jp/risa-harmonica/entry-1.html'), 'ameblo.jp/risa-harmonica…');
+  assert.equal(shortUrlLabel('https://www.example.org/'), 'example.org');
+  assert.equal(shortenedUrlText(text), '昨日のブログ ameblo.jp/risa-harmonica…\n<b>&</b> javascript:alert(1) youtube.com/watch….');
+  const html = linkedPostText(text);
+  document.body.innerHTML = `<p>${html}</p>`;
+  const links = [...document.querySelectorAll('a.post-text-link')];
+  assert.deepEqual(links.map(a => [a.getAttribute('href'), a.textContent]), [
+    ['https://ameblo.jp/risa-harmonica/entry-12983622338.html', 'ameblo.jp/risa-harmonica…'],
+    ['https://www.youtube.com/watch?v=ndVpQ894LII', 'youtube.com/watch…'],
+  ]);
+  assert.ok(links.every(a => a.target === '_blank' && a.rel.includes('noopener')));
+  assert.equal(document.querySelector('b'), null, 'surrounding text stays escaped');
+  assert.ok(html.includes('&lt;b&gt;&amp;&lt;/b&gt; javascript:alert(1)'));
+  assert.equal(linkedPostText('https://user:pw@example.com/x'), 'https://user:pw@example.com/x', 'addresses that fail safeUrl stay text');
+  window.close();
+});

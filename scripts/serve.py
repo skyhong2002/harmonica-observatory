@@ -254,7 +254,20 @@ class Handler(BaseHTTPRequestHandler):
             if path.startswith(prefix):
                 return self._safe_file(self.server.root / 'web/assets', path[len(prefix):])
         # Only the generated public site is exposed. Never fall back to repo root.
+        if self._missing_page(path):
+            return self._shell(path, status=404)
         return self._safe_file(self.server.root / 'site', path.lstrip('/'))
+
+    def _missing_page(self, path):
+        """A page-like URL with no file behind it gets the localized 404 page."""
+        last = path.rstrip('/').rsplit('/', 1)[-1]
+        if path.startswith(('/api/', '/assets/', '/web/', '/web-assets/')) or '.' in last:
+            return False
+        root = (self.server.root / 'site').resolve()
+        target = (root / path.lstrip('/')).resolve()
+        if not target.is_relative_to(root):
+            return True
+        return not (target.is_file() or (target / 'index.html').is_file())
 
     def _moved(self, target):
         query = urlsplit(self.path).query
@@ -265,7 +278,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('Cache-Control', 'public, max-age=3600')
         self.end_headers()
 
-    def _shell(self, path):
+    def _shell(self, path, status=200):
         from render_shell import DEFAULT_LOCALE, normalize_locale, render_document
         template_path = self.server.root / 'web/index.html'
         if not template_path.is_file():
@@ -275,9 +288,10 @@ class Handler(BaseHTTPRequestHandler):
         # locale so each URL has one language for crawlers and canonicals.
         locale = normalize_locale(params.get('lang', [DEFAULT_LOCALE])[0])
         origin = self.server.public_origin or self._origin()[0]
-        document = render_document(template_path.read_text(encoding='utf-8'), path, catalog(), origin, locale)
+        document = render_document(template_path.read_text(encoding='utf-8'), path, catalog(), origin, locale,
+                                   not_found=status == 404)
         body = document.encode('utf-8')
-        self._headers(200, 'text/html; charset=utf-8', len(body), cache='no-store')
+        self._headers(status, 'text/html; charset=utf-8', len(body), cache='no-store')
         if self.command != 'HEAD':
             self.wfile.write(body)
 
