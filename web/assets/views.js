@@ -1,6 +1,9 @@
+import { isRedesign } from './redesign.js';
 import { eventText, eventOriginalMarkup } from './event-localization.js';
-import { sourceDisplayName, sourceNamesMarkup, sourceTypesMarkup, sourceAlternativesMarkup, sourceSummaryMarkup, sourceTags } from "./source-names.js";
+import { sourceDisplayName, sourceNamesMarkup, sourceTypesMarkup, sourceAlternativesMarkup, sourceSummaryMarkup, sourceSummaryText, sourceTags } from "./source-names.js";
 import { reportLink } from "./reporting.js";
+import { pageNotes } from "./page-notes.js";
+import { pageName } from "./shell.js";
 import { t, getLocale, countryName } from "./i18n.js";
 import {
   esc,
@@ -18,16 +21,19 @@ import {
   sourceHref,
   avatar,
   empty,
+  hasFilters,
   pastEvent,
   platformName,
   sourceType,
   textMatch,
+  linkedPostText,
+  shortenedUrlText,
 } from "./utils.js";
 const viewLabels = {
-  en: { share: "Share", collapse: "Show less", name: "Name", updated: "Updated", links: "Links", endUnknown: "End time not announced", snapshot: "Website snapshot", observed: "Observed", website: "Website", sort: "Sort" },
-  "zh-Hant": { share: "分享", collapse: "收合", name: "名稱", updated: "更新", links: "來源連結", endUnknown: "結束時間未公告", snapshot: "網站頁面快照", observed: "觀測時間", website: "網站", sort: "排序" },
-  ja: { share: "共有", collapse: "閉じる", name: "名前", updated: "更新", links: "リンク", endUnknown: "終了時刻は未発表", snapshot: "ウェブページの保存記録", observed: "確認日時", website: "ウェブサイト", sort: "並べ替え" },
-  ko: { share: "공유", collapse: "접기", name: "이름", updated: "업데이트", links: "링크", endUnknown: "종료 시각 미발표", snapshot: "웹페이지 스냅샷", observed: "확인 시각", website: "웹사이트", sort: "정렬" },
+  en: { moreLinks: "{count} more links on the source page", moreLinksShort: "+{count} links", moreLinksShortOne: "+1 link", share: "Share", collapse: "Show less", name: "Name", updated: "Updated", links: "Links", endUnknown: "End time not announced", snapshot: "Website snapshot", observed: "Observed", website: "Website", sort: "Sort", followSource: "Follow source", more: "More actions", ascending: "Ascending", descending: "Descending" },
+  "zh-Hant": { moreLinks: "來源頁還有 {count} 個連結", moreLinksShort: "+{count} 個連結", share: "分享", collapse: "收合", name: "名稱", updated: "更新", links: "來源連結", endUnknown: "結束時間未公告", snapshot: "網站頁面快照", observed: "觀測時間", website: "網站", sort: "排序", followSource: "追蹤來源", more: "更多動作", ascending: "遞增", descending: "遞減" },
+  ja: { moreLinks: "情報源ページにほか {count} 件のリンク", moreLinksShort: "+{count} 件のリンク", share: "共有", collapse: "閉じる", name: "名前", updated: "更新", links: "リンク", endUnknown: "終了時刻は未発表", snapshot: "ウェブページの保存記録", observed: "確認日時", website: "ウェブサイト", sort: "並べ替え", followSource: "情報源をフォロー", more: "その他の操作", ascending: "昇順", descending: "降順" },
+  ko: { moreLinks: "출처 페이지에 링크 {count}개 더", moreLinksShort: "링크 +{count}개", share: "공유", collapse: "접기", name: "이름", updated: "업데이트", links: "링크", endUnknown: "종료 시각 미발표", snapshot: "웹페이지 스냅샷", observed: "확인 시각", website: "웹사이트", sort: "정렬", followSource: "출처 팔로우", more: "더 보기 작업", ascending: "오름차순", descending: "내림차순" },
 };
 const vl = (key) => (viewLabels[getLocale()] || viewLabels.en)[key];
 const sourceLinkLabel = (label) => /^(網站|website|web site)$/i.test(String(label || "").trim()) ? vl("website") : label || t("original");
@@ -39,10 +45,26 @@ function sourceIconLink(item) {
   const label = sourceLinkLabel(item.label || (platform ? platformName(platform) : 'Website'));
   return link(item.url, icon(platform || 'globe') + `<span class="sr-only">${esc(label)}</span>`, 'src-link src-link-icon', `title="${esc(label)}" aria-label="${esc(label)}"`);
 }
+// Directory dates in one short numeric form ("2026/10/29") that fits the column.
+function compactDate(value) {
+  const when = new Date(value);
+  if (!Number.isFinite(+when)) return "—";
+  const text = new Intl.DateTimeFormat(getLocale(), { year: "numeric", month: "numeric", day: "numeric" }).format(when);
+  return `<time datetime="${esc(value)}">${esc(text)}</time>`;
+}
 const sourcePostCount = (s, catalog) => catalog?.posts?.filter(p => p.sourceId === s.id).length;
 export function directoryHeader(sort = "name", descending = false) {
   const heading = (key, label) => `<button type="button" class="src-sort ${sort === key ? "active" : ""}" data-source-sort="${key}" aria-label="${esc(vl("sort") + ": " + label)}">${esc(label)}<span aria-hidden="true">${sort === key ? descending ? "↓" : "↑" : "↕"}</span></button>`;
-  return `<div class="src-head"><span>${heading("name", vl("name"))}</span><span>${heading("country", t("country"))}</span><span>${heading("type", t("type"))}</span><span class="src-th-links">${vl("links")}</span><span>${heading("posts", t("posts"))}</span><span>${heading("updated", vl("updated"))}</span><span class="src-th-follow">${t("follow")}</span></div>`;
+  const head = `<div class="src-head"><span>${heading("name", vl("name"))}</span><span>${heading("country", t("country"))}</span><span>${heading("type", t("type"))}</span><span class="src-th-links">${vl("links")}</span><span>${heading("posts", t("posts"))}</span><span>${heading("updated", vl("updated"))}</span><span class="src-th-follow">${t("follow")}</span></div>`;
+  return isRedesign() ? sortSelect(sort, descending) + head : head;
+}
+// New interface, phones: one labelled "Sort" menu plus a direction toggle
+// replace the row of small column-header buttons (CSS shows one or the other).
+// The toggle reuses data-source-sort: pressing the current key flips direction.
+function sortSelect(sort, descending) {
+  const keys = [["name", vl("name")], ["country", t("country")], ["type", t("type")], ["posts", t("posts")], ["updated", vl("updated")]];
+  const direction = vl(descending ? "descending" : "ascending");
+  return `<div class="src-sort-bar"><label>${esc(vl("sort"))}<select data-source-sort-select>${keys.map(([key, label]) => `<option value="${key}" ${sort === key ? "selected" : ""}>${esc(label)}</option>`).join("")}</select></label><button type="button" class="src-sort-direction" data-source-sort="${esc(sort)}" aria-label="${esc(vl("sort") + ": " + direction)}"><span aria-hidden="true">${descending ? "↓" : "↑"}</span>${esc(direction)}</button></div>`;
 }
 export function sortSources(rows, sort = "name", descending = false, catalog = {}) {
   const collator = new Intl.Collator(getLocale(), { numeric: true, sensitivity: "base" });
@@ -54,9 +76,20 @@ export function sortSources(rows, sort = "name", descending = false, catalog = {
     return (typeof av === "number" ? av - bv : collator.compare(av || "", bv || "")) * (descending ? -1 : 1) || collator.compare(a.name || "", b.name || "");
   });
 }
+// New interface, phones: the meta line shows up to four link icons; with more,
+// three icons and "+n links", which opens the source page with the rest
+// (redesign.css hides it on wider screens).
+function moreLinks(s) {
+  const count = (s.links || []).length;
+  if (count <= 4) return "";
+  const extra = count - 3;
+  const label = vl("moreLinks").replace("{count}", number(extra));
+  const short = (extra === 1 && viewLabels[getLocale()]?.moreLinksShortOne) || vl("moreLinksShort").replace("{count}", number(extra));
+  return link(sourceHref(s), esc(short), "src-links-more", `title="${esc(label)}" aria-label="${esc(label)}"`);
+}
 export function sourceCard(s, following = new Set(), catalog) {
   const followed = following.has(s.id), count = sourcePostCount(s, catalog);
-  return `<article class="source-card src-row"><div class="src-c-name"><h3>${link(sourceHref(s), avatar(s) + `<span class="src-name">${sourceNamesMarkup(s)}</span><span class="src-country-mobile" title="${esc(countryName(s.countryCode, s.country))}">${esc(countryName(s.countryCode, s.country))}</span>`, "source-avatar-link", `title="${esc(s.name)}"`)}</h3></div><span class="src-country">${esc(countryName(s.countryCode, s.country))}</span><div class="src-c-chips">${sourceTypesMarkup(s)}</div><div class="src-links">${(s.links || []).map(sourceIconLink).join("")}${reportLink(s, sourceHref(s), {iconOnly:true})}</div><span class="src-count" title="${esc(t("posts"))}">${count === undefined ? "—" : number(count)}</span><span class="src-upd">${s.updatedAt ? timestamp(s.updatedAt, { dateOnly: true }) : "—"}</span><button class="follow-button src-c-follow ${followed ? "is-following" : ""}" data-follow="${esc(s.id)}" aria-pressed="${followed}" aria-label="${esc(t(followed ? "unfollow" : "follow") + " " + s.name)}">${icon(followed ? "check" : "heart")}<span>${t(followed ? "following" : "follow")}</span></button></article>`;
+  return `<article class="source-card src-row"><div class="src-c-name"><h3>${link(sourceHref(s), avatar(s) + `<span class="src-name">${sourceNamesMarkup(s)}</span><span class="src-country-mobile" title="${esc(countryName(s.countryCode, s.country))}">${esc(countryName(s.countryCode, s.country))}</span>`, "source-avatar-link", `title="${esc(s.name)}"`)}</h3>${sourceSummaryText(s) ? `<p class="src-summary">${esc(sourceSummaryText(s))}</p>` : ""}</div><span class="src-country">${esc(countryName(s.countryCode, s.country))}</span><div class="src-c-chips"><span class="src-country-inline">${esc(countryName(s.countryCode, s.country))}</span>${sourceTypesMarkup(s)}</div><div class="src-links">${(s.links || []).map(sourceIconLink).join("")}${isRedesign() ? moreLinks(s) : ""}${reportLink(s, sourceHref(s), {iconOnly:true})}</div><span class="src-count" title="${esc(t("posts"))}" data-label="${esc(t("posts"))}">${count === undefined ? "—" : number(count)}</span><span class="src-upd" data-label="${esc(vl("updated"))}">${s.updatedAt ? (isRedesign() ? compactDate(s.updatedAt) : timestamp(s.updatedAt, { dateOnly: true })) : "—"}</span><button class="follow-button src-c-follow ${followed ? "is-following" : ""}" data-follow="${esc(s.id)}" aria-pressed="${followed}" aria-label="${esc(t(followed ? "unfollow" : "follow") + " " + s.name)}">${icon(followed ? "check" : "heart")}<span>${t(followed ? "following" : "follow")}</span></button></article>`;
 }
 export function togglePostExpansion(button) {
   const expanded = button.getAttribute("aria-expanded") !== "true";
@@ -64,17 +97,28 @@ export function togglePostExpansion(button) {
   button.closest(".feed-content")?.querySelector(".feed-text")?.classList.toggle("is-expanded", expanded);
   button.textContent = expanded ? vl("collapse") : t("readMore");
 }
+// New interface: the same footer as feed cards — follow source, the original
+// link, then share and report in "⋯". On a source page the page has its own
+// follow button, so redesign.css hides the card's (.source-updates-grid).
+function redesignedPostActions(p, s, label, followed) {
+  const follow = s ? `<button type="button" class="feed-action ${followed ? "is-following" : ""}" data-follow="${esc(s.id)}" aria-pressed="${!!followed}" aria-label="${esc(t(followed ? "unfollow" : "follow") + " " + label)}">${icon(followed ? "check" : "heart")}<span>${esc(followed ? t("following") : vl("followSource"))}</span></button>` : "";
+  const report = reportLink({ ...p, name: p.title || label, countryCode: p.countryCode || s?.countryCode });
+  return `<div class="feed-actions">${follow}${link(p.url, t("original"), "feed-action feed-original")}<details class="more-actions"><summary aria-label="${esc(vl("more"))}" title="${esc(vl("more"))}"><span aria-hidden="true">⋯</span></summary><div class="more-actions-menu"><button type="button" class="feed-action" data-share="${esc(p.url || "")}" data-share-title="${esc(label)}">${icon("arrow")}<span>${vl("share")}</span></button>${report}</div></details></div>`;
+}
 export function postCard(p, sources, following = new Set(), events = []) {
   const s = sources.find(s => s.id === p.sourceId);
   const label = s ? sourceDisplayName(s) : p.sourceName || t("source");
   const text = postDisplayText(p, p.text);
   const snapshot = p.contentKind === "website_snapshot";
   const timeLabel = snapshot ? `${esc(vl("observed"))}: ${timestamp(p.observedAt)}` : timestamp(p.publishedAt);
-  const expandable = text.length > 180 || text.split("\n").length > 6;
+  const expandable = (isRedesign() ? shortenedUrlText(text) : text).length > 180 || text.split("\n").length > 6;
   const followed = s && following.has(s.id);
   const linkedEvents = events.filter(e => (p.eventIds || []).includes(e.id) || (p.url && (e.url === p.url || e.sourceUrl === p.url)));
   const country = countryName(p.countryCode || s?.countryCode, p.country || s?.country);
-  return `<article class="post-card feed-post"><div class="feed-avatar-wrap">${link(s ? sourceHref(s) : p.sourceUrl, avatar({ ...s, ...p, avatar: p.avatar || s?.avatar, name: label }), "feed-avatar-link")}</div><div class="feed-content"><div class="feed-head"><strong class="feed-name">${link(s ? sourceHref(s) : p.sourceUrl, esc(label), "", `title="${esc(label)}"`)}</strong><span class="feed-time">${timeLabel}</span></div><div class="feed-meta"><span class="feed-topic">${esc(country)}</span><span aria-hidden="true">·</span>${link(p.url, esc(platformName(p.platform)), "feed-plat")}${p.isStory ? `<span class="tag story-tag">${t("story")}</span>` : ""}</div>${snapshot ? `<p class="notice">${esc(vl("snapshot"))}</p>` : ""}${p.title && p.title !== p.text && !(p.text || "").startsWith(p.title) ? `<h3 class="feed-title">${esc(postDisplayText(p, p.title))}</h3>` : ""}<p class="post-text feed-text ${expandable ? "" : "is-expanded"}">${esc(text)}</p>${expandable ? `<button type="button" class="feed-expand" data-expand-post aria-expanded="false">${t("readMore")}</button>` : ""}${image(p.image, "post-image feed-img", "")}${p.isStory && (p.sourceAvailable === false || p.storyState === "expired" || p.storyState === "unknown" || (p.expiresAt && Date.parse(p.expiresAt) < Date.now())) ? `<p class="muted story-expired">${t("storyExpired")}</p>` : ""}${linkedEvents.length ? `<div class="feed-evs">${linkedEvents.map(e => link(e.url || e.sourceUrl, `<span class="feed-ev-date">${esc(shortDate(e.start, { timeZone: e.timezone || "UTC" }))}</span><span class="feed-ev-title">${esc(eventText(e))}</span>`, "feed-ev")).join("")}</div>` : ""}<div class="feed-actions">${s ? `<button type="button" class="feed-action ${followed ? "is-following" : ""}" data-follow="${esc(s.id)}" aria-pressed="${!!followed}" aria-label="${esc(t(followed ? "unfollow" : "follow") + " " + label)}">${icon(followed ? "check" : "heart")}<span>${t(followed ? "following" : "follow")}</span></button>` : ""}<button type="button" class="feed-action" data-share="${esc(p.url || "")}" data-share-title="${esc(label)}">${icon("arrow")}<span>${vl("share")}</span></button>${link(p.url, t("original"), "feed-action feed-original")}${reportLink({ ...p, name: p.title || label, countryCode: p.countryCode || s?.countryCode })}</div></div></article>`;
+  // New interface: an archived story says so once, as the story tag's tooltip,
+  // instead of a notice line on every story card.
+  const archived = p.isStory && (p.sourceAvailable === false || p.storyState === "expired" || p.storyState === "unknown" || (p.expiresAt && Date.parse(p.expiresAt) < Date.now()));
+  return `<article class="post-card feed-post"><div class="feed-avatar-wrap">${link(s ? sourceHref(s) : p.sourceUrl, avatar({ ...s, ...p, avatar: s?.avatar || p.avatar, name: label }), "feed-avatar-link")}</div><div class="feed-content"><div class="feed-head"><strong class="feed-name">${link(s ? sourceHref(s) : p.sourceUrl, esc(label), "", `title="${esc(label)}"`)}</strong><span class="feed-time">${timeLabel}</span></div><div class="feed-meta"><span class="feed-topic">${esc(country)}</span><span aria-hidden="true">·</span>${link(p.url, esc(platformName(p.platform)), "feed-plat")}${p.isStory ? `<span class="tag story-tag"${archived && isRedesign() ? ` title="${esc(t("storyExpired"))}"` : ""}>${t("story")}</span>` : ""}</div>${snapshot ? `<p class="notice">${esc(vl("snapshot"))}</p>` : ""}${p.title && p.title !== p.text && !(p.text || "").startsWith(p.title) && !(p.isStory && /^Instagram story @/i.test(p.title)) ? `<h3 class="feed-title">${esc(postDisplayText(p, p.title))}</h3>` : ""}${p.isStory && /^Instagram (story|\S+) @/i.test(text) && !/\n/.test(text) && text.length < 60 ? "" : `<p class="post-text feed-text ${expandable ? "" : "is-expanded"}">${isRedesign() ? linkedPostText(text) : esc(text)}</p>`}${expandable ? `<button type="button" class="feed-expand" data-expand-post aria-expanded="false">${t("readMore")}</button>` : ""}${image(p.image, "post-image feed-img", "")}${archived && !isRedesign() ? `<p class="muted story-expired">${t("storyExpired")}</p>` : ""}${linkedEvents.length ? `<div class="feed-evs">${linkedEvents.map(e => link(e.url || e.sourceUrl, `<span class="feed-ev-date">${esc(shortDate(e.start, { timeZone: e.timezone || "UTC" }))}</span><span class="feed-ev-title">${esc(eventText(e))}</span>`, "feed-ev")).join("")}</div>` : ""}${isRedesign() ? redesignedPostActions(p, s, label, followed) : `<div class="feed-actions">${s ? `<button type="button" class="feed-action ${followed ? "is-following" : ""}" data-follow="${esc(s.id)}" aria-pressed="${!!followed}" aria-label="${esc(t(followed ? "unfollow" : "follow") + " " + label)}">${icon(followed ? "check" : "heart")}<span>${t(followed ? "following" : "follow")}</span></button>` : ""}<button type="button" class="feed-action" data-share="${esc(p.url || "")}" data-share-title="${esc(label)}">${icon("arrow")}<span>${vl("share")}</span></button>${link(p.url, t("original"), "feed-action feed-original")}${reportLink({ ...p, name: p.title || label, countryCode: p.countryCode || s?.countryCode })}</div>`}</div></article>`;
 }
 export function eventDateLabel(e, options = {}) {
   return shortEventDate(e, options);
@@ -110,8 +154,19 @@ export function scoreRow(s) {
 export function collectionCard(s) {
   return `<article class="collection-card"><div class="collection-art">${icon("music")}<span aria-hidden="true">♫</span></div><div class="collection-copy"><div class="eyebrow">${esc(countryName(s.countryCode))}</div><h3>${esc(s.name || s.title)}</h3><p>${esc(s.summary || "")}</p><div class="card-bottom"><span class="muted small">${s.count !== undefined ? number(s.count) + " " + t("scoresCount") : ""}</span>${link(s.url, t("original"), "text-link")}</div></div></article>`;
 }
+// List pages describe themselves through their content; the new interface
+// keeps only the title there. Explanatory pages keep their description.
+const listDescriptions = new Set(["latestBody", "eventsBody", "directoryBody", "scoresBody", "scoreSourcesBody"]);
 export function pageHeading(key, body, extra = "") {
-  return `<header class="page-heading"><div><h1>${t(key)}</h1>${body ? `<p>${t(body)}</p>` : ""}</div>${extra}</header>`;
+  const description = body && !(isRedesign() && listDescriptions.has(body)) ? `<p>${t(body)}</p>` : "";
+  return `<header class="page-heading"><div><h1>${pageName(key) ? esc(pageName(key)) : t(key)}</h1>${description}</div>${extra}</header>`;
+}
+// Whether the visitor narrowed a list. In the new interface "Following" is a
+// tab, not a filter, so it alone neither shows "Clear filters" nor a result count.
+export function filtersActive(state = {}) {
+  if (!isRedesign()) return hasFilters(state);
+  // Following and the event period are tabs in the new interface, not filters.
+  return hasFilters({ ...state, followed: false, kind: state.kind === "following" ? "" : state.kind, period: "upcoming" });
 }
 export function countryFacets(state, catalog, kind, following = new Set()) {
   const sources = new Map((catalog.sources || []).map(source => [source.id, source]));
@@ -146,7 +201,7 @@ export function filterBar(state, catalog, kind, following = new Set()) {
       )
       .join(
         "",
-      )}</select></label><label>${t("postKind")}<select data-filter="kind"><option value="">${t("allPosts")}</option><option value="stories" ${state.kind === "stories" ? "selected" : ""}>${t("stories")}</option><option value="following" ${state.kind === "following" ? "selected" : ""}>${t("following")}</option></select></label>`;
+      )}</select></label><label>${t("postKind")}<select data-filter="kind"><option value="">${t("allPosts")}</option><option value="stories" ${state.kind === "stories" ? "selected" : ""}>${t("stories")}</option>${isRedesign() ? "" : `<option value="following" ${state.kind === "following" ? "selected" : ""}>${t("following")}</option>`}</select></label>`;
   if (kind === "events")
     extra = `<label>${t("eventPeriod")}<select data-filter="period">${["upcoming", "past", "allEvents"].map((v) => `<option value="${v}" ${state.period === v ? "selected" : ""}>${t(v)}</option>`).join("")}</select></label>`;
   if (kind === "sources")
@@ -160,7 +215,7 @@ export function filterBar(state, catalog, kind, following = new Set()) {
       )
       .join(
         "",
-      )}</select></label><label class="checkbox-filter"><input type="checkbox" data-filter="followed" ${state.followed ? "checked" : ""}> ${t("following")}</label>`;
+      )}</select></label>${isRedesign() ? "" : `<label class="checkbox-filter"><input type="checkbox" data-filter="followed" ${state.followed ? "checked" : ""}> ${t("following")}</label>`}`;
   if (kind === "scores")
     extra = `<label>${t("year")}<select data-filter="year"><option value="">${t("allYears")}</option>${[
       ...new Set(catalog.scores.map((s) => s.year).filter(Boolean)),
@@ -172,7 +227,7 @@ export function filterBar(state, catalog, kind, following = new Set()) {
           `<option value="${esc(v)}" ${state.year === v ? "selected" : ""}>${esc(v)}</option>`,
       )
       .join("")}</select></label>`;
-  return `<section class="filter-bar" aria-label="${t("filter")}"><label class="search-label"><span>${t("search")}</span><div class="search-wrap">${icon("search")}<input type="search" id="catalog-search" placeholder="${t("searchPlaceholder")}" value="${esc(state.q)}" autocomplete="off"></div></label><label>${t("country")}<select data-filter="country"><option value="">${t("allCountries")}</option>${countries.map((c) => `<option value="${esc(c.code)}" ${state.country === c.code ? "selected" : ""}>${esc(countryName(c.code, c.name))} (${number(c.count)})</option>`).join("")}</select></label>${extra}${state.q || state.country || state.platform || state.kind || state.type || state.followed || state.year || (state.period && state.period !== "upcoming") ? `<button class="clear-filter" data-action="reset">${t("reset")}</button>` : ""}</section>`;
+  return `<section class="filter-bar" aria-label="${t("filter")}"><label class="search-label"><span>${t("search")}</span><div class="search-wrap">${icon("search")}<input type="search" id="catalog-search" placeholder="${t("searchPlaceholder")}" value="${esc(state.q)}" autocomplete="off"></div></label><label>${t("country")}<select data-filter="country"><option value="">${t("allCountries")}</option>${countries.map((c) => `<option value="${esc(c.code)}" ${state.country === c.code ? "selected" : ""}>${esc(countryName(c.code, c.name))} (${number(c.count)})</option>`).join("")}</select></label>${extra}${(isRedesign() ? filtersActive(state) : state.q || state.country || state.platform || state.kind || state.type || state.followed || state.year || (state.period && state.period !== "upcoming")) ? `<button class="clear-filter" data-action="reset">${t("reset")}</button>` : ""}</section>`;
 }
 export function homeView(catalog, state, following, filtered) {
   return `${filterBar(state, catalog, "posts")}<div class="post-grid">${filtered.posts.length ? filtered.posts.slice(0, 24).map(p => postCard(p, catalog.sources, following, catalog.events)).join("") : empty()}</div>`;
@@ -180,27 +235,74 @@ export function homeView(catalog, state, following, filtered) {
 export function communityBanner() {
   return `<aside class="community-banner"><div><h2>${t("contribute")}</h2><p>${t("communityBody")}</p></div><div class="community-actions">${link("/contribute/", t("contribute") + icon("arrow"), "button button-outline")}${link("/submit/", t("submit"), "text-link")}</div></aside>`;
 }
+// New interface, phones: the profile summary is clamped to three lines;
+// "read more" appears only when the text is cut (app.js unhides it).
+function summaryToggle() {
+  return `<button type="button" class="feed-expand source-summary-toggle" data-expand-summary aria-expanded="false" hidden>${t("readMore")}</button>`;
+}
+export function toggleSummaryExpansion(button) {
+  const expanded = button.getAttribute("aria-expanded") !== "true";
+  button.setAttribute("aria-expanded", String(expanded));
+  button.closest(".source-profile")?.querySelector(".source-biography")?.classList.toggle("is-expanded", expanded);
+  button.textContent = expanded ? vl("collapse") : t("readMore");
+}
+// Show the toggle only where the clamp actually hides part of the summary.
+export function revealClampedSummary(root) {
+  const button = root.querySelector("[data-expand-summary]");
+  const summary = root.querySelector(".source-profile .source-summary");
+  if (button && summary) button.hidden = !(summary.scrollHeight > summary.clientHeight + 1);
+}
 export function sourceDetail(source, catalog, following, limit = 24) {
   if (!source)
     return `${pageHeading("sourceMissing", "directoryBody")}${link("/source/", t("backDirectory"), "button button-primary")}`;
   const posts = catalog.posts.filter((p) => p.sourceId === source.id);
-  return `<div class="org-page"><div class="back-link">${link("/source/", "← " + t("backDirectory"), "text-link")}</div><section class="source-profile"><div class="profile-avatar">${avatar(source)}</div><div><p class="eyebrow">${esc(countryName(source.countryCode, source.country))}</p><h1>${esc(sourceDisplayName(source))}</h1>${sourceNamesMarkup(source, {includePrimary:false})}<div class="profile-types">${sourceTypesMarkup(source)}</div>${sourceAlternativesMarkup(source)}${sourceSummaryMarkup(source)}<div class="profile-tags">${sourceTags(source).map((tag) => `<span class="tag">${esc(tag)}</span>`).join("")}</div><div class="profile-links">${(Array.isArray(source.links) ? source.links : []).map((l) => link(l.url, esc(sourceLinkLabel(l.label)), "button button-outline")).join("")}${reportLink(source, sourceHref(source))}</div></div><button class="button button-outline" data-follow="${esc(source.id)}" aria-pressed="${following.has(source.id)}">${icon(following.has(source.id) ? "check" : "plus")}${t(following.has(source.id) ? "following" : "follow")}</button></section><div class="section-heading"><div><h2>${t("sourceUpdates")}</h2><p>${t("results", { count: number(posts.length) })}</p></div></div><div class="post-grid source-updates-grid">${
+  return `<div class="org-page"><div class="back-link">${link("/source/", "← " + t("backDirectory"), "text-link")}</div><section class="source-profile"><div class="profile-avatar">${avatar(source)}</div><div><p class="eyebrow">${esc(countryName(source.countryCode, source.country))}</p><h1>${esc(sourceDisplayName(source))}</h1>${sourceNamesMarkup(source, {includePrimary:false})}<div class="profile-types">${sourceTypesMarkup(source)}</div>${sourceAlternativesMarkup(source)}${sourceSummaryMarkup(source)}${isRedesign() ? summaryToggle() : ""}<div class="profile-tags">${sourceTags(source).map((tag) => `<span class="tag">${esc(tag)}</span>`).join("")}</div><div class="profile-links">${(Array.isArray(source.links) ? source.links : []).map((l) => link(l.url, esc(sourceLinkLabel(l.label)), "button button-outline")).join("")}${reportLink(source, sourceHref(source))}</div></div><button class="button button-outline" data-follow="${esc(source.id)}" aria-pressed="${following.has(source.id)}">${icon(following.has(source.id) ? "check" : isRedesign() ? "heart" : "plus")}${t(following.has(source.id) ? "following" : "follow")}</button></section><div class="section-heading"><div><h2>${t("sourceUpdates")}</h2>${posts.length && !isRedesign() ? `<p>${t("results", { count: number(posts.length) })}</p>` : ""}</div></div><div class="post-grid source-updates-grid">${
     posts.length
       ? posts
           .slice(0, limit)
           .map((p) => postCard(p, catalog.sources, following, catalog.events || []))
           .join("")
-      : empty()
+      : empty({ filtered: false, symbol: "rss", title: t("sourceNoPostsTitle"), body: t("sourceNoPostsBody"),
+          actions: source.links?.[0]?.url ? link(source.links[0].url, esc(t("visitOriginal")), "button button-outline") : "" })
   }</div>${posts.length > limit ? `<div class="pagination"><p>${t("showing", { shown: number(limit), total: number(posts.length) })}</p><button class="button button-outline" data-action="more">${t("loadMore")}${icon("plus")}</button></div>` : ""}</div>`;
 }
 export function feedsView(catalog) {
+  return isRedesign() ? redesignedFeedsView(catalog) : legacyFeedsView(catalog);
+}
+// Original version, shown while the "new interface" switch is off.
+function legacyFeedsView(catalog) {
   return `${pageHeading("feeds", "feedBody")}<div class="feed-grid">${catalog.feeds.map((f) => `<article class="feed-card"><span class="feed-icon">${icon(String(f.format).toLowerCase().includes("ics") ? "calendar" : "rss")}</span><span class="tag">${esc(f.format || "RSS")}</span><h2>${t("feed_" + (f.id || f.title))}</h2><div class="feed-actions">${link(f.url, t("openFeed"), "text-link")}<button class="copy-button" data-copy="${esc(f.url)}">${t("copy")}</button></div></article>`).join("")}</div>`;
 }
+// "New interface" version: the feed's title is the link that opens it, so a
+// separate "Open feed" link is not repeated; the format tag and one copy
+// button close the row (a single line on phones).
+function redesignedFeedsView(catalog) {
+  const card = (f) => `<article class="feed-card"><span class="feed-icon">${icon(String(f.format).toLowerCase().includes("ics") ? "calendar" : String(f.format).toLowerCase().includes("json") ? "layers" : "rss")}</span><span class="tag">${esc(f.format || "RSS")}</span><h2>${link(f.url, t("feed_" + (f.id || f.title)), "feed-title-link")}</h2><div class="feed-actions"><button class="copy-button" data-copy="${esc(f.url)}">${t("copy")}</button></div></article>`;
+  const kind = (f) => { const format = String(f.format || "RSS").toUpperCase(); return format.includes("ICS") ? "Ics" : format.includes("JSON") ? "Data" : "Rss"; };
+  const groups = ["Rss", "Ics", "Data"].map((key) => [key, catalog.feeds.filter((f) => kind(f) === key)]).filter(([, rows]) => rows.length);
+  return `${pageHeading("feeds", "feedBody")}<div class="feed-groups">${groups.map(([key, rows]) => `<section class="feed-group"><header><h2>${t("feedGroup" + key)}</h2><p>${t("feedGroup" + key + "Body")}</p></header><div class="feed-grid">${rows.map(card).join("")}</div></section>`).join("")}</div>`;
+}
+// The project origin, said once on the About page (the new interface drops
+// the credit from every page footer): its name in the description links to it.
+const ORIGIN_URL = "https://github.com/skyhong2002/chumei";
+const originNames = { en: "Chumei Observatory", "zh-Hant": "竹梅活動觀測站", ja: "竹梅活動観測站", ko: "Chumei 관측소" };
+function aboutHeading() {
+  if (!isRedesign()) return pageHeading("aboutTitle", "aboutBody");
+  const body = esc(t("aboutBody")), name = esc(originNames[getLocale()] || originNames.en);
+  const linked = body.includes(name) ? body.replace(name, link(ORIGIN_URL, name, "text-link")) : body;
+  return `<header class="page-heading"><div><h1>${t("aboutTitle")}</h1><p>${linked}</p></div></header>`;
+}
 export function aboutView() {
-  return `${pageHeading("aboutTitle", "aboutBody")}<div class="about-layout"><section class="faq-section"><h2>${t("faq")}</h2>${["Lang", "Cost", "Data", "Withdraw", "Coverage"].map((id) => `<details class="faq"><summary>${t("faq" + id + "Q")}${icon("plus")}</summary><p>${t("faq" + id + "A")}</p></details>`).join("")}</section></div>${communityBanner()}`;
+  return `${aboutHeading()}<div class="about-layout info-layout"><section class="faq-section"><h2>${t("faq")}</h2>${["Lang", "Cost", "Data", "Withdraw", "Coverage"].map((id) => `<details class="faq"><summary>${t("faq" + id + "Q")}<span class="faq-icon faq-icon-closed">${icon("plus")}</span><span class="faq-icon faq-icon-open">${icon("minus")}</span></summary><p>${t("faq" + id + "A")}</p></details>`).join("")}</section>${contactCard()}</div>${communityBanner()}`;
+}
+// System status gets its own mark, distinct from the "layers" used for find & buy music.
+const pulseIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg>';
+const ISSUES_URL = "https://github.com/skyhong2002/harmonica-observatory/issues";
+function contactCard() {
+  return `<aside class="contact-card"><h2>${t("contactTitle")}</h2><p>${t("contactBody")}</p><ul>${[[ISSUES_URL, "contactIssues", "info"], ["/submit/", "submit", "plus"], ["/status/", "status", isRedesign() ? "pulse" : "layers"]].map(([url, key, symbol]) => `<li>${link(url, (symbol === "pulse" ? pulseIcon : icon(symbol)) + `<span>${t(key)}</span>`, "contact-link")}</li>`).join("")}</ul></aside>`;
 }
 export function privacyView() {
-  return `${pageHeading("privacy", "privacyBody")}<div class="prose">${["Browser", "Server", "External"].map((id) => `<section><h2>${t("privacy" + id + "Title")}</h2><p>${t("privacy" + id)}</p></section>`).join("")}<p>${link("/contribute/", t("myContributions"), "text-link")} · ${link("/submit/", t("submit"), "text-link")}</p></div>`;
+  return `${pageHeading("privacy", "privacyBody")}<div class="info-layout"><div class="prose">${["Browser", "Server", "External"].map((id) => `<section><h2>${t("privacy" + id + "Title")}</h2><p>${t("privacy" + id)}</p></section>`).join("")}<section><h2>${t("privacyRequestTitle")}</h2><p>${t("privacyRequestBody")}</p></section><p>${link("/contribute/", t("myContributions"), "text-link")} · ${link("/submit/", t("submit"), "text-link")}</p></div>${contactCard()}</div>`;
 }
 export function statusView(catalog, community) {
   const status = catalog.status || {};
@@ -214,7 +316,7 @@ export function statusView(catalog, community) {
       : coverage.checkedSources24h === null ? t("coverageUnknown") : "—";
     const reason = service.reasonCode === "budget_deferred" ? "budgetDeferred"
       : ["scheduled", "no_sources_due"].includes(service.reasonCode) ? "collectionScheduled" : "";
-    return `<tr><td>${esc(platformName(service.name || service.id))}</td><td><span class="status-pill ${label(service.status) === "healthy" ? "is-ok" : ""}">${t(label(service.status))}</span>${reason ? `<p>${esc(t(reason))}</p>` : ""}</td><td>${number(service.count)}</td><td>${checked}<br><small>${t("lastSourceCheck")}: ${timestamp(coverage.lastSuccessAt)}</small></td><td>${number(service.errors)}</td></tr>`;
+    return `<tr><th scope="row">${esc(platformName(service.name || service.id))}</th><td data-label="${esc(t("status"))}"><span class="status-pill status-${label(service.status)} ${label(service.status) === "healthy" ? "is-ok" : ""}">${t(label(service.status))}</span>${reason ? `<p>${esc(t(reason))}</p>` : ""}</td><td data-label="${esc(t("configuredSources"))}">${number(service.count)}</td><td data-label="${esc(t("checkedCoverage"))}"><span>${checked}<br><small>${t("lastSourceCheck")}: ${timestamp(coverage.lastSuccessAt)}</small></span></td><td data-label="${esc(t("errors"))}">${number(service.errors)}</td></tr>`;
   }).join("");
-  return `${pageHeading("status", "statusBody")}<section class="status-hero"><span class="status-orb ${label(status.overall) === "healthy" ? "ok" : ""}"></span><div><h2>${t(label(status.overall))}</h2><p>${t("updated", { date: timestamp(status.updatedAt) })}</p></div></section><div class="status-metrics"><div><span>${t("provider")}</span><strong>${esc(platformName(status.provider) || t("unavailable"))}</strong></div><div><span>${t("snapshot")}</span><strong>${timestamp(status.metrics?.latestDataAt || catalog.generatedAt)}</strong></div><div><span>${t("activeAccounts")}</span><strong>${community ? number(community.crawlSchedule?.pool?.usableAccountCount ?? community.activeAccounts) : "—"}</strong></div></div><p class="notice">${icon("info")}${t("snapshotNote")}</p><div class="table-scroll"><table><thead><tr><th>${t("service")}</th><th>${t("status")}</th><th>${t("configuredSources")}</th><th>${t("checkedCoverage")}</th><th>${t("errors")}</th></tr></thead><tbody>${services}</tbody></table></div>${communityBanner()}`;
+  return `${pageHeading("status", "statusBody")}<section class="status-hero"><span class="status-orb ${label(status.overall) === "healthy" ? "ok" : ""}"></span><div><h2>${t(label(status.overall))}</h2><p>${t("updated", { date: timestamp(status.updatedAt) })}</p></div></section><div class="status-metrics"><div><span>${t("provider")}</span><strong>${esc(platformName(status.provider) || t("unavailable"))}</strong></div><div><span>${t("snapshot")}</span><strong>${timestamp(status.metrics?.latestDataAt || catalog.generatedAt)}</strong></div><div><span>${t("activeAccounts")}</span><strong>${community ? number(community.crawlSchedule?.pool?.usableAccountCount ?? community.activeAccounts) : "—"}</strong></div></div>${isRedesign() ? "" : `<p class="notice">${icon("info")}${t("snapshotNote")}</p>`}<div class="table-scroll status-table"><table><thead><tr><th>${t("service")}</th><th>${t("status")}</th><th>${t("configuredSources")}</th><th>${t("checkedCoverage")}</th><th>${t("errors")}</th></tr></thead><tbody>${services}</tbody></table></div>${communityBanner()}${isRedesign() ? pageNotes([esc(t("snapshotNote"))]) : ""}`;
 }

@@ -1,3 +1,4 @@
+import { isRedesign } from '../assets/redesign.js';
 /** Actual DOM/event integration; no browser, network, credentials or runtime writes. */
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -262,6 +263,24 @@ test("application DOM journey across languages, routing, filters and community f
       }
     },
   );
+  await t.test("new interface: the phone directory Sort menu and direction toggle drive the same sort state", () => {
+    if (!isRedesign()) return;
+    change("#language-select", "en");
+    assert.equal($("[data-source-sort-select]").value, "name");
+    change("[data-source-sort-select]", "updated");
+    let query = new URLSearchParams(window.location.search);
+    assert.equal(query.get("sort"), "updated");
+    assert.equal(query.get("descending"), null);
+    assert.equal($("[data-source-sort-select]").value, "updated");
+    assert.ok($('.src-head [data-source-sort="updated"]').classList.contains("active"));
+    click(".src-sort-direction");
+    assert.equal(new URLSearchParams(window.location.search).get("descending"), "1");
+    assert.match($(".src-sort-direction").textContent, /Descending/);
+    change("[data-source-sort-select]", "name");
+    query = new URLSearchParams(window.location.search);
+    assert.equal(query.get("sort"), null);
+    assert.equal(query.get("descending"), null);
+  });
   await t.test("internal navigation retains locale and source metadata", () => {
     change("#language-select", "ko");
     click(".source-card h3 a");
@@ -307,6 +326,16 @@ test("application DOM journey across languages, routing, filters and community f
       );
       assert.equal(window.document.querySelectorAll(".source-card").length, 1);
       click("[data-action=reset]");
+      // New interface: an empty filtered list offers "Clear filters" once, in its empty card.
+      if (isRedesign()) {
+        const search = $("#catalog-search");
+        search.value = "zzqxv";
+        search.dispatchEvent(new window.InputEvent("input", { bubbles: true, isComposing: false }));
+        await until(() => $(".empty-state [data-action=reset]"), "empty filtered list should render");
+        assert.equal(window.document.querySelectorAll("[data-action=reset]").length, 1);
+        assert.equal($(".filter-bar .clear-filter"), null);
+        click("[data-action=reset]");
+      }
     },
   );
   await t.test("follow state persists and followed filter uses it", () => {
@@ -316,11 +345,14 @@ test("application DOM journey across languages, routing, filters and community f
       ["tokyo"],
     );
     assert.equal($("[data-follow=tokyo]").getAttribute("aria-pressed"), "true");
-    change("[data-filter=followed]", true);
+    // The new interface replaces the checkbox with All / Following tabs.
+    if (isRedesign()) click('.follow-tab[href*="followed=1"]');
+    else change("[data-filter=followed]", true);
     assert.equal(window.document.querySelectorAll(".source-card").length, 1);
     click("[data-follow=tokyo]");
     assert.equal(window.document.querySelectorAll(".source-card").length, 0);
-    click("[data-action=reset]");
+    if (isRedesign()) click('.follow-tab:not([href*="followed=1"])');
+    else click("[data-action=reset]");
   });
   await t.test(
     "contribution capacity includes operator pool and API errors clear token",
@@ -358,6 +390,9 @@ test("application DOM journey across languages, routing, filters and community f
       assert.ok(
         $(".owned-contribution").textContent.includes("Fixture capacity"),
       );
+      // New interface: one line beside "Withdraw" says what withdrawing does.
+      if (isRedesign()) assert.equal($(".owned-contribution .withdraw-row .withdraw-effect")?.textContent, translate("withdrawEffect"));
+      else assert.equal($(".withdraw-effect"), null);
       assert.ok($(".impact-panel"));
       assert.ok(
         !window.document.body.innerHTML.includes(
@@ -501,7 +536,7 @@ test("application DOM journey across languages, routing, filters and community f
   });
   await t.test("home composes stories, Google calendar and a unified timeline while posts opens the same full timeline", async () => {
     click('.brand');
-    assert.deepEqual([...$(".observatory-home").children].filter(node => node.tagName === "SECTION").map(node => node.classList[0]), ["home-stories", "home-calendar", "home-posts"]);
+    assert.deepEqual([...$(".observatory-home").children].filter(node => node.tagName === "SECTION").map(node => node.classList[0]), [...(isRedesign() ? ["home-intro"] : []), "home-stories", "home-calendar", "home-posts"]);
     assert.equal(window.document.querySelectorAll(".ob-stories").length, 1);
     assert.ok($("[data-google-calendar-embed]"));
     assert.equal($(".calendar-grid"), null);

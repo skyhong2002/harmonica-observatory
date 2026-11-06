@@ -1,0 +1,167 @@
+/* "New interface" home and event styles (only with <html data-redesign>). */
+
+:root[data-redesign] {
+
+/* Event cards: the date block, title, time and place always start at the
+   same left edge; a poster, when there is one, is a thumbnail at the right of
+   that header. Post text, actions and a video use the full card width. A
+   card without a poster has no tile in its place. */
+.rich-event-header h2 { text-wrap: balance; }
+.rich-event-card {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: none; align-items: start;
+  grid-template-areas: "header media" "video video" "gallery gallery" "copy copy";
+}
+.rich-event-card > .rich-event-header { grid-area: header; }
+.rich-event-card > .rich-event-copy { grid-area: copy; padding-top: 4px; }
+.rich-event-card > .event-gallery { grid-area: gallery; margin: 0 20px 4px; }
+.rich-event-card > .event-media {
+  grid-area: media; align-self: start; display: flex; align-items: center; justify-content: center;
+  width: 136px; min-height: 0; aspect-ratio: 4 / 5; margin: 20px 20px 0 0; padding: 6px;
+  background: var(--color-surface-soft); border-radius: 10px;
+}
+.rich-event-card > .event-media .event-media-link { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+.rich-event-card > .event-media .event-poster { width: 100%; max-width: 100%; height: 100%; max-height: none; object-fit: contain; border-radius: 6px; }
+/* A poster that failed to load simply goes (no tile, no icon). */
+.rich-event-card > .event-media.event-media-unavailable { display: none; }
+.rich-event-card > .event-video { grid-area: video; width: calc(100% - 40px); max-height: 300px; margin: 0 20px 4px; border-radius: 10px; background: #141814; }
+.rich-event-card:has(> .event-media:not(.event-media-unavailable)) > .rich-event-header { padding-right: 16px; }
+
+/* Post excerpts and descriptions show three lines ("read more" opens the
+   rest); the action row follows the text. */
+.rich-event-copy > :nth-last-child(2) { margin-bottom: 12px; }
+.event-reference .feed-text:not(.is-expanded) { -webkit-line-clamp: 3; }
+.event-description-text:not(.is-expanded) .source-summary { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.event-description-text .source-summary { margin: 0; }
+.event-description-block .feed-expand { margin-top: 5px; }
+/* "Read more" looks the same as on post cards (.feed-text-toggle). */
+.rich-event-card .feed-expand {
+  display: inline-block; min-height: 28px; padding: 0; color: var(--color-text-brand); font-size: .88rem; font-weight: 700;
+  text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px;
+}
+
+/* Desktop: one event per row across the page width, sized to its content:
+   date and details, then the excerpt (or description) with the actions
+   under it, then the poster when there is one. The details column has a
+   fixed share so every excerpt starts at the same edge; without a poster
+   the text runs to the right edge. */
+@media (min-width: 1100px) {
+  .rich-event-card {
+    grid-template-columns: minmax(0, 42%) minmax(0, 1fr) auto; grid-template-rows: auto 1fr;
+    grid-template-areas: "header copy media" "gallery copy media";
+  }
+  .rich-event-card > .rich-event-header { padding: 22px 28px 18px 22px; }
+  .rich-event-card:has(> .event-media:not(.event-media-unavailable)) > .rich-event-header { padding-right: 28px; }
+  .rich-event-card > .event-gallery { margin: 0 28px 18px 102px; }
+  .rich-event-card > .rich-event-copy { padding: 20px 24px 14px 0; }
+  .rich-event-card:not(:has(> .event-media:not(.event-media-unavailable), > .event-video)) > .rich-event-copy { grid-column: 2 / -1; padding-right: 28px; }
+  .rich-event-copy .event-author { margin-top: 0; }
+  .rich-event-copy > .rich-event-actions { margin-top: 8px; padding-top: 0; border-top: 0; }
+  .rich-event-card > .event-media { width: 120px; margin: 20px 22px 20px 0; }
+  .rich-event-card > .event-video { grid-area: media; width: 260px; max-height: 200px; margin: 20px 22px 20px 0; }
+}
+
+/* Phones: the title uses the full card width; the small poster sits beside
+   the time and place under it. */
+@media (max-width: 760px) {
+  .rich-event-header h2 { font-size: 1.08rem; line-height: 1.45; overflow-wrap: break-word; }
+  .rich-event-card {
+    grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: none;
+    grid-template-areas: "date date" "eyebrow eyebrow" "title title" "original original" "facts media" "video video" "gallery gallery" "copy copy";
+  }
+  .rich-event-card > .rich-event-header, .rich-event-header > .rich-event-heading { display: contents; }
+  .rich-event-header > .event-date-block { grid-area: date; margin: 16px 15px 10px; }
+  .rich-event-heading > .eyebrow { grid-area: eyebrow; margin: 0 15px 5px; }
+  .rich-event-heading > h2 { grid-area: title; margin: 0 15px 8px; }
+  .rich-event-heading > .event-original { grid-area: original; margin: 0 15px 8px; }
+  .rich-event-heading > .rich-event-facts { grid-area: facts; align-self: center; min-width: 0; margin: 0 12px 10px 15px; }
+  .rich-event-card > .event-media { width: 72px; margin: 0 15px 10px 0; padding: 4px; border-radius: 8px; }
+  .rich-event-card > .event-media .event-poster { border-radius: 4px; }
+  .rich-event-card > .event-video { width: calc(100% - 30px); max-height: 240px; margin: 0 15px 4px; }
+  .rich-event-card > .event-gallery { margin: 0 15px 4px; }
+}
+
+/* Home "Coming up": time leads, titles get three balanced lines so sessions
+   on the same day (morning / afternoon) can be told apart. */
+.home-upcoming-copy strong { -webkit-line-clamp: 3; line-clamp: 3; text-wrap: balance; }
+.home-upcoming-copy > .home-upcoming-time { display: block; color: var(--color-text-brand); font-size: .92rem; font-weight: 800; line-height: 1.35; font-variant-numeric: tabular-nums; }
+.home-now-events .home-upcoming-link, .home-upcoming-link { align-items: start; }
+.home-upcoming-copy > .home-upcoming-place svg { margin: 0 4px 0 0; vertical-align: -2px; }
+
+/* Events list: one event per row at every width, in date order. The
+   timezone appears beside the time only when it differs from the visitor's. */
+.rich-events-grid { grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 1100px) { .rich-events-grid { gap: 14px; } }
+/* The period is a row of tabs above the list (the same look as the
+   "All / Following" tabs), so the filter bar's period select goes. */
+.event-period-tabs { flex-wrap: wrap; max-width: 100%; }
+.filter-bar label:has(> select[data-filter="period"]) { display: none; }
+.rich-event-time .rich-event-zone { display: inline-block; margin: 0 0 0 6px; color: var(--color-text-muted); font-size: .8rem; font-weight: 600; white-space: nowrap; }
+
+/* Home intro: tagline, one line and the numbers (the top navigation covers
+   the main pages). */
+.home-intro-grid { grid-template-columns: minmax(0, 1fr); }
+
+/* Home calendar: one compact row of calendar choices, then a short agenda. */
+.home-calendar .google-calendar-toolbar { margin-bottom: 8px; }
+.home-calendar .google-calendar-filters { gap: 2px 4px; }
+.home-calendar .google-calendar-filters label { min-height: 40px; padding: 6px 8px 6px 0; font-size: .86rem; }
+.home-calendar .google-calendar-filters label + label { padding-left: 8px; }
+.google-calendar-frame iframe { height: 560px; }
+/* Phones: three "Coming up" events and no calendar embed (it would repeat
+   them and push the latest posts far down); the page notes keep Google
+   Calendar and the ICS feeds, "Coming up" links to the event list. The
+   embed's timezone / "not loading" note goes with it. */
+@media (max-width: 640px) {
+  .home-calendar { display: none; }
+  .home-notes .page-notes li:has(> .google-calendar-context) { display: none; }
+  .home-now-events .home-upcoming > li:nth-child(n+4) { display: none; }
+}
+
+/* Home calendar with nothing to embed: the same centred empty card as the
+   other empty states. */
+.google-calendar-frame > .google-calendar-empty.empty-state {
+  width: fit-content; max-width: 34rem; margin: 24px auto; padding: 40px 24px; color: inherit; font-size: 1rem; line-height: 1.6;
+  text-align: center; border-radius: var(--radius-lg);
+}
+.google-calendar-empty.empty-state h3 { margin: 0; color: var(--color-text-primary); font-size: 1.15rem; line-height: 1.45; }
+
+/* Home page notes: snapshot time, timezone and calendar subscriptions. */
+.home-notes { padding: 0 0 48px; }
+.home-notes .page-notes { margin-top: 0; }
+.page-notes .home-updated { color: inherit; font-size: inherit; }
+.page-notes li:has(> [data-story-observed]:empty) { display: none; }
+.page-notes .google-calendar-context { margin: 0; color: inherit; font-size: inherit; }
+
+/* No stories: the same centred empty card as the other empty states (the
+   band uses the full width when there is no "Coming up" column). */
+.home-now-grid:not(:has(> .home-now-events)) { grid-template-columns: minmax(0, 1fr); }
+.ob-story-empty.empty-state {
+  flex: 0 1 auto; width: fit-content; max-width: 34rem; margin: 24px auto; padding: 40px 24px; color: inherit; font-size: 1rem;
+  line-height: inherit; text-align: center; border-radius: var(--radius-lg);
+}
+.ob-story-empty.empty-state h3 { margin: 0; color: var(--color-text-primary); font-size: 1.15rem; line-height: 1.45; }
+.ob-story-empty.empty-state .ob-story-status-link { display: inline-flex; width: auto; margin: 0; padding: 8px 14px; color: var(--color-text-primary); font-weight: 600; text-decoration: none; }
+.ob-story-empty.empty-state .ob-story-status-link:hover { color: var(--color-text-primary); }
+
+/* Story captions: avatar and name, then the display deadline and the
+   original source on one line. */
+.ob-story-caption { gap: 4px; }
+.ob-story-caption .ob-story-header { align-items: center; }
+.ob-story-caption .ob-story-footer { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 10px; padding: 0; border-top: 0; }
+.ob-story-caption .ob-story-original { min-height: 28px; }
+/* Expiry: "Shown until" and the date never split; when a narrow card cannot
+   fit the line, only the clock time moves down (redesign.css keeps the time
+   on one line elsewhere). */
+.ob-story-caption .ob-story-expiry-label { white-space: nowrap; }
+.ob-story-caption .ob-story-expiry time { white-space: inherit; }
+
+/* Home "now" band on desktop: story cards share the column (up to 300px
+   each, then the strip scrolls); the "Coming up" column takes what the
+   stories leave, so there is no empty gap between them. */
+@media (min-width: 1101px) {
+  .home-now-grid:has(> .home-now-events) { grid-template-columns: minmax(0, max-content) minmax(26rem, 1fr); }
+  .home-now-stories .ob-story-card { flex: 0 1 auto; width: 300px; min-width: 200px; }
+  /* Desktop cards are wide enough for "Shown until <date> · <time>" on one line. */
+  .home-now-stories .ob-story-caption .ob-story-expiry { white-space: nowrap; }
+}
+}

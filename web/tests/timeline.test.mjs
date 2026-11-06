@@ -4,6 +4,7 @@ import {JSDOM} from 'jsdom';
 import {timelinePosts,timelineCard,timelineView,bindTimeline} from '../assets/timeline.js';
 import {togglePostExpansion} from '../assets/views.js';
 import {setLocale} from '../assets/i18n.js';
+import {isRedesign} from '../assets/redesign.js';
 const catalog={sources:[{id:'jp',name:'日本の口琴',countryCode:'JP'},{id:'tw',name:'臺灣口琴社',countryCode:'TW'}],countries:[{code:'JP'},{code:'TW'}],events:[],posts:Array.from({length:61},(_,i)=>({id:'p'+i,sourceId:i%2?'jp':'tw',sourceName:i%2?'日本の口琴':'臺灣口琴社',countryCode:i%2?'JP':'TW',text:'Original '+i+'\n'+('完整原文 '.repeat(60)),platform:i%2?'instagram':'facebook',publishedAt:new Date(Date.UTC(2026,8,23,0,-i)).toISOString(),url:'https://example.com/post/'+i,image:i%3?'':'/assets/test.webp',isStory:i===60,storyState:i===60?'expired':undefined}))};
 function setup(width=1440){const{window}=new JSDOM('<main></main>',{url:'https://example.com/?lang=en',pretendToBeVisual:true});for(const key of ['window','document','location','localStorage'])Object.defineProperty(globalThis,key,{value:key==='window'?window:window[key],configurable:true});window.innerWidth=width;window.scrollBy=()=>{};window.HTMLElement.prototype.getBoundingClientRect=function(){const height=this.classList.contains('feed-river-column')?[...this.children].reduce((sum,n)=>sum+100+(Number(n.dataset.timelineIndex)%3)*20,0):100;return{height,width:300,top:0,bottom:height};};return window;}
 
@@ -59,15 +60,38 @@ test('historical posts show their year; linked events distinguish timezone and a
 });
 
 test('website snapshots stay available explicitly without masquerading as newly published posts',()=>{
- const window=setup();setLocale('en');const snapshot={...catalog.posts[0],id:'snapshot',platform:'website',publishedAt:null,observedAt:'2026-09-23T12:00:00Z',contentKind:'website_snapshot'};const data={...catalog,posts:[snapshot,...catalog.posts]};assert.equal(timelinePosts(data,{}).some(p=>p.id==='snapshot'),false);assert.deepEqual(timelinePosts(data,{platform:'website'}).map(p=>p.id),['snapshot']);document.querySelector('main').innerHTML=timelineCard(snapshot,data.sources);assert.match(document.querySelector('.feed-latest-meta').textContent,/Observed, not published/);assert.match(document.querySelector('.feed-latest-meta time').title,/2026/);assert.match(document.querySelector('.timeline-meta').textContent,/Website snapshot/);assert.ok(document.querySelector('.feed-text').textContent.includes(snapshot.text));window.close();
+ const window=setup();setLocale('en');const snapshot={...catalog.posts[0],id:'snapshot',platform:'website',publishedAt:null,observedAt:'2026-09-23T12:00:00Z',contentKind:'website_snapshot'};const data={...catalog,posts:[snapshot,...catalog.posts]};assert.equal(timelinePosts(data,{}).some(p=>p.id==='snapshot'),false);assert.deepEqual(timelinePosts(data,{platform:'website'}).map(p=>p.id),['snapshot']);document.querySelector('main').innerHTML=timelineCard(snapshot,data.sources);assert.match(document.querySelector('.feed-latest-meta').textContent,/Observed, not published/);assert.match(document.querySelector('.feed-latest-meta time').title,/2026/);assert.match(document.querySelector(isRedesign() ? '.feed-latest-meta' : '.timeline-meta').textContent,/Website snapshot/);assert.ok(document.querySelector('.feed-text').textContent.includes(snapshot.text));window.close();
 });
 
 
 test('feed summary is concise and linked authors use one interface-language name',()=>{
  const window=setup();setLocale('en');const data={...catalog,sources:catalog.sources.map(source=>({...source,names:{en:'English author',original:source.name}}))};
  document.querySelector('main').innerHTML=timelineView(data,{});
+ // The new interface shows the total once, beside "load more"; a result count only while filtered.
+ if(isRedesign()){assert.equal(document.querySelector('.feed-river-summary'),null);assert.match(document.querySelector('.feed-load-more-status').textContent,/Showing 24 of 60/);document.querySelector('main').innerHTML=timelineView(data,{country:'JP'});}
  assert.equal(document.querySelector('.feed-river-summary').children.length,1);
+ if(isRedesign()){document.querySelector('main').innerHTML=timelineView(data,{kind:'following'},new Set(['jp']));assert.equal(document.querySelector('.feed-river-summary'),null,'the Following tab is not a filter');document.querySelector('main').innerHTML=timelineView(data,{});}
  assert.equal(document.querySelector('.source-name-link').textContent,'English author');
  assert.ok(document.querySelector('.feed-text').textContent.includes('完整原文'));
+ window.close();
+});
+
+test('new interface card footer: follow source, the shared original-source label, then share and report in "⋯"',()=>{
+ if(!isRedesign())return;
+ const window=setup();
+ for(const [locale,follow,original] of [['zh-Hant','追蹤來源','原始來源'],['en','Follow source','Original source'],['ja','情報源をフォロー','原文を見る'],['ko','출처 팔로우','원문 보기']]){
+  setLocale(locale);document.querySelector('main').innerHTML=timelineCard(catalog.posts[0],catalog.sources,new Set());
+  const footer=document.querySelector('.home-feed-footer');
+  assert.equal(footer.querySelector('[data-follow]').textContent.trim(),follow);
+  assert.equal(footer.querySelector('.feed-open-link').textContent.replace('↗','').trim(),original);
+  assert.equal(footer.querySelectorAll('.timeline-actions').length,1);
+  assert.ok(footer.querySelector('.more-actions .more-actions-menu [data-share]'));
+  assert.ok(footer.querySelector('.more-actions .more-actions-menu a[href^="/submit/"]'));
+ }
+ // A Threads title that only differs from the text by its "@handle ↩️:" prefix is not shown twice.
+ setLocale('en');
+ const post={...catalog.posts[0],image:'',title:'@handle: The same opening sentence of this reply…',text:'@handle ↩️: The same opening sentence of this reply, and then the rest.'};
+ document.querySelector('main').innerHTML=timelineCard(post,catalog.sources,new Set());
+ assert.equal(document.querySelector('.home-feed-title'),null);
  window.close();
 });

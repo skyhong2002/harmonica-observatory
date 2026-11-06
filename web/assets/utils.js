@@ -28,6 +28,39 @@ export function link(url, label, classes = "", extra = "") {
   const external = /^https?:/.test(safe);
   return `<a class="${esc(classes)}" href="${esc(safe)}" ${external ? 'target="_blank" rel="noopener noreferrer"' : ""} ${extra}>${label}${external ? '<span class="external" aria-hidden="true">↗</span>' : ""}</a>`;
 }
+// New interface: raw web addresses inside post text read as short link labels
+// ("ameblo.jp/risa-harmonica…") that still open the full address. Only
+// addresses that pass safeUrl become links; everything else stays escaped text.
+const textUrl = /https?:\/\/[\w\-.~:/?#[\]@!$&()*+,;=%]+/gi;
+const urlTail = /[.,;:!?)\]]+$/;
+export function shortUrlLabel(url) {
+  let parsed;
+  try { parsed = new URL(url); } catch { return String(url || ""); }
+  const host = parsed.hostname.replace(/^www\./, "");
+  const segments = parsed.pathname.split("/").filter(Boolean);
+  let first = segments[0] || "";
+  try { first = decodeURIComponent(first); } catch { /* Keep the encoded segment. */ }
+  if (first.length > 24) first = first.slice(0, 22) + "…";
+  const more = segments.length > 1 || parsed.search || parsed.hash;
+  const label = host + (first ? "/" + first : "");
+  return more && !label.endsWith("…") ? label + "…" : label;
+}
+function eachUrl(text, onText, onUrl) {
+  const value = String(text || "");
+  let out = "", last = 0;
+  for (const match of value.matchAll(textUrl)) {
+    const raw = match[0].replace(urlTail, "");
+    const safe = /^https?:/i.test(raw) ? safeUrl(raw) : "";
+    if (!safe) continue;
+    out += onText(value.slice(last, match.index)) + onUrl(safe);
+    last = match.index + raw.length;
+  }
+  return out + onText(value.slice(last));
+}
+// The text as a reader sees it (for "read more" length checks).
+export const shortenedUrlText = (text) => eachUrl(text, (part) => part, shortUrlLabel);
+export const linkedPostText = (text) => eachUrl(text, esc, (url) =>
+  `<a class="post-text-link" href="${esc(url)}" target="_blank" rel="noopener noreferrer" title="${esc(url)}">${esc(shortUrlLabel(url))}</a>`);
 export const icon = (name) => {
   const paths = {
     facebook: '<path d="M14 21v-8h3l.5-4H14V7c0-1 .4-2 2-2h2V1.5A24 24 0 0 0 15 1c-3 0-5 2-5 5v3H7v4h3v8"/>',
@@ -52,7 +85,10 @@ export const icon = (name) => {
     close: '<path d="m6 6 12 12M18 6 6 18"/>',
     pin: '<path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/>',
     plus: '<path d="M12 4v16M4 12h16"/>',
+    minus: '<path d="M4 12h16"/>',
     info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7v1"/>',
+    compass: '<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5 5-2Z"/>',
+    users: '<circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2M16 5a3 3 0 0 1 0 6m2 4a5 5 0 0 1 3 5"/>',
     layers:
       '<path d="m12 3 10 6-10 6L2 9l10-6ZM2 13l10 6 10-6M2 17l10 6 10-6"/>',
   };
@@ -210,10 +246,39 @@ export function avatar(source) {
 export function postDisplayText(post, value) {
   const text = String(value || '');
   const generated = post.isStory && post.platform === 'instagram' && /^Instagram story (@[A-Za-z0-9_.]+)$/.exec(text);
-  return generated && getLocale() !== 'en' ? `Instagram ${t('story')} ${generated[1]}` : text;
+  return generated && getLocale() !== 'en' ? `Instagram ${t('story')} ${generated[1]}` : dropPreviewLine(text);
 }
-export function empty() {
-  return `<div class="empty-state">${icon("search")}<h2>${t("noResults")}</h2><p>${t("noResultsBody")}</p><button class="button button-outline" data-action="reset">${t("reset")}</button> ${link("/submit/", t("submit"), "text-link")}</div>`;
+// Some collected posts begin with a one-line preview followed by the full
+// text; show the full text once. The preview is either truncated ("…" or
+// "...") or, for Threads, the whole first line repeated. Threads lines carry
+// "@handle ↩️:" / "@handle 🔁:" markers (and reposts quote "@other:" inline)
+// that differ between the two, so the comparison ignores handle markers,
+// emoji, quote marks and (zero-width) spacing; the full text keeps its own wording.
+const handlePrefix = /^\s*@[\w.]+[\s\p{Extended_Pictographic}\uFE0F\u200D]*:\s*/u;
+const handleMarkers = /@[\w.]+[\s\p{Extended_Pictographic}\uFE0F\u200D]*:/gu;
+export const withoutHandlePrefix = value => String(value || '').replace(handlePrefix, '');
+const comparable = value => String(value || '').replace(handleMarkers, '').replace(/[\s\p{Extended_Pictographic}\uFE0F\u200B-\u200D\u2060\uFEFF"'“”「」『』]/gu, '');
+function dropPreviewLine(text) {
+  const split = text.indexOf('\n');
+  if (split < 0) return text;
+  const first = text.slice(0, split), rest = text.slice(split + 1);
+  const truncated = /(\.\.\.|…)\s*$/.test(first);
+  if (!truncated && !handlePrefix.test(first)) return text;
+  const preview = comparable(first.replace(/(\.\.\.|…)\s*$/, ''));
+  if (preview.length < 12) return text;
+  return comparable(rest).startsWith(truncated ? preview.slice(0, 60) : preview) ? rest : text;
+}
+// Filtered views offer to clear the filters; unfiltered empty views explain
+// why there is nothing yet and offer the next useful place instead.
+export function hasFilters(state = {}) {
+  return Boolean(state.q || state.country || state.platform || state.kind || state.type || state.followed
+    || state.year || state.instrument || state.division || state.publisher || state.scoreKind
+    || (state.period && state.period !== "upcoming"));
+}
+export function empty({ filtered = true, title = "", body = "", actions = "", symbol = "info" } = {}) {
+  if (filtered)
+    return `<div class="empty-state">${icon("search")}<h2>${t("noResults")}</h2><p>${t("noResultsBody")}</p><div class="empty-actions"><button class="button button-outline" data-action="reset">${t("reset")}</button></div></div>`;
+  return `<div class="empty-state">${icon(symbol)}<h2>${esc(title)}</h2>${body ? `<p>${esc(body)}</p>` : ""}${actions ? `<div class="empty-actions">${actions}</div>` : ""}</div>`;
 }
 export const pastEvent = (event) => {
   const end = event.end || event.start;

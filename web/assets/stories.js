@@ -1,13 +1,15 @@
+import { isRedesign } from './redesign.js';
 import { t, getLocale, locales } from './i18n.js';
-import { esc, safeUrl, image, link, initials, timestamp } from './utils.js';
+import { esc, safeUrl, image, link, initials, timestamp, icon } from './utils.js';
 
 const words = {
-  empty: ['No active stories have been retrieved yet', '尚未取得有效限動', '有効なストーリーはまだ取得できていません', '아직 유효한 스토리를 가져오지 못했습니다'],
+  empty: ['No stories to show right now', '目前沒有可顯示的限動', '今表示できるストーリーはありません', '지금 보여 줄 스토리가 없어요'],
   preview: ['Story preview', '限動預覽', 'ストーリープレビュー', '스토리 미리보기'],
   missing: ['Preview unavailable', '預覽目前無法載入', 'プレビューを読み込めません', '미리보기를 불러올 수 없습니다'],
   expires: ['Shown until', '展示至', '表示期限', '표시 기한'],
   observed: ['Last retrieved', '最近收錄', '最終取得', '최근 수집'],
   browse: ['Browse stories', '瀏覽限時動態', 'ストーリーを見る', '스토리 탐색'],
+  emptyBody: ['Stories that sources post appear here until they expire.', '來源發布的限時動態會顯示在這裡，到期後自動移除。', '情報源が投稿したストーリーは、期限が切れるまでここに表示されます。', '출처가 올린 스토리는 기한이 끝날 때까지 여기에 표시돼요.'],
 };
 const word = key => words[key][locales.indexOf(getLocale())] || words[key][0];
 
@@ -19,6 +21,10 @@ export function activeStories(catalog, now = Date.now()) {
 }
 
 function storyCard(story, sources) {
+  return isRedesign() ? redesignedStoryCard(story, sources) : legacyStoryCard(story, sources);
+}
+// Original version, shown while the "new interface" switch is off.
+function legacyStoryCard(story, sources) {
   const source = sources.find(item => item.id === story.sourceId);
   const name = story.sourceName || source?.name || t('source');
   const label = `${name} · ${word('preview')}`;
@@ -33,6 +39,27 @@ function storyCard(story, sources) {
   const avatar = image(source?.avatar || story.avatar, '', '');
   return `<article class="ob-story-card" data-story-id="${esc(story.id || story.url || '')}" data-story-expires="${esc(story.expiresAt)}"><div class="ob-story-thumb">${media}<span class="ob-story-fallback" role="status" ${poster || video ? 'hidden' : ''}>${esc(word('missing'))}</span><span class="ob-story-rule" aria-hidden="true"></span><div class="ob-story-header"><span class="ob-story-avatar"><span aria-hidden="true">${esc(initials(name))}</span>${avatar}</span><div class="ob-story-identity"><strong title="${esc(name)}">${esc(name)}</strong>${published}</div></div><div class="ob-story-footer"><span>${esc(word('expires'))} ${timestamp(story.expiresAt)}</span>${link(story.url, esc(t('original')), 'ob-story-original')}</div></div></article>`;
 }
+// "New interface" version: avatar and name, then one line with the display
+// deadline and the original source (no separate publish time).
+function redesignedStoryCard(story, sources) {
+  const source = sources.find(item => item.id === story.sourceId);
+  const name = story.sourceName || source?.name || t('source');
+  const label = `${name} · ${word('preview')}`;
+  const video = safeUrl(story.videoUrl), poster = safeUrl(story.image);
+  const picture = image(poster, 'ob-story-image', label);
+  const media = video
+    ? `<video class="ob-story-image" controls playsinline preload="none" ${poster ? `poster="${esc(poster)}"` : ''} aria-label="${esc(label)}"><source src="${esc(video)}"></video>`
+    : link(story.url, picture, 'ob-story-media-link', `aria-label="${esc(name + ' · ' + t('original'))}"`);
+  // Prefer the catalog's cached avatar to an expiring social-CDN address.
+  const avatar = image(source?.avatar || story.avatar, '', '');
+  return `<article class="ob-story-card" data-story-id="${esc(story.id || story.url || '')}" data-story-expires="${esc(story.expiresAt)}"><div class="ob-story-thumb">${media}<span class="ob-story-fallback" role="status" ${poster || video ? 'hidden' : ''}>${esc(word('missing'))}</span><span class="ob-story-rule" aria-hidden="true"></span></div><div class="ob-story-caption"><div class="ob-story-header"><span class="ob-story-avatar"><span aria-hidden="true">${esc(initials(name))}</span>${avatar}</span><div class="ob-story-identity"><strong title="${esc(name)}">${esc(name)}</strong></div></div><div class="ob-story-footer"><span class="ob-story-expiry">${expiryContent(story.expiresAt)}</span>${link(story.url, esc(t('original')), 'ob-story-original')}</div></div></article>`;
+}
+// "Shown until" stays joined to the date (an unbreakable label, then
+// non-breaking spaces); a narrow card may only move the clock time down.
+function expiryContent(expiresAt) {
+  const time = timestamp(expiresAt).replace(/>([^<]*)<\/time>$/, (_, text) => `>${text.split(' · ').map(part => part.replace(/ /g, '\u00a0')).join('\u00a0· ')}</time>`);
+  return `<span class="ob-story-expiry-label">${esc(word('expires'))}</span>\u00a0${time}`;
+}
 
 function observedContent(catalog) {
   const value = activeStories(catalog).map(story => story.observedAt).filter(value => Number.isFinite(Date.parse(value))).sort((a, b) => Date.parse(b) - Date.parse(a))[0];
@@ -42,12 +69,16 @@ export function storyObservedMarkup(catalog) {
   return `<span class="home-updated" data-story-observed>${observedContent(catalog)}</span>`;
 }
 export function storyEmptyMarkup(catalog) {
+  // New interface: the plain message and the status link; retrieval details
+  // (budget, schedule) belong on the status page.
+  // It uses the same centred empty card as the other empty states.
+  if (isRedesign()) return `<div class="ob-story-empty story-empty empty-state" role="status">${icon('layers')}<h3>${esc(word('empty'))}</h3><p>${esc(word('emptyBody'))}</p><div class="empty-actions"><a class="ob-story-status-link button button-outline" href="/status/?lang=${encodeURIComponent(getLocale())}">${esc(t('status'))}</a></div></div>`;
   const status = catalog.status?.stories || {};
   const reason = ['credit_budget', 'daily_result_limit', 'user_daily_exhausted', 'free_capacity_exhausted', 'pool_budget_pacing', 'public_unavailable_credit_reserve'].includes(status.reasonCode)
     ? 'budgetDeferred' : status.reasonCode === 'no_sources_due' ? 'collectionScheduled' : '';
   const detail = status.status === 'paused' || status.status === 'deferred' ? 'storyCollectionPaused'
     : status.status === 'degraded' || status.status === 'error' ? 'storyCollectionAttention' : '';
-  return `<p class="ob-story-empty story-empty" role="status">${esc(word('empty'))}${detail ? `<br>${esc(t(detail))}${reason ? `<br>${esc(t(reason))}` : ''}` : ''} <a href="/status/?lang=${encodeURIComponent(getLocale())}">${esc(t('status'))}</a></p>`;
+  return `<p class="ob-story-empty story-empty" role="status">${esc(word('empty'))}${detail ? `<br>${esc(t(detail))}${reason ? `<br>${esc(t(reason))}` : ''}` : ''} <a ${isRedesign() ? 'class="ob-story-status-link" ' : ''}href="/status/?lang=${encodeURIComponent(getLocale())}">${esc(t('status'))}</a></p>`;
 }
 export function storiesView(catalog) {
   const stories = activeStories(catalog);
@@ -106,7 +137,7 @@ export function bindStories(root, { catalog, refreshCatalog, onRefresh, refreshO
           if (kept.dataset.storyExpires !== story.expiresAt) {
             kept.dataset.storyExpires = story.expiresAt;
             const expiry = kept.querySelector('.ob-story-footer > span');
-            if (expiry) expiry.innerHTML = `${esc(word('expires'))} ${timestamp(story.expiresAt)}`;
+            if (expiry) expiry.innerHTML = isRedesign() ? expiryContent(story.expiresAt) : `${esc(word('expires'))} ${timestamp(story.expiresAt)}`;
           }
           continue;
         }
