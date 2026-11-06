@@ -326,6 +326,16 @@ test("application DOM journey across languages, routing, filters and community f
       );
       assert.equal(window.document.querySelectorAll(".source-card").length, 1);
       click("[data-action=reset]");
+      // New interface: an empty filtered list offers "Clear filters" once, in its empty card.
+      if (isRedesign()) {
+        const search = $("#catalog-search");
+        search.value = "zzqxv";
+        search.dispatchEvent(new window.InputEvent("input", { bubbles: true, isComposing: false }));
+        await until(() => $(".empty-state [data-action=reset]"), "empty filtered list should render");
+        assert.equal(window.document.querySelectorAll("[data-action=reset]").length, 1);
+        assert.equal($(".filter-bar .clear-filter"), null);
+        click("[data-action=reset]");
+      }
     },
   );
   await t.test("follow state persists and followed filter uses it", () => {
@@ -380,6 +390,9 @@ test("application DOM journey across languages, routing, filters and community f
       assert.ok(
         $(".owned-contribution").textContent.includes("Fixture capacity"),
       );
+      // New interface: one line beside "Withdraw" says what withdrawing does.
+      if (isRedesign()) assert.equal($(".owned-contribution .withdraw-row .withdraw-effect")?.textContent, translate("withdrawEffect"));
+      else assert.equal($(".withdraw-effect"), null);
       assert.ok($(".impact-panel"));
       assert.ok(
         !window.document.body.innerHTML.includes(

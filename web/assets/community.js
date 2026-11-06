@@ -179,13 +179,18 @@ export async function handleGoogleAuth(button, rerender) {
     button.removeAttribute('aria-busy');
   }
 }
+// New interface: one line beside the button says what withdrawing does.
+function withdrawControl(c) {
+  const button = `<button class="button button-danger" data-withdraw="${esc(c.id)}">${t("withdraw")}</button>`;
+  return isRedesign() ? `<div class="withdraw-row">${button}<p class="withdraw-effect">${t("withdrawEffect")}</p></div>` : button;
+}
 function contributionRows() {
   const rows = session?.contributions || [];
   return rows.length
     ? rows
         .map(
           (c) =>
-            `<article class="owned-contribution" data-contribution-id="${esc(c.id)}"><div class="owned-heading"><h3>${esc(c.name)}</h3><span class="status-pill">${t(c.status === "revoked" ? "withdrawn" : ["active", "withdrawn", "exhausted", "invalid", "paused"].includes(c.status) ? c.status : "unavailable")}</span></div><dl><div><dt>${t("budget")}</dt><dd>${money(c.budgetUsd)}</dd></div><div><dt>${t("spent")}</dt><dd>${money(c.spentUsd)}</dd></div><div><dt>${t("reserved")}</dt><dd>${money(c.reservedUsd)}</dd></div><div><dt>${t("budgetRemaining")}</dt><dd>${money(c.budgetRemainingUsd)}</dd></div></dl>${!["revoked", "withdrawn"].includes(c.status) ? `<button class="button button-danger" data-withdraw="${esc(c.id)}">${t("withdraw")}</button>` : ""}</article>`,
+            `<article class="owned-contribution" data-contribution-id="${esc(c.id)}"><div class="owned-heading"><h3>${esc(c.name)}</h3><span class="status-pill">${t(c.status === "revoked" ? "withdrawn" : ["active", "withdrawn", "exhausted", "invalid", "paused"].includes(c.status) ? c.status : "unavailable")}</span></div><dl><div><dt>${t("budget")}</dt><dd>${money(c.budgetUsd)}</dd></div><div><dt>${t("spent")}</dt><dd>${money(c.spentUsd)}</dd></div><div><dt>${t("reserved")}</dt><dd>${money(c.reservedUsd)}</dd></div><div><dt>${t("budgetRemaining")}</dt><dd>${money(c.budgetRemainingUsd)}</dd></div></dl>${!["revoked", "withdrawn"].includes(c.status) ? withdrawControl(c) : ""}</article>`,
         )
         .join("")
     : `<p class="muted">${t("noContributions")}</p>`;

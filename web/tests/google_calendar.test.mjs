@@ -67,6 +67,13 @@ test('missing public calendar configuration shows an honest fallback and keeps s
   assert.equal(document.querySelector('.google-calendar-empty').hidden,false);
   assert.equal(document.querySelectorAll('a[href$=".ics"]').length,3);
   assert.ok(!document.body.textContent.includes('undefined'));
+  // New interface: the same centred empty card as other empty states, with a way on.
+  if(isRedesign()){
+    const card=document.querySelector('.google-calendar-empty');
+    assert.ok(card.classList.contains('empty-state'));
+    assert.ok(card.querySelector('h3')&&card.querySelector('p'));
+    assert.ok(card.querySelector('a[href="/events/"]'));
+  }
   window.close();
 });
 

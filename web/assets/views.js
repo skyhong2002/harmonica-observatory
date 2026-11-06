@@ -26,6 +26,8 @@ import {
   platformName,
   sourceType,
   textMatch,
+  linkedPostText,
+  shortenedUrlText,
 } from "./utils.js";
 const viewLabels = {
   en: { moreLinks: "{count} more links on the source page", moreLinksShort: "+{count} links", moreLinksShortOne: "+1 link", share: "Share", collapse: "Show less", name: "Name", updated: "Updated", links: "Links", endUnknown: "End time not announced", snapshot: "Website snapshot", observed: "Observed", website: "Website", sort: "Sort", followSource: "Follow source", more: "More actions", ascending: "Ascending", descending: "Descending" },
@@ -109,14 +111,14 @@ export function postCard(p, sources, following = new Set(), events = []) {
   const text = postDisplayText(p, p.text);
   const snapshot = p.contentKind === "website_snapshot";
   const timeLabel = snapshot ? `${esc(vl("observed"))}: ${timestamp(p.observedAt)}` : timestamp(p.publishedAt);
-  const expandable = text.length > 180 || text.split("\n").length > 6;
+  const expandable = (isRedesign() ? shortenedUrlText(text) : text).length > 180 || text.split("\n").length > 6;
   const followed = s && following.has(s.id);
   const linkedEvents = events.filter(e => (p.eventIds || []).includes(e.id) || (p.url && (e.url === p.url || e.sourceUrl === p.url)));
   const country = countryName(p.countryCode || s?.countryCode, p.country || s?.country);
   // New interface: an archived story says so once, as the story tag's tooltip,
   // instead of a notice line on every story card.
   const archived = p.isStory && (p.sourceAvailable === false || p.storyState === "expired" || p.storyState === "unknown" || (p.expiresAt && Date.parse(p.expiresAt) < Date.now()));
-  return `<article class="post-card feed-post"><div class="feed-avatar-wrap">${link(s ? sourceHref(s) : p.sourceUrl, avatar({ ...s, ...p, avatar: s?.avatar || p.avatar, name: label }), "feed-avatar-link")}</div><div class="feed-content"><div class="feed-head"><strong class="feed-name">${link(s ? sourceHref(s) : p.sourceUrl, esc(label), "", `title="${esc(label)}"`)}</strong><span class="feed-time">${timeLabel}</span></div><div class="feed-meta"><span class="feed-topic">${esc(country)}</span><span aria-hidden="true">·</span>${link(p.url, esc(platformName(p.platform)), "feed-plat")}${p.isStory ? `<span class="tag story-tag"${archived && isRedesign() ? ` title="${esc(t("storyExpired"))}"` : ""}>${t("story")}</span>` : ""}</div>${snapshot ? `<p class="notice">${esc(vl("snapshot"))}</p>` : ""}${p.title && p.title !== p.text && !(p.text || "").startsWith(p.title) && !(p.isStory && /^Instagram story @/i.test(p.title)) ? `<h3 class="feed-title">${esc(postDisplayText(p, p.title))}</h3>` : ""}${p.isStory && /^Instagram (story|\S+) @/i.test(text) && !/\n/.test(text) && text.length < 60 ? "" : `<p class="post-text feed-text ${expandable ? "" : "is-expanded"}">${esc(text)}</p>`}${expandable ? `<button type="button" class="feed-expand" data-expand-post aria-expanded="false">${t("readMore")}</button>` : ""}${image(p.image, "post-image feed-img", "")}${archived && !isRedesign() ? `<p class="muted story-expired">${t("storyExpired")}</p>` : ""}${linkedEvents.length ? `<div class="feed-evs">${linkedEvents.map(e => link(e.url || e.sourceUrl, `<span class="feed-ev-date">${esc(shortDate(e.start, { timeZone: e.timezone || "UTC" }))}</span><span class="feed-ev-title">${esc(eventText(e))}</span>`, "feed-ev")).join("")}</div>` : ""}${isRedesign() ? redesignedPostActions(p, s, label, followed) : `<div class="feed-actions">${s ? `<button type="button" class="feed-action ${followed ? "is-following" : ""}" data-follow="${esc(s.id)}" aria-pressed="${!!followed}" aria-label="${esc(t(followed ? "unfollow" : "follow") + " " + label)}">${icon(followed ? "check" : "heart")}<span>${t(followed ? "following" : "follow")}</span></button>` : ""}<button type="button" class="feed-action" data-share="${esc(p.url || "")}" data-share-title="${esc(label)}">${icon("arrow")}<span>${vl("share")}</span></button>${link(p.url, t("original"), "feed-action feed-original")}${reportLink({ ...p, name: p.title || label, countryCode: p.countryCode || s?.countryCode })}</div>`}</div></article>`;
+  return `<article class="post-card feed-post"><div class="feed-avatar-wrap">${link(s ? sourceHref(s) : p.sourceUrl, avatar({ ...s, ...p, avatar: s?.avatar || p.avatar, name: label }), "feed-avatar-link")}</div><div class="feed-content"><div class="feed-head"><strong class="feed-name">${link(s ? sourceHref(s) : p.sourceUrl, esc(label), "", `title="${esc(label)}"`)}</strong><span class="feed-time">${timeLabel}</span></div><div class="feed-meta"><span class="feed-topic">${esc(country)}</span><span aria-hidden="true">·</span>${link(p.url, esc(platformName(p.platform)), "feed-plat")}${p.isStory ? `<span class="tag story-tag"${archived && isRedesign() ? ` title="${esc(t("storyExpired"))}"` : ""}>${t("story")}</span>` : ""}</div>${snapshot ? `<p class="notice">${esc(vl("snapshot"))}</p>` : ""}${p.title && p.title !== p.text && !(p.text || "").startsWith(p.title) && !(p.isStory && /^Instagram story @/i.test(p.title)) ? `<h3 class="feed-title">${esc(postDisplayText(p, p.title))}</h3>` : ""}${p.isStory && /^Instagram (story|\S+) @/i.test(text) && !/\n/.test(text) && text.length < 60 ? "" : `<p class="post-text feed-text ${expandable ? "" : "is-expanded"}">${isRedesign() ? linkedPostText(text) : esc(text)}</p>`}${expandable ? `<button type="button" class="feed-expand" data-expand-post aria-expanded="false">${t("readMore")}</button>` : ""}${image(p.image, "post-image feed-img", "")}${archived && !isRedesign() ? `<p class="muted story-expired">${t("storyExpired")}</p>` : ""}${linkedEvents.length ? `<div class="feed-evs">${linkedEvents.map(e => link(e.url || e.sourceUrl, `<span class="feed-ev-date">${esc(shortDate(e.start, { timeZone: e.timezone || "UTC" }))}</span><span class="feed-ev-title">${esc(eventText(e))}</span>`, "feed-ev")).join("")}</div>` : ""}${isRedesign() ? redesignedPostActions(p, s, label, followed) : `<div class="feed-actions">${s ? `<button type="button" class="feed-action ${followed ? "is-following" : ""}" data-follow="${esc(s.id)}" aria-pressed="${!!followed}" aria-label="${esc(t(followed ? "unfollow" : "follow") + " " + label)}">${icon(followed ? "check" : "heart")}<span>${t(followed ? "following" : "follow")}</span></button>` : ""}<button type="button" class="feed-action" data-share="${esc(p.url || "")}" data-share-title="${esc(label)}">${icon("arrow")}<span>${vl("share")}</span></button>${link(p.url, t("original"), "feed-action feed-original")}${reportLink({ ...p, name: p.title || label, countryCode: p.countryCode || s?.countryCode })}</div>`}</div></article>`;
 }
 export function eventDateLabel(e, options = {}) {
   return shortEventDate(e, options);
@@ -163,7 +165,8 @@ export function pageHeading(key, body, extra = "") {
 // tab, not a filter, so it alone neither shows "Clear filters" nor a result count.
 export function filtersActive(state = {}) {
   if (!isRedesign()) return hasFilters(state);
-  return hasFilters({ ...state, followed: false, kind: state.kind === "following" ? "" : state.kind });
+  // Following and the event period are tabs in the new interface, not filters.
+  return hasFilters({ ...state, followed: false, kind: state.kind === "following" ? "" : state.kind, period: "upcoming" });
 }
 export function countryFacets(state, catalog, kind, following = new Set()) {
   const sources = new Map((catalog.sources || []).map(source => [source.id, source]));
@@ -232,11 +235,28 @@ export function homeView(catalog, state, following, filtered) {
 export function communityBanner() {
   return `<aside class="community-banner"><div><h2>${t("contribute")}</h2><p>${t("communityBody")}</p></div><div class="community-actions">${link("/contribute/", t("contribute") + icon("arrow"), "button button-outline")}${link("/submit/", t("submit"), "text-link")}</div></aside>`;
 }
+// New interface, phones: the profile summary is clamped to three lines;
+// "read more" appears only when the text is cut (app.js unhides it).
+function summaryToggle() {
+  return `<button type="button" class="feed-expand source-summary-toggle" data-expand-summary aria-expanded="false" hidden>${t("readMore")}</button>`;
+}
+export function toggleSummaryExpansion(button) {
+  const expanded = button.getAttribute("aria-expanded") !== "true";
+  button.setAttribute("aria-expanded", String(expanded));
+  button.closest(".source-profile")?.querySelector(".source-biography")?.classList.toggle("is-expanded", expanded);
+  button.textContent = expanded ? vl("collapse") : t("readMore");
+}
+// Show the toggle only where the clamp actually hides part of the summary.
+export function revealClampedSummary(root) {
+  const button = root.querySelector("[data-expand-summary]");
+  const summary = root.querySelector(".source-profile .source-summary");
+  if (button && summary) button.hidden = !(summary.scrollHeight > summary.clientHeight + 1);
+}
 export function sourceDetail(source, catalog, following, limit = 24) {
   if (!source)
     return `${pageHeading("sourceMissing", "directoryBody")}${link("/source/", t("backDirectory"), "button button-primary")}`;
   const posts = catalog.posts.filter((p) => p.sourceId === source.id);
-  return `<div class="org-page"><div class="back-link">${link("/source/", "← " + t("backDirectory"), "text-link")}</div><section class="source-profile"><div class="profile-avatar">${avatar(source)}</div><div><p class="eyebrow">${esc(countryName(source.countryCode, source.country))}</p><h1>${esc(sourceDisplayName(source))}</h1>${sourceNamesMarkup(source, {includePrimary:false})}<div class="profile-types">${sourceTypesMarkup(source)}</div>${sourceAlternativesMarkup(source)}${sourceSummaryMarkup(source)}<div class="profile-tags">${sourceTags(source).map((tag) => `<span class="tag">${esc(tag)}</span>`).join("")}</div><div class="profile-links">${(Array.isArray(source.links) ? source.links : []).map((l) => link(l.url, esc(sourceLinkLabel(l.label)), "button button-outline")).join("")}${reportLink(source, sourceHref(source))}</div></div><button class="button button-outline" data-follow="${esc(source.id)}" aria-pressed="${following.has(source.id)}">${icon(following.has(source.id) ? "check" : isRedesign() ? "heart" : "plus")}${t(following.has(source.id) ? "following" : "follow")}</button></section><div class="section-heading"><div><h2>${t("sourceUpdates")}</h2>${posts.length && !isRedesign() ? `<p>${t("results", { count: number(posts.length) })}</p>` : ""}</div></div><div class="post-grid source-updates-grid">${
+  return `<div class="org-page"><div class="back-link">${link("/source/", "← " + t("backDirectory"), "text-link")}</div><section class="source-profile"><div class="profile-avatar">${avatar(source)}</div><div><p class="eyebrow">${esc(countryName(source.countryCode, source.country))}</p><h1>${esc(sourceDisplayName(source))}</h1>${sourceNamesMarkup(source, {includePrimary:false})}<div class="profile-types">${sourceTypesMarkup(source)}</div>${sourceAlternativesMarkup(source)}${sourceSummaryMarkup(source)}${isRedesign() ? summaryToggle() : ""}<div class="profile-tags">${sourceTags(source).map((tag) => `<span class="tag">${esc(tag)}</span>`).join("")}</div><div class="profile-links">${(Array.isArray(source.links) ? source.links : []).map((l) => link(l.url, esc(sourceLinkLabel(l.label)), "button button-outline")).join("")}${reportLink(source, sourceHref(source))}</div></div><button class="button button-outline" data-follow="${esc(source.id)}" aria-pressed="${following.has(source.id)}">${icon(following.has(source.id) ? "check" : isRedesign() ? "heart" : "plus")}${t(following.has(source.id) ? "following" : "follow")}</button></section><div class="section-heading"><div><h2>${t("sourceUpdates")}</h2>${posts.length && !isRedesign() ? `<p>${t("results", { count: number(posts.length) })}</p>` : ""}</div></div><div class="post-grid source-updates-grid">${
     posts.length
       ? posts
           .slice(0, limit)

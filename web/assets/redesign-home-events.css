@@ -4,7 +4,8 @@
 
 /* Event cards: the date block, title, time and place always start at the
    same left edge; a poster, when there is one, is a thumbnail at the right of
-   that header. Post text, actions and a video use the full card width. */
+   that header. Post text, actions and a video use the full card width. A
+   card without a poster has no tile in its place. */
 .rich-event-header h2 { text-wrap: balance; }
 .rich-event-card {
   display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: none; align-items: start;
@@ -20,42 +21,43 @@
 }
 .rich-event-card > .event-media .event-media-link { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
 .rich-event-card > .event-media .event-poster { width: 100%; max-width: 100%; height: 100%; max-height: none; object-fit: contain; border-radius: 6px; }
-/* A poster that failed to load stays hidden (as in redesign.css). */
+/* A poster that failed to load simply goes (no tile, no icon). */
 .rich-event-card > .event-media.event-media-unavailable { display: none; }
 .rich-event-card > .event-video { grid-area: video; width: calc(100% - 40px); max-height: 300px; margin: 0 20px 4px; border-radius: 10px; background: #141814; }
 .rich-event-card:has(> .event-media:not(.event-media-unavailable)) > .rich-event-header { padding-right: 16px; }
-/* The no-poster placeholder only matters where cards sit side by side. */
-.rich-event-card > .event-thumb-placeholder { display: none; }
 
-/* Cards in a row share one height: the post text takes the spare space and
-   the action row sits at the bottom. Post excerpts and descriptions show
-   three lines ("read more" opens the rest); the poster stays a thumbnail. */
-.rich-event-card { grid-template-rows: auto auto auto 1fr; }
-.rich-event-card > .rich-event-copy { display: flex; flex-direction: column; align-self: stretch; }
-.rich-event-copy > .rich-event-actions { margin-top: auto; }
+/* Post excerpts and descriptions show three lines ("read more" opens the
+   rest); the action row follows the text. */
 .rich-event-copy > :nth-last-child(2) { margin-bottom: 12px; }
 .event-reference .feed-text:not(.is-expanded) { -webkit-line-clamp: 3; }
 .event-description-text:not(.is-expanded) .source-summary { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .event-description-text .source-summary { margin: 0; }
 .event-description-block .feed-expand { margin-top: 5px; }
+/* "Read more" looks the same as on post cards (.feed-text-toggle). */
+.rich-event-card .feed-expand {
+  display: inline-block; min-height: 28px; padding: 0; color: var(--color-text-brand); font-size: .88rem; font-weight: 700;
+  text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px;
+}
 
-/* Two columns: every card has the same thumbnail slot (a quiet tile when
-   there is no poster, or the poster failed) and a three-line text area, so
-   the cards in a row come out about the same height with little filler. */
+/* Desktop: one event per row across the page width, sized to its content:
+   date and details, then the excerpt (or description) with the actions
+   under it, then the poster when there is one. The details column has a
+   fixed share so every excerpt starts at the same edge; without a poster
+   the text runs to the right edge. */
 @media (min-width: 1100px) {
-  .rich-event-card > .event-thumb-placeholder {
-    grid-area: media; display: flex; align-items: center; justify-content: center; align-self: start;
-    width: 136px; aspect-ratio: 4 / 5; margin: 20px 20px 0 0;
-    color: var(--color-text-muted); background: var(--color-surface-soft); border-radius: 10px;
+  .rich-event-card {
+    grid-template-columns: minmax(0, 42%) minmax(0, 1fr) auto; grid-template-rows: auto 1fr;
+    grid-template-areas: "header copy media" "gallery copy media";
   }
-  .rich-event-card > .event-thumb-placeholder svg { width: 30px; height: 30px; opacity: .45; }
-  .rich-event-card:has(> .event-thumb-placeholder) > .rich-event-header,
-  .rich-event-card:has(> .event-media) > .rich-event-header { padding-right: 16px; }
-  .rich-event-card > .event-media.event-media-unavailable { display: flex; color: var(--color-text-muted); }
-  .rich-event-card > .event-media.event-media-unavailable .event-media-link { min-height: 0; font-size: 0; }
-  .rich-event-card > .event-media.event-media-unavailable .event-media-link::before { content: none; }
-  .rich-event-card > .event-media.event-media-unavailable svg { width: 30px; height: 30px; opacity: .45; }
-  .event-reference .feed-text, .event-description-text .source-summary { min-height: 3lh; }
+  .rich-event-card > .rich-event-header { padding: 22px 28px 18px 22px; }
+  .rich-event-card:has(> .event-media:not(.event-media-unavailable)) > .rich-event-header { padding-right: 28px; }
+  .rich-event-card > .event-gallery { margin: 0 28px 18px 102px; }
+  .rich-event-card > .rich-event-copy { padding: 20px 24px 14px 0; }
+  .rich-event-card:not(:has(> .event-media:not(.event-media-unavailable), > .event-video)) > .rich-event-copy { grid-column: 2 / -1; padding-right: 28px; }
+  .rich-event-copy .event-author { margin-top: 0; }
+  .rich-event-copy > .rich-event-actions { margin-top: 8px; padding-top: 0; border-top: 0; }
+  .rich-event-card > .event-media { width: 120px; margin: 20px 22px 20px 0; }
+  .rich-event-card > .event-video { grid-area: media; width: 260px; max-height: 200px; margin: 20px 22px 20px 0; }
 }
 
 /* Phones: the title uses the full card width; the small poster sits beside
@@ -85,11 +87,14 @@
 .home-now-events .home-upcoming-link, .home-upcoming-link { align-items: start; }
 .home-upcoming-copy > .home-upcoming-place svg { margin: 0 4px 0 0; vertical-align: -2px; }
 
-/* Events list: one column on phones and tablets, two on desktop, in date
-   order left to right then down; cards in a row share its height. The
+/* Events list: one event per row at every width, in date order. The
    timezone appears beside the time only when it differs from the visitor's. */
-.rich-events-grid { grid-template-columns: minmax(0, 1fr); align-items: stretch; }
-@media (min-width: 1100px) { .rich-events-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; } }
+.rich-events-grid { grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 1100px) { .rich-events-grid { gap: 14px; } }
+/* The period is a row of tabs above the list (the same look as the
+   "All / Following" tabs), so the filter bar's period select goes. */
+.event-period-tabs { flex-wrap: wrap; max-width: 100%; }
+.filter-bar label:has(> select[data-filter="period"]) { display: none; }
 .rich-event-time .rich-event-zone { display: inline-block; margin: 0 0 0 6px; color: var(--color-text-muted); font-size: .8rem; font-weight: 600; white-space: nowrap; }
 
 /* Home intro: tagline, one line and the numbers (the top navigation covers
@@ -111,6 +116,14 @@
   .home-notes .page-notes li:has(> .google-calendar-context) { display: none; }
   .home-now-events .home-upcoming > li:nth-child(n+4) { display: none; }
 }
+
+/* Home calendar with nothing to embed: the same centred empty card as the
+   other empty states. */
+.google-calendar-frame > .google-calendar-empty.empty-state {
+  width: fit-content; max-width: 34rem; margin: 24px auto; padding: 40px 24px; color: inherit; font-size: 1rem; line-height: 1.6;
+  text-align: center; border-radius: var(--radius-lg);
+}
+.google-calendar-empty.empty-state h3 { margin: 0; color: var(--color-text-primary); font-size: 1.15rem; line-height: 1.45; }
 
 /* Home page notes: snapshot time, timezone and calendar subscriptions. */
 .home-notes { padding: 0 0 48px; }

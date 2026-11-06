@@ -187,7 +187,7 @@ test('event cards omit repeated declarations without hiding snapshot status, tim
  window.close();
 });
 
-test('new interface: a post excerpt shows once per list and cards without a poster keep a placeholder thumbnail', () => {
+test('new interface: a post excerpt shows once per list and cards without a poster have no thumbnail tile', () => {
   const window = setup();
   const second = { ...event, id: 'event2', start: '2099-09-30', end: '2099-10-01', description: 'Second session description' };
   document.querySelector('main').innerHTML = eventsView({ ...catalog, events: [event, second] }, {});
@@ -201,7 +201,23 @@ test('new interface: a post excerpt shows once per list and cards without a post
     assert.match(cards[1].querySelector('.event-description-text').textContent, /Second session description/);
     document.querySelector('main').innerHTML = richEventCard({ ...event, image: '' }, { ...catalog, posts: [] });
     assert.equal(document.querySelector('.event-media'), null);
-    assert.ok(document.querySelector('.event-thumb-placeholder[aria-hidden="true"]'));
+    assert.equal(document.querySelector('.event-thumb-placeholder'), null);
   } else assert.equal(cards[1].querySelectorAll('.feed-text').length, 1);
+  window.close();
+});
+
+test('new interface: the event period is a row of tabs that keep the search and country', () => {
+  const window = setup();
+  document.querySelector('main').innerHTML = eventsView(catalog, { q: 'concert', country: 'JP', period: 'past' });
+  const tabs = [...document.querySelectorAll('.event-period-tabs .follow-tab')];
+  if (isRedesign()) {
+    assert.equal(tabs.length, 3);
+    assert.deepEqual(tabs.map(tab => new URL(tab.href, 'https://example.com').searchParams.get('period')), [null, 'past', 'allEvents']);
+    for (const tab of tabs) { const params = new URL(tab.href, 'https://example.com').searchParams; assert.equal(params.get('q'), 'concert'); assert.equal(params.get('country'), 'JP'); assert.equal(params.get('lang'), 'en'); }
+    assert.equal(document.querySelector('.event-period-tabs [aria-current="page"]'), tabs[1]);
+    // The period alone is not a filter: no result count.
+    document.querySelector('main').innerHTML = eventsView(catalog, { period: 'past' });
+    assert.equal(document.querySelector('.results-bar'), null);
+  } else assert.equal(tabs.length, 0);
   window.close();
 });

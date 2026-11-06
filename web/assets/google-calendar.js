@@ -1,6 +1,6 @@
 import { isRedesign } from './redesign.js';
 import { getLocale, locales } from './i18n.js';
-import { esc, link } from './utils.js';
+import { esc, link, icon } from './utils.js';
 
 const words = {
   title: ['Public harmonica events · Google Calendar', '公開口琴活動 · Google Calendar', '公開ハーモニカイベント · Google Calendar', '공개 하모니카 행사 · Google Calendar'],
@@ -13,6 +13,10 @@ const words = {
   fallback: ['Calendar not loading? Browse the event list', '日曆無法載入？瀏覽活動清單', 'カレンダーが表示されない場合はイベント一覧へ', '달력이 표시되지 않으면 행사 목록 보기'],
   empty: ['Select a calendar to display events.', '請選取要顯示的活動日曆。', '表示するカレンダーを選択してください。', '표시할 행사 달력을 선택하세요.'],
   unavailable: ['The Google Calendar embed is unavailable. Event lists and ICS subscriptions remain available.', '目前無法提供 Google Calendar 嵌入內容，仍可瀏覽活動清單或訂閱 ICS。', 'Google Calendar の埋め込みを利用できません。イベント一覧と ICS 購読をご利用ください。', 'Google Calendar를 삽입할 수 없습니다. 행사 목록과 ICS 구독은 계속 이용할 수 있습니다.'],
+  emptyTitle: ['No calendar selected', '尚未選取活動日曆', 'カレンダーが選択されていません', '선택한 행사 달력이 없습니다'],
+  unavailableTitle: ['The calendar is not available right now', '行事曆暫時無法顯示', 'カレンダーは現在表示できません', '지금은 달력을 표시할 수 없습니다'],
+  unavailableBody: ['The event list and the ICS subscriptions at the end of this page still work.', '仍可瀏覽活動清單，或用頁尾的 ICS 連結訂閱。', 'イベント一覧と、ページ末尾の ICS 購読はご利用いただけます。', '행사 목록과 페이지 아래의 ICS 구독은 계속 이용할 수 있습니다.'],
+  browse: ['Browse the event list', '瀏覽活動清單', 'イベント一覧を見る', '행사 목록 보기'],
 };
 const label = key => words[key][Math.max(0, locales.indexOf(getLocale()))];
 const colon = () => ['zh-Hant', 'ja'].includes(getLocale()) ? '：' : ': ';
@@ -53,7 +57,10 @@ function savedKeys(calendars) {
 }
 const openLink = url => `<a data-google-calendar-open class="text-link" ${url ? `href="${esc(url)}"` : 'hidden'} target="_blank" rel="noopener noreferrer">Google Calendar<span class="external" aria-hidden="true">↗</span></a>`;
 const filters = (calendars, selected) => calendars.map(calendar=>`<label><input type="checkbox" data-google-calendar-source data-calendar-source data-calendar-id="${esc(calendar.id)}" data-calendar-key="${esc(calendar.key)}" ${selected.has(calendar.key)?'checked':''}><span class="google-calendar-dot calendar-dot-${calendar.key}" aria-hidden="true"></span>${esc(label(calendar.key))}</label>`).join('');
-const frame = (calendars, url) => `<div class="google-calendar-frame"><iframe title="${esc(label('title'))}" ${url ? `src="${esc(url)}"` : 'hidden'} data-google-calendar-embed data-public-calendar-embed loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><p class="google-calendar-empty" ${url?'hidden':''} role="status">${esc(label(calendars.length?'empty':'unavailable'))}</p></div>`;
+// New interface: no embed to show is the same centred empty card as the
+// other empty states (bindGoogleCalendar toggles it with the embed).
+const emptyCard = (calendars, url) => `<div class="google-calendar-empty empty-state" ${url?'hidden':''} role="status">${icon('calendar')}<h3>${esc(label(calendars.length?'emptyTitle':'unavailableTitle'))}</h3><p>${esc(label(calendars.length?'empty':'unavailableBody'))}</p><div class="empty-actions">${link('/events/',esc(label('browse')),'button button-outline')}</div></div>`;
+const frame = (calendars, url) => `<div class="google-calendar-frame"><iframe title="${esc(label('title'))}" ${url ? `src="${esc(url)}"` : 'hidden'} data-google-calendar-embed data-public-calendar-embed loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>${emptyCard(calendars, url)}</div>`;
 // Page-notes rows for the calendar (new interface): the display timezone with
 // the event-list fallback, then Google Calendar and the three ICS feeds.
 export function googleCalendarNotes(catalog) {

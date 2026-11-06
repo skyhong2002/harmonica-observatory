@@ -26,6 +26,8 @@ import {
   directoryHeader,
   sortSources,
   togglePostExpansion,
+  toggleSummaryExpansion,
+  revealClampedSummary,
   filterBar,
   filtersActive,
   pageHeading,
@@ -290,7 +292,9 @@ function render({ focus = false } = {}) {
     navigation(path(), routes, getSession()) +
     `<main id="main" class="main-container${path() === "/post/" ? " timeline-main" : path() === "/" ? " home-main" : ""}" tabindex="-1">${body()}</main>` +
     footer();
+  dropDuplicateReset(app);
   collapseFilters(app);
+  if (isRedesign()) revealClampedSummary(app);
   directoryCleanup = bindDirectoryColumns(app);
   if (isTimeline && catalog) timelineCleanup = bindTimeline(app);
   if (path() === "/events/" && catalog) eventsCleanup = bindEvents(app);
@@ -316,6 +320,12 @@ function render({ focus = false } = {}) {
   if (focus) document.querySelector("#main")?.focus({ preventScroll: true });
 }
 
+// New interface: when a filtered list is empty, its empty card already offers
+// "Clear filters", so the filter bar does not repeat the button.
+function dropDuplicateReset(root) {
+  if (!isRedesign() || !root.querySelector(".empty-state [data-action=reset]")) return;
+  root.querySelectorAll(".filter-bar > .clear-filter").forEach(node => node.remove());
+}
 // Phones: fold the filter controls under one "Filter (n)" toggle so results
 // start on the first screen (every list page has at least two). Open while
 // any filter is applied. "Clear filters" stays outside the fold, beside the
@@ -325,7 +335,8 @@ function collapseFilters(root) {
   for (const bar of root.querySelectorAll(".filter-bar")) {
     const controls = [...bar.children].filter(node => node.matches("label:not(.search-label)"));
     if (controls.length < 2) continue;
-    const active = controls.filter(node => node.querySelector("select")?.selectedIndex > 0 || node.querySelector("input[type=checkbox]")?.checked).length;
+    // The event period is shown as tabs, so its hidden select is not a filter.
+    const active = controls.filter(node => !node.querySelector('select[data-filter="period"]') && (node.querySelector("select")?.selectedIndex > 0 || node.querySelector("input[type=checkbox]")?.checked)).length;
     const details = document.createElement("details");
     details.className = "filter-more";
     details.open = active > 0;
@@ -453,12 +464,16 @@ if (path() === '/') {
   const authError = new URLSearchParams(location.search).get('auth_error');
   if (authError) toast(t(authError === 'cancelled' ? 'loginCancelled' : 'loginFailed'));
 }
+// The profile summary clamp starts and stops at the phone width (redesign.css).
+window.matchMedia?.("(max-width: 699px)").addEventListener?.("change", () => { if (isRedesign()) revealClampedSummary(app); });
 app.addEventListener("click", (event) => {
   const googleAuth = event.target.closest('[data-google-auth]');
   if (googleAuth) { handleGoogleAuth(googleAuth, render); return; }
   if (handleShellClick(event)) return;
   const expand = event.target.closest("[data-expand-post]");
   if (expand) { togglePostExpansion(expand); return; }
+  const summary = event.target.closest("[data-expand-summary]");
+  if (summary) { toggleSummaryExpansion(summary); return; }
   const sort = event.target.closest("[data-source-sort]");
   if (sort) {
     state.descending = state.sort === sort.dataset.sourceSort ? !state.descending : false;

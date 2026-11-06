@@ -606,6 +606,12 @@ const rows = {
     "提供を撤回しますか？このAPIキーで新しい収集処理を開始しなくなります。",
     "이 기여를 철회할까요? 이 API 키를 사용하는 새 수집 작업이 중단됩니다.",
   ],
+  withdrawEffect: [
+    "Withdrawing stops new reservations; jobs already started may still finish and be billed.",
+    "撤回後不會再預留新的抓取；已開始的工作可能仍會完成並計費。",
+    "撤回すると新しい収集の予約は止まります。すでに始まった処理は完了し、課金される場合があります。",
+    "철회하면 새 수집 예약은 중단되며, 이미 시작된 작업은 완료되어 요금이 청구될 수 있어요.",
+  ],
   withdrawSuccess: [
     "Contribution withdrawn.",
     "貢獻已撤回。",

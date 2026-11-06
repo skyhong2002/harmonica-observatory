@@ -40,3 +40,25 @@ test('Threads previews collapse when the first line repeats in full or quotes a 
   // A complete first line without a handle marker is authored text, not a preview.
   assert.equal(postDisplayText(post, '今天的音樂會非常精彩謝謝大家\n今天的音樂會非常精彩謝謝大家，下次見'), '今天的音樂會非常精彩謝謝大家\n今天的音樂會非常精彩謝謝大家，下次見');
 });
+
+test('new interface: web addresses in post text become short labels that open the full, validated address', async () => {
+  const {window} = new JSDOM('', {url: 'https://example.com'});
+  Object.assign(globalThis, {window, document:window.document, location:window.location, localStorage:window.localStorage});
+  const { linkedPostText, shortenedUrlText, shortUrlLabel } = await import('../assets/utils.js');
+  const text = '昨日のブログ https://ameblo.jp/risa-harmonica/entry-12983622338.html\n<b>&</b> javascript:alert(1) https://www.youtube.com/watch?v=ndVpQ894LII.';
+  assert.equal(shortUrlLabel('https://ameblo.jp/risa-harmonica/entry-1.html'), 'ameblo.jp/risa-harmonica…');
+  assert.equal(shortUrlLabel('https://www.example.org/'), 'example.org');
+  assert.equal(shortenedUrlText(text), '昨日のブログ ameblo.jp/risa-harmonica…\n<b>&</b> javascript:alert(1) youtube.com/watch….');
+  const html = linkedPostText(text);
+  document.body.innerHTML = `<p>${html}</p>`;
+  const links = [...document.querySelectorAll('a.post-text-link')];
+  assert.deepEqual(links.map(a => [a.getAttribute('href'), a.textContent]), [
+    ['https://ameblo.jp/risa-harmonica/entry-12983622338.html', 'ameblo.jp/risa-harmonica…'],
+    ['https://www.youtube.com/watch?v=ndVpQ894LII', 'youtube.com/watch…'],
+  ]);
+  assert.ok(links.every(a => a.target === '_blank' && a.rel.includes('noopener')));
+  assert.equal(document.querySelector('b'), null, 'surrounding text stays escaped');
+  assert.ok(html.includes('&lt;b&gt;&amp;&lt;/b&gt; javascript:alert(1)'));
+  assert.equal(linkedPostText('https://user:pw@example.com/x'), 'https://user:pw@example.com/x', 'addresses that fail safeUrl stay text');
+  window.close();
+});

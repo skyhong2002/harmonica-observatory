@@ -1,3 +1,4 @@
+import { isRedesign as redesignOn } from '../assets/redesign.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
@@ -88,7 +89,8 @@ test('country facets count the current content and other filters without couplin
   assert.equal(countryFacets({},data,'posts').find(c=>c.code==='JP').count,1);
   assert.equal(countryFacets({kind:'stories'},data,'posts').find(c=>c.code==='JP').count,1);
   document.body.innerHTML=filterBar({period:'past',q:''},data,'events');
-  assert.ok(document.querySelector('[data-action="reset"]'));
+  // The new interface shows the event period as tabs, so it alone is no filter to clear.
+  assert.equal(!!document.querySelector('[data-action="reset"]'),!redesignOn());
  }
 });
 
@@ -240,4 +242,20 @@ test('new interface: directory overflow links are labelled, feed titles open the
   assert.equal(tag.getAttribute('aria-hidden'), 'true');
  }
  assert.equal(document.querySelector('#submission-url').placeholder, isRedesign() ? 'https://www.instagram.com/…' : 'https://');
+});
+
+test('source page summary: the new interface adds a hidden "read more" that reveals the clamped summary', async () => {
+  const { isRedesign } = await import('../assets/redesign.js');
+  const { sourceDetail, toggleSummaryExpansion } = await import('../assets/views.js');
+  setLocale('en');
+  const source = { id:'s', name:'Summary Source', countryCode:'JP', summary:'A long biography. '.repeat(20), tags:['a','b','c','d','e'] };
+  document.body.innerHTML = sourceDetail(source, { posts:[], sources:[source] }, new Set());
+  const button = document.querySelector('[data-expand-summary]');
+  if (!isRedesign()) { assert.equal(button, null); return; }
+  assert.ok(button.hidden, 'shown only when the clamp cuts the text');
+  assert.equal(document.querySelectorAll('.profile-tags .tag').length, 5, 'tags past three are hidden by CSS on phones, not dropped');
+  toggleSummaryExpansion(button);
+  assert.equal(button.getAttribute('aria-expanded'), 'true');
+  assert.ok(document.querySelector('.source-biography').classList.contains('is-expanded'));
+  assert.equal(button.textContent, 'Show less');
 });

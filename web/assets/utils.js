@@ -28,6 +28,39 @@ export function link(url, label, classes = "", extra = "") {
   const external = /^https?:/.test(safe);
   return `<a class="${esc(classes)}" href="${esc(safe)}" ${external ? 'target="_blank" rel="noopener noreferrer"' : ""} ${extra}>${label}${external ? '<span class="external" aria-hidden="true">↗</span>' : ""}</a>`;
 }
+// New interface: raw web addresses inside post text read as short link labels
+// ("ameblo.jp/risa-harmonica…") that still open the full address. Only
+// addresses that pass safeUrl become links; everything else stays escaped text.
+const textUrl = /https?:\/\/[\w\-.~:/?#[\]@!$&()*+,;=%]+/gi;
+const urlTail = /[.,;:!?)\]]+$/;
+export function shortUrlLabel(url) {
+  let parsed;
+  try { parsed = new URL(url); } catch { return String(url || ""); }
+  const host = parsed.hostname.replace(/^www\./, "");
+  const segments = parsed.pathname.split("/").filter(Boolean);
+  let first = segments[0] || "";
+  try { first = decodeURIComponent(first); } catch { /* Keep the encoded segment. */ }
+  if (first.length > 24) first = first.slice(0, 22) + "…";
+  const more = segments.length > 1 || parsed.search || parsed.hash;
+  const label = host + (first ? "/" + first : "");
+  return more && !label.endsWith("…") ? label + "…" : label;
+}
+function eachUrl(text, onText, onUrl) {
+  const value = String(text || "");
+  let out = "", last = 0;
+  for (const match of value.matchAll(textUrl)) {
+    const raw = match[0].replace(urlTail, "");
+    const safe = /^https?:/i.test(raw) ? safeUrl(raw) : "";
+    if (!safe) continue;
+    out += onText(value.slice(last, match.index)) + onUrl(safe);
+    last = match.index + raw.length;
+  }
+  return out + onText(value.slice(last));
+}
+// The text as a reader sees it (for "read more" length checks).
+export const shortenedUrlText = (text) => eachUrl(text, (part) => part, shortUrlLabel);
+export const linkedPostText = (text) => eachUrl(text, esc, (url) =>
+  `<a class="post-text-link" href="${esc(url)}" target="_blank" rel="noopener noreferrer" title="${esc(url)}">${esc(shortUrlLabel(url))}</a>`);
 export const icon = (name) => {
   const paths = {
     facebook: '<path d="M14 21v-8h3l.5-4H14V7c0-1 .4-2 2-2h2V1.5A24 24 0 0 0 15 1c-3 0-5 2-5 5v3H7v4h3v8"/>',
