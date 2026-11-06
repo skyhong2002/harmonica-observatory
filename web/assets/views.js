@@ -277,7 +277,7 @@ function legacyFeedsView(catalog) {
 // separate "Open feed" link is not repeated; the format tag and one copy
 // button close the row (a single line on phones).
 function redesignedFeedsView(catalog) {
-  const card = (f) => `<article class="feed-card"><span class="feed-icon">${icon(String(f.format).toLowerCase().includes("ics") ? "calendar" : "rss")}</span><span class="tag">${esc(f.format || "RSS")}</span><h2>${link(f.url, t("feed_" + (f.id || f.title)), "feed-title-link")}</h2><div class="feed-actions"><button class="copy-button" data-copy="${esc(f.url)}">${t("copy")}</button></div></article>`;
+  const card = (f) => `<article class="feed-card"><span class="feed-icon">${icon(String(f.format).toLowerCase().includes("ics") ? "calendar" : String(f.format).toLowerCase().includes("json") ? "layers" : "rss")}</span><span class="tag">${esc(f.format || "RSS")}</span><h2>${link(f.url, t("feed_" + (f.id || f.title)), "feed-title-link")}</h2><div class="feed-actions"><button class="copy-button" data-copy="${esc(f.url)}">${t("copy")}</button></div></article>`;
   const kind = (f) => { const format = String(f.format || "RSS").toUpperCase(); return format.includes("ICS") ? "Ics" : format.includes("JSON") ? "Data" : "Rss"; };
   const groups = ["Rss", "Ics", "Data"].map((key) => [key, catalog.feeds.filter((f) => kind(f) === key)]).filter(([, rows]) => rows.length);
   return `${pageHeading("feeds", "feedBody")}<div class="feed-groups">${groups.map(([key, rows]) => `<section class="feed-group"><header><h2>${t("feedGroup" + key)}</h2><p>${t("feedGroup" + key + "Body")}</p></header><div class="feed-grid">${rows.map(card).join("")}</div></section>`).join("")}</div>`;
