@@ -1,4 +1,3 @@
-import { isRedesign, initializeRedesign } from "./redesign.js";
 import { bindDirectoryColumns } from "./directory-columns.js";
 import { sourceDisplayName, sourceSummaryText } from "./source-names.js";
 import { observatoryHome } from "./home.js";
@@ -202,11 +201,9 @@ function listView(kind, data) {
         : "";
   // New interface: one count per list — "showing x of y" by load-more, plus
   // this result count only while a search or filter narrows the list.
-  const resultsBar = !isRedesign()
-    ? `<div class="results-bar"><p role="status">${t("results", { count: number(sorted.length) })}</p>${kind === "sources" && state.followed && sorted.length ? `<span>${t("followHint")}</span>` : ""}</div>`
-    : filtersActive(state) ? `<div class="results-bar"><p role="status">${t("results", { count: number(sorted.length) })}</p></div>` : "";
-  const notes = isRedesign() && kind === "sources" && state.followed && sorted.length ? pageNotes([esc(t("followHint"))]) : "";
-  return `${pageHeading(kind, bodyKey, extra)}${kind === "sources" && isRedesign() ? followTabs("sources") : ""}${filterBar(state, catalog, kind, following)}${resultsBar}${kind === "sources" && sorted.length ? directoryHeader(state.sort, state.descending) : ""}<div class="${cls}">${sorted.length ? sorted.slice(0, limit).map(card).join("") : emptySources()}</div>${sorted.length > limit ? `<div class="pagination"><p>${t("showing", { shown: number(limit), total: number(sorted.length) })}</p><button class="button button-outline" data-action="more">${t("loadMore")}${icon("plus")}</button></div>` : ""}${notes}`;
+  const resultsBar = (filtersActive(state) ? `<div class="results-bar"><p role="status">${t("results", { count: number(sorted.length) })}</p></div>` : "");
+  const notes = (kind === "sources") && state.followed && sorted.length ? pageNotes([esc(t("followHint"))]) : "";
+  return `${pageHeading(kind, bodyKey, extra)}${(kind === "sources") ? followTabs("sources") : ""}${filterBar(state, catalog, kind, following)}${resultsBar}${kind === "sources" && sorted.length ? directoryHeader(state.sort, state.descending) : ""}<div class="${cls}">${sorted.length ? sorted.slice(0, limit).map(card).join("") : emptySources()}</div>${sorted.length > limit ? `<div class="pagination"><p>${t("showing", { shown: number(limit), total: number(sorted.length) })}</p><button class="button button-outline" data-action="more">${t("loadMore")}${icon("plus")}</button></div>` : ""}${notes}`;
 }
 // "All / Following" tabs so the personal view is not hidden in a dropdown.
 function followTabs(kind) {
@@ -240,15 +237,14 @@ function loadingSkeleton() {
   return `<div class="skeleton" aria-busy="true"><h1 class="skeleton-label">${icon("globe")}<span>${t("loading")}</span></h1><div class="skeleton-body" aria-hidden="true">${bar("skeleton-title")}${bar("skeleton-text")}<div class="skeleton-stats">${stat.repeat(4)}</div><div class="skeleton-now"><div class="skeleton-stories">${bar("skeleton-heading")}<div class="skeleton-strip">${story.repeat(4)}</div></div><div class="skeleton-events">${bar("skeleton-heading")}${row.repeat(4)}</div></div></div></div>`;
 }
 function body() {
-  if (!catalog && !isRedesign())
-    return `<div class="initial-loading" ${loadFailed ? "" : 'aria-busy="true"'}>${icon(loadFailed ? "info" : "globe")}<h1>${t(loadFailed ? "loadError" : "loading")}</h1>${loadFailed ? `<p>${t("loadErrorBody")}</p><button class="button button-primary" data-action="retry">${t("retry")}</button>` : '<div class="loading-dots"><i></i><i></i><i></i></div>'}</div>`;
+
   if (!catalog && loadFailed)
     return `<div class="load-error"><h1 class="sr-only">${t("loadError")}</h1>${empty({ filtered: false, symbol: "info", title: t("loadError"), body: t("loadErrorBody"), actions: `<button class="button button-primary" data-action="retry">${t("retry")}</button>${link("/status/", t("status"), "button button-outline")}` })}</div>`;
   if (!catalog) return loadingSkeleton();
   const key = routes[path()];
   const data = filtered();
   if (key === "discover") return observatoryHome(catalog, state, following, limit);
-  if (key === "posts") return pageHeading("posts", null) + (isRedesign() ? followTabs("posts") : "") + timelineView(catalog, state, following, limit) + (isRedesign() ? pageNotes(timelineNotes()) : "");
+  if (key === "posts") return pageHeading("posts", null) + ((followTabs("posts"))) + timelineView(catalog, state, following, limit) + ((pageNotes(timelineNotes())));
   if (key === "scores") return scoresView(catalog, state, limit);
   if (key === "scoreSources") return scoreSourcesView(catalog, state, limit);
   if (key === "events") return eventsView(catalog, state, following, limit);
@@ -294,7 +290,7 @@ function render({ focus = false } = {}) {
     footer();
   dropDuplicateReset(app);
   collapseFilters(app);
-  if (isRedesign()) revealClampedSummary(app);
+  revealClampedSummary(app);
   directoryCleanup = bindDirectoryColumns(app);
   if (isTimeline && catalog) timelineCleanup = bindTimeline(app);
   if (path() === "/events/" && catalog) eventsCleanup = bindEvents(app);
@@ -323,7 +319,7 @@ function render({ focus = false } = {}) {
 // New interface: when a filtered list is empty, its empty card already offers
 // "Clear filters", so the filter bar does not repeat the button.
 function dropDuplicateReset(root) {
-  if (!isRedesign() || !root.querySelector(".empty-state [data-action=reset]")) return;
+  if ((!root.querySelector(".empty-state [data-action=reset]"))) return;
   root.querySelectorAll(".filter-bar > .clear-filter").forEach(node => node.remove());
 }
 // Phones: fold the filter controls under one "Filter (n)" toggle so results
@@ -331,7 +327,7 @@ function dropDuplicateReset(root) {
 // any filter is applied. "Clear filters" stays outside the fold, beside the
 // toggle (redesign.css), so it is reachable while the fold is closed.
 function collapseFilters(root) {
-  if (!isRedesign() || !window.matchMedia?.("(max-width: 640px)").matches) return;
+  if ((!window.matchMedia?.("(max-width: 640px)").matches)) return;
   for (const bar of root.querySelectorAll(".filter-bar")) {
     const controls = [...bar.children].filter(node => node.matches("label:not(.search-label)"));
     if (controls.length < 2) continue;
@@ -458,14 +454,13 @@ async function load() {
     }
   }
 }
-initializeRedesign();
 initializeShell();
 if (path() === '/') {
   const authError = new URLSearchParams(location.search).get('auth_error');
   if (authError) toast(t(authError === 'cancelled' ? 'loginCancelled' : 'loginFailed'));
 }
 // The profile summary clamp starts and stops at the phone width (redesign.css).
-window.matchMedia?.("(max-width: 699px)").addEventListener?.("change", () => { if (isRedesign()) revealClampedSummary(app); });
+window.matchMedia?.("(max-width: 699px)").addEventListener?.("change", () => { revealClampedSummary(app); });
 app.addEventListener("click", (event) => {
   const googleAuth = event.target.closest('[data-google-auth]');
   if (googleAuth) { handleGoogleAuth(googleAuth, render); return; }

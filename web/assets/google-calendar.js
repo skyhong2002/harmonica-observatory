@@ -1,4 +1,3 @@
-import { isRedesign } from './redesign.js';
 import { getLocale, locales } from './i18n.js';
 import { esc, link, icon } from './utils.js';
 
@@ -80,8 +79,7 @@ export function googleCalendarView(catalog) {
   const calendarLink = openLink(url);
   // New interface: only the calendar choices and the embed here; timezone,
   // Google Calendar and ICS links go to the page notes (googleCalendarNotes).
-  if (isRedesign()) return `<div class="google-calendar" data-google-calendar><div class="google-calendar-toolbar"><div class="google-calendar-filters" role="group" aria-label="${esc(label('filter'))}">${filters(calendars, selected)}</div></div>${frame(calendars, url)}</div>`;
-  return `<div class="google-calendar" data-google-calendar><div class="google-calendar-toolbar"><div class="google-calendar-filters" role="group" aria-label="${esc(label('filter'))}">${calendars.map(calendar=>`<label><input type="checkbox" data-google-calendar-source data-calendar-source data-calendar-id="${esc(calendar.id)}" data-calendar-key="${esc(calendar.key)}" ${selected.has(calendar.key)?'checked':''}><span class="google-calendar-dot calendar-dot-${calendar.key}" aria-hidden="true"></span>${esc(label(calendar.key))}</label>`).join('')}</div><div class="google-calendar-links">${calendarLink}${Object.entries(feedPaths).map(([key,path])=>link(path,esc(label(key))+' ICS','text-link')).join('')}</div></div><p class="google-calendar-context">${esc(label('timezone'))} <strong>${esc(calendarTimeZone())}</strong> · ${link('/events/',esc(label('fallback')),'text-link')}</p><div class="google-calendar-frame"><iframe title="${esc(label('title'))}" ${url ? `src="${esc(url)}"` : 'hidden'} data-google-calendar-embed data-public-calendar-embed loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><p class="google-calendar-empty" ${url?'hidden':''} role="status">${esc(label(calendars.length?'empty':'unavailable'))}</p></div></div>`;
+  return `<div class="google-calendar" data-google-calendar><div class="google-calendar-toolbar"><div class="google-calendar-filters" role="group" aria-label="${esc(label('filter'))}">${filters(calendars, selected)}</div></div>${frame(calendars, url)}</div>`;
 }
 export function bindGoogleCalendar(root) {
   const host = root.querySelector('[data-google-calendar]');

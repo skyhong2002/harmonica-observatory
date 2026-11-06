@@ -1,4 +1,4 @@
-import { isRedesign } from '../assets/redesign.js';
+
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
@@ -22,7 +22,7 @@ test('event explanations follow locale while original posts and descriptions rem
     assert.equal(document.querySelector('.feed-text').textContent, post.text);
     // The new interface shows the structured description only when no
     // original post is linked (the post already says it), and never folded.
-    if (isRedesign()) {
+    {
       assert.equal(document.querySelector('.source-summary'), null);
       assert.equal(document.querySelector('details.event-description'), null);
       document.querySelector('main').innerHTML = richEventCard(translated, { ...catalog, posts: [] });
@@ -104,12 +104,12 @@ test('playable original video uses its poster once and never autoplays', () => {
   assert.equal(document.querySelector('.event-poster'), null); window.close();
 });
 
-test('events use masonry on wide screens in the original interface and one dated list in the new one', async () => {
+test('events remain in one dated list across desktop, resize and mobile', async () => {
   const window = setup(); const root = document.querySelector('main'); root.innerHTML = eventsView(catalog, {});
   const card = root.querySelector('.rich-event-card'); let height = 400; card.getBoundingClientRect = () => ({ height });
   const callbacks = []; window.ResizeObserver = class { constructor(callback) { callbacks.push(callback); } observe() {} disconnect() {} };
-  const cleanup = bindEvents(root); assert.equal(card.style.gridRowEnd, isRedesign() ? '' : 'span 53');
-  height = 800; callbacks[0](); await new Promise(resolve => setTimeout(resolve, 30)); assert.equal(card.style.gridRowEnd, isRedesign() ? '' : 'span 103');
+  const cleanup = bindEvents(root); assert.equal(card.style.gridRowEnd, (''));
+  height = 800; callbacks[0](); await new Promise(resolve => setTimeout(resolve, 30)); assert.equal(card.style.gridRowEnd, (''));
   window.innerWidth = 390; window.dispatchEvent(new window.Event('resize')); await new Promise(resolve => setTimeout(resolve, 30));
   assert.equal(card.style.gridRowEnd, ''); assert.equal(root.querySelector('.events-masonry'), null); cleanup(); window.close();
 });
@@ -157,14 +157,14 @@ test('failed videos remove dead controls and retain their poster with a four-lan
 test('event cards omit repeated declarations without hiding snapshot status, timezone or original links',()=>{
  const window=setup();document.querySelector('main').innerHTML=eventsView(catalog,{});
  // The new interface states the count only when a search or filter narrows the list.
- if(isRedesign()){assert.equal(document.querySelector('.results-bar'),null);document.querySelector('main').innerHTML=eventsView(catalog,{q:'concert'});}
+ {assert.equal(document.querySelector('.results-bar'),null);document.querySelector('main').innerHTML=eventsView(catalog,{q:'concert'});}
  assert.equal(document.querySelector('.results-bar').children.length,1);
- if(isRedesign()) document.querySelector('main').innerHTML=eventsView(catalog,{});
+ document.querySelector('main').innerHTML=eventsView(catalog,{});
  assert.equal(document.querySelector('.event-reference-label'),null);
  // The new interface keeps one action row per single-post event.
- assert.ok(document.querySelector(isRedesign() ? '.rich-event-actions a[href]' : '.event-reference-actions a[href]'));
+ assert.ok(document.querySelector(('.rich-event-actions a[href]')));
  assert.match(document.querySelector('.rich-event-zone').textContent,/America\/Los_Angeles/);
- if(isRedesign()){
+ {
   // One original link, one follow and one ⋯ menu per card; the zone sits beside the time.
   assert.equal(document.querySelectorAll('.rich-event-card a.event-original-link').length,1);
   assert.equal(document.querySelectorAll('.rich-event-card .event-reference-actions').length,0);
@@ -183,7 +183,7 @@ test('event cards omit repeated declarations without hiding snapshot status, tim
  }
  document.querySelector('main').innerHTML=richEventCard({...event,url:post.url,sourceUrl:post.url},{...catalog,posts:[{...post,contentKind:'website_snapshot',publishedAt:null}]});
  assert.match(document.querySelector('.event-reference-label').textContent,/website/i);
- assert.equal(document.querySelectorAll('.rich-event-actions a[href="'+post.url+'"]').length,isRedesign() ? 1 : 0);
+ assert.equal(document.querySelectorAll('.rich-event-actions a[href="'+post.url+'"]').length,(1));
  window.close();
 });
 
@@ -196,13 +196,13 @@ test('new interface: a post excerpt shows once per list and cards without a post
   assert.ok(cards[0].querySelector('.feed-text').textContent.includes('原始發文'));
   // Both cards keep the author line and the original link.
   for (const card of cards) { assert.ok(card.querySelector('.event-author')); assert.ok(card.querySelector('a.event-original-link, .event-reference-actions a')); }
-  if (isRedesign()) {
+  {
     assert.equal(cards[1].querySelector('.event-reference .feed-text'), null);
     assert.match(cards[1].querySelector('.event-description-text').textContent, /Second session description/);
     document.querySelector('main').innerHTML = richEventCard({ ...event, image: '' }, { ...catalog, posts: [] });
     assert.equal(document.querySelector('.event-media'), null);
     assert.equal(document.querySelector('.event-thumb-placeholder'), null);
-  } else assert.equal(cards[1].querySelectorAll('.feed-text').length, 1);
+  }
   window.close();
 });
 
@@ -210,7 +210,7 @@ test('new interface: the event period is a row of tabs that keep the search and 
   const window = setup();
   document.querySelector('main').innerHTML = eventsView(catalog, { q: 'concert', country: 'JP', period: 'past' });
   const tabs = [...document.querySelectorAll('.event-period-tabs .follow-tab')];
-  if (isRedesign()) {
+  {
     assert.equal(tabs.length, 3);
     assert.deepEqual(tabs.map(tab => new URL(tab.href, 'https://example.com').searchParams.get('period')), [null, 'past', 'allEvents']);
     for (const tab of tabs) { const params = new URL(tab.href, 'https://example.com').searchParams; assert.equal(params.get('q'), 'concert'); assert.equal(params.get('country'), 'JP'); assert.equal(params.get('lang'), 'en'); }
@@ -218,6 +218,6 @@ test('new interface: the event period is a row of tabs that keep the search and 
     // The period alone is not a filter: no result count.
     document.querySelector('main').innerHTML = eventsView(catalog, { period: 'past' });
     assert.equal(document.querySelector('.results-bar'), null);
-  } else assert.equal(tabs.length, 0);
+  }
   window.close();
 });

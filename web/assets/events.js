@@ -1,4 +1,3 @@
-import { isRedesign } from './redesign.js';
 import { eventText, eventOriginalMarkup } from './event-localization.js';
 import { t, getLocale, countryName } from './i18n.js';
 import { esc, link, icon, timestamp, number, safeUrl, image, avatar, sourceHref, pastEvent, textMatch, empty, hasFilters, platformName } from './utils.js';
@@ -83,7 +82,7 @@ export function eventDescriptionMarkup(event) {
 function followButton(source, following) {
   const followed = following.has(source.id), name = sourceDisplayName(source);
   // New interface: the button says what is followed (the source, not the event).
-  const label = followed ? t('following') : isRedesign() ? l('followSource') : t('follow');
+  const label = followed ? t('following') : (l('followSource'));
   return `<button type="button" class="feed-action ${followed ? 'is-following' : ''}" data-follow="${esc(source.id)}" aria-pressed="${!!followed}" aria-label="${esc(t(followed ? 'unfollow' : 'follow') + ' ' + name)}">${icon(followed ? 'check' : 'heart')}<span>${label}</span></button>`;
 }
 // New interface: the excerpt is clamped to three lines, so only text that
@@ -92,7 +91,7 @@ const fitsThreeLines = text => text.length <= 60 && text.split('\n').length <= 3
 function originalPost(post, catalog, following, showAuthor = true, withActions = true, withFollow = true, text = post.text || '') {
   const source = catalog.sources?.find(source => source.id === post.sourceId);
   const name = source ? sourceDisplayName(source) : post.sourceName || t('source');
-  const expanded = isRedesign() ? fitsThreeLines(text) : text.length <= 240 && text.split('\n').length <= 5;
+  const expanded = (fitsThreeLines(text));
   const followed = source && following.has(source.id);
   return `<section class="event-reference feed-content" data-event-post="${esc(post.id)}">${post.contentKind === 'website_snapshot' ? `<p class="event-reference-label">${l('snapshot')}</p>` : ''}${showAuthor ? eventAuthor(post, catalog) : ''}${text ? `<p class="feed-text ${expanded ? 'is-expanded' : ''}">${esc(text)}</p>${expanded ? '' : `<button type="button" class="feed-expand" data-expand-post aria-expanded="false">${t('readMore')}</button>`}` : ''}${withActions ? `<div class="event-reference-actions">${source && withFollow ? followButton(source, following) : ''}${link(post.url, t('original'), 'text-link')}</div>` : ''}</section>`;
 }
@@ -175,34 +174,14 @@ export function dateBlock(event) {
 }
 // seenPosts (new interface, optional): ids of posts whose excerpt an earlier
 // card in the same list already showed; eventsView passes one per render.
-export function richEventCard(event, catalog, following = new Set(), seenPosts) {
-  return isRedesign() ? redesignedRichEventCard(event, catalog, following, seenPosts) : legacyRichEventCard(event, catalog, following);
-}
-// Original version, shown while the "new interface" switch is off.
-function legacyRichEventCard(event, catalog, following = new Set()) {
-  const posts = relatedEventPosts(event, catalog.posts);
-  const postImages = posts.flatMap(post => [post.image, ...(Array.isArray(post.images) ? post.images : [])]).map(safeUrl).filter(Boolean);
-  const eventImages = [event.image, ...(Array.isArray(event.images) ? event.images : [])].map(safeUrl).filter(Boolean);
-  const candidates = [...new Set([...postImages.filter(url => url.startsWith('/')), ...eventImages.filter(url => url.startsWith('/')), ...eventImages, ...postImages])];
-  const video = safeUrl(event.videoUrl || posts.find(post => post.videoUrl)?.videoUrl);
-  const mainImage = candidates[0];
-  // A cached cover corresponds to the first source image in that record's
-  // ordered media list. Retain other remote images, even when not cached yet.
-  const cachedOriginals = new Set([event, ...posts].flatMap(row => {
-    const cover = safeUrl(row.image);
-    const first = safeUrl(Array.isArray(row.images) ? row.images[0] : '');
-    return cover.startsWith('/') && first && !first.startsWith('/') ? [first] : [];
-  }));
-  const gallery = candidates.filter(url => url !== mainImage && !cachedOriginals.has(url));
-  return `<article class="rich-event-card ${pastEvent(event) ? 'is-past' : ''}" data-event-id="${esc(event.id)}"><header class="rich-event-header">${posts[0] ? eventAuthor(posts[0], catalog) : ''}<div class="eyebrow">${esc(countryName(event.countryCode, event.country))}${pastEvent(event) ? ` · ${t('past')}` : ''}</div><h2>${esc(eventText(event))}</h2>${eventOriginalMarkup(event)}<p class="rich-event-time">${icon('calendar')}<span>${esc(eventDateLabel(event))}${event.allDay ? ` · ${t('allDay')}` : event.endEstimated ? ` · ${l('endUnknown')}` : ''}</span></p><p class="rich-event-location">${icon('pin')}<span>${esc(eventText(event, 'location') || t('locationUnknown'))}</span></p><p class="rich-event-zone">${esc(event.timezone || 'UTC')} · ${t('localTime')}</p></header>${mainImage && !video ? `<figure class="event-media" data-event-media>${link(event.url || event.sourceUrl, image(mainImage, 'event-poster', `${l('poster')}: ${eventText(event)}`), 'event-media-link')}${candidates.length > 1 ? `<span hidden data-event-image-fallback="${esc(JSON.stringify(candidates.slice(1)))}"></span>` : ''}</figure>` : ''}${gallery.length ? `<details class="event-gallery"><summary>${l('moreImages')} (${number(gallery.length)})</summary><div class="event-gallery-strip" tabindex="0" aria-label="${esc(l('moreImages'))}">${gallery.map(url => link(url, image(url, 'event-gallery-image', l('poster')), 'event-gallery-link')).join('')}</div></details>` : ''}${video ? `<video class="event-video" controls preload="metadata" playsinline data-original-video="${esc(safeUrl(event.url || event.sourceUrl || posts[0]?.url))}" ${mainImage ? `poster="${esc(mainImage)}"` : ''} aria-label="${esc(l('video') + ': ' + eventText(event))}" src="${esc(video)}"></video>` : ''}<div class="rich-event-copy">${posts.map((post, index) => originalPost(post, catalog, following, index > 0)).join('')}${event.description ? posts.length ? `<details class="event-description"><summary>${l('description')}</summary>${eventDescriptionMarkup(event)}</details>` : `<div class="event-description-text">${eventDescriptionMarkup(event)}</div>` : ''}<footer class="rich-event-actions">${posts.some(post => safeUrl(post.url) === safeUrl(event.url || event.sourceUrl)) ? '' : link(event.url || event.sourceUrl, t('original'), 'text-link')}<button type="button" class="feed-action" data-share="${esc(event.url || event.sourceUrl || '')}" data-share-title="${esc(eventText(event))}">${icon('arrow')}<span>${l('share')}</span></button>${reportLink(event)}</footer></div></article>`;
-}
+
 // "New interface" version. Each card names the original source, follow and
 // the ⋯ menu once; the timezone appears only when it differs from the
 // visitor's; the structured description only shows when no post excerpt is.
 // One excerpt per card (the first post with text not already shown on an
 // earlier card of the same list); other posts show their author line only.
 // A poster, when there is one, is a thumbnail; without one there is no tile.
-function redesignedRichEventCard(event, catalog, following = new Set(), seenPosts = new Set()) {
+export function richEventCard(event, catalog, following = new Set(), seenPosts = new Set()) {
   const posts = relatedEventPosts(event, catalog.posts);
   const postImages = posts.flatMap(post => [post.image, ...(Array.isArray(post.images) ? post.images : [])]).map(safeUrl).filter(Boolean);
   const eventImages = [event.image, ...(Array.isArray(event.images) ? event.images : [])].map(safeUrl).filter(Boolean);
@@ -274,8 +253,8 @@ export function eventsView(catalog, state = {}, following = new Set(), limit = 2
   const seenPosts = new Set();
   // New interface: a count only when a search or filter narrows the list
   // (the period is a tab, not a filter).
-  const count = !isRedesign() || hasFilters({ ...state, period: 'upcoming' }) ? `<div class="results-bar"><p role="status">${t('results', { count: number(rows.length) })}</p></div>` : '';
-  return `${pageHeading('events', 'eventsBody')}${isRedesign() ? periodTabs(state) : ''}${filterBar(state, catalog, 'events', following)}${count}<div class="rich-events-grid">${rows.length ? rows.slice(0, limit).map(event => richEventCard(event, catalog, following, seenPosts)).join('') : emptyEvents(catalog, state)}</div>${rows.length > limit ? `<div class="pagination"><p>${t('showing', { shown: number(limit), total: number(rows.length) })}</p><button type="button" class="button button-outline" data-action="more">${t('loadMore')}${icon('plus')}</button></div>` : ''}${isRedesign() ? eventNotes(catalog) : ''}`;
+  const count = (hasFilters({ ...state, period: 'upcoming' })) ? `<div class="results-bar"><p role="status">${t('results', { count: number(rows.length) })}</p></div>` : '';
+  return `${pageHeading('events', 'eventsBody')}${(periodTabs(state))}${filterBar(state, catalog, 'events', following)}${count}<div class="rich-events-grid">${rows.length ? rows.slice(0, limit).map(event => richEventCard(event, catalog, following, seenPosts)).join('') : emptyEvents(catalog, state)}</div>${rows.length > limit ? `<div class="pagination"><p>${t('showing', { shown: number(limit), total: number(rows.length) })}</p><button type="button" class="button button-outline" data-action="more">${t('loadMore')}${icon('plus')}</button></div>` : ''}${(eventNotes(catalog))}`;
 }
 export function bindEvents(root) {
   const grid = root.querySelector('.rich-events-grid');
@@ -283,15 +262,8 @@ export function bindEvents(root) {
   let frame = 0;
   const layout = () => {
     frame = 0;
-    // The new interface lists events in date order; the original keeps its
-    // two-column masonry on wide screens.
-    const masonry = !isRedesign() && window.innerWidth > 760;
-    grid?.classList.toggle('events-masonry', masonry);
-    for (const card of cards) {
-      card.style.gridRowEnd = masonry ? `span ${Math.ceil((card.getBoundingClientRect().height + 20) / 8)}` : '';
-    }
     // New interface: "read more" only when the three-line clamp hides text.
-    if (isRedesign()) for (const button of grid?.querySelectorAll('.rich-event-card [data-expand-post][aria-expanded="false"]') || []) {
+    for (const button of grid?.querySelectorAll('.rich-event-card [data-expand-post][aria-expanded="false"]') || []) {
       const text = button.closest('.feed-content')?.querySelector('.feed-text');
       const clamped = text?.querySelector('.source-summary') || text;
       if (clamped?.clientHeight) button.hidden = clamped.scrollHeight <= clamped.clientHeight + 1;

@@ -1,4 +1,3 @@
-import { isRedesign } from './redesign.js';
 import { getLocale } from './i18n.js';
 import { link, esc, icon, number, pastEvent } from './utils.js';
 import { storiesView, storyObservedMarkup } from './stories.js';
@@ -24,25 +23,11 @@ function upcomingList(catalog, w) {
     return `<li>${link(event.url || event.sourceUrl, `${dateBlock(event)}<span class="home-upcoming-copy"><span class="home-upcoming-time">${when}</span><strong>${esc(eventText(event))}</strong><span class="home-upcoming-place">${icon('pin')}${esc(eventText(event, 'location') || '')}</span></span>`, 'home-upcoming-link')}</li>`;
   }).join('')}</ol>`;
 }
-export function observatoryHome(catalog, state, following, limit = 24) {
-  return isRedesign() ? redesignedObservatoryHome(catalog, state, following, limit) : legacyObservatoryHome(catalog, state, following, limit);
-}
-// Original version, shown while the "new interface" switch is off.
-function legacyObservatoryHome(catalog, state, following, limit = 24) {
-  const w = labels[getLocale()] || labels.en;
-  const params = new URLSearchParams({lang:getLocale()});
-  for (const key of ['q','country','platform','type','kind','followed']) if (state[key]) params.set(key,state[key]===true?'1':state[key]);
-  const updated = storyObservedMarkup(catalog);
-  return `<div class="observatory-home"><h1 class="sr-only">${esc(w.home)}</h1>
-    <section class="home-stories home-band" aria-labelledby="home-stories-title"><div class="home-section-inner"><header class="home-section-heading"><h2 id="home-stories-title">${esc(w.stories)}</h2>${updated}</header>${storiesView(catalog)}</div></section>
-    <section class="home-calendar home-band" aria-labelledby="home-calendar-title"><div class="home-section-inner"><header class="home-section-heading"><h2 id="home-calendar-title">${esc(w.calendar)}</h2><div>${link('/events/',esc(w.events),'text-link')}${link('/feeds/',esc(w.subscriptions),'text-link')}</div></header>${googleCalendarView(catalog)}</div></section>
-    <section class="home-posts home-band" aria-labelledby="home-posts-title"><div class="home-section-inner"><header class="home-section-heading"><h2 id="home-posts-title">${esc(w.feed)}</h2>${link('/post/?'+params,esc(w.full)+icon('arrow'),'text-link')}</header>${timelineView(catalog,state,following,limit)}</div></section>
-  </div>`;
-}
+
 // "New interface" version. The intro has no quick entries (the top
 // navigation covers them); snapshot time, timezone and calendar
 // subscriptions sit in the page notes at the end.
-function redesignedObservatoryHome(catalog, state, following, limit = 24) {
+export function observatoryHome(catalog, state, following, limit = 24) {
   const w = labels[getLocale()] || labels.en;
   const params = new URLSearchParams({lang:getLocale()});
   for (const key of ['q','country','platform','type','kind','followed']) if (state[key]) params.set(key,state[key]===true?'1':state[key]);

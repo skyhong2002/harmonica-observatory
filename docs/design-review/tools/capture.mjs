@@ -68,10 +68,7 @@ if (mode === 'site') {
         isMobile: !!size.isMobile, hasTouch: !!size.hasTouch, colorScheme: state.theme === 'dark' ? 'dark' : 'light',
         locale: state.lang === 'zh-Hant' ? 'zh-TW' : state.lang, timezoneId: 'Asia/Taipei', reducedMotion: 'reduce',
       });
-      // REDESIGN=on|off photographs one side of the "new interface" switch.
-      if (process.env.REDESIGN) await context.addInitScript((value) => {
-        try { if (value === 'on') localStorage.setItem('observatory-redesign', 'on'); else localStorage.removeItem('observatory-redesign'); } catch {}
-      }, process.env.REDESIGN);
+      // The product UI is always the redesigned interface.
       const page = await context.newPage();
       await page.clock.setFixedTime(new Date(NOW));
       await page.route('**/api/v1/catalog', async (route) => {

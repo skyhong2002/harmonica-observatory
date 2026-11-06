@@ -1,4 +1,3 @@
-import { isRedesign } from './redesign.js';
 import { pageNotes } from './page-notes.js';
 import { t, getLocale, countryName } from './i18n.js';
 import { esc, link, icon, number, safeUrl, textMatch, image, date, hasFilters } from './utils.js';
@@ -251,7 +250,7 @@ function collectionRow(row, placeholder = false) {
   // New interface: a button that opens the product page already says how to
   // obtain the book; the recorded method (often "browse the category") would
   // only repeat or contradict it.
-  const showHow = !(isRedesign() && action.label === 'product');
+  const showHow = !((action.label === 'product'));
   const extra = [...new Set([row.imageSourceUrl,row.sourceUrl,row.url,...(row.links || []).map(item=>item.url)].map(safeUrl).filter(url=>url && url !== action.url))];
   return `<article class="score-row repertoire-row collection-row${cover || tile ? ' collection-illustrated' : ''}" data-collection-kind="${collectionKind(row)}">${cover ? `<div class="collection-cover">${media}</div>` : tile ? `<div class="collection-cover collection-cover-placeholder" aria-hidden="true">${icon('music')}</div>` : ''}<div class="score-main"><h3 class="collection-title">${esc(row.title || row.name)}</h3><p class="collection-provider">${esc(l('provider'))}: ${esc(row.name || '')}</p>${row.referenceStatus === 'unverified' ? `<p class="collection-reference-note">${esc(l('unverified'))}</p>` : ''}<dl class="collection-facts">${detail(l('instrument'),instrumentation(row.instrumentation))}${showHow ? detail(l('how'),purchaseMethod(row.purchaseMethod)) : ''}</dl>${cover ? '' : media}<div class="score-row-links">${link(action.url, esc(l(action.label)), 'button button-outline collection-primary')}${reportLink(row)}</div><details class="collection-record"><summary>${esc(l('record'))}${row.lastSeenAt ? ` · ${esc(row.lastSeenAt)}` : ''}</summary><dl>${detail(l('recorded'),row.lastSeenAt)}${detail(t('composer'),row.composer)}${detail(t('arranger'),row.arranger)}${detail(l('recordedPrice'),row.price)}${detail(l('recordedAvailability'),row.availability)}</dl>${row.summary ? `<p class="collection-original">${esc(row.summary)}</p>` : ''}<div class="score-evidence">${extra.map(url=>link(url,esc(l('sourcePage')),'score-evidence-link')).join('')}</div></details></div></article>`;
 }
@@ -269,7 +268,7 @@ function pagination(length, limit) {
 }
 export function scoresView(catalog, state = {}, limit = 24) {
   const rows = catalog.scores || [], results = filterScores(rows, state);
-  if (isRedesign()) {
+  {
     // One count per list: the tab and "showing x of y"; a result count only
     // while filtered. One line under the title says what the list is (an index,
     // not downloads); the year rule moves to the page notes.
@@ -277,7 +276,6 @@ export function scoresView(catalog, state = {}, limit = 24) {
     const heading = pageHeading('scores', 'scoresBody').replace('</h1>', `</h1><p class="page-heading-note">${esc(l('indexLine'))}</p>`);
     return `${heading}${tabs('repertoire', state, catalog)}${controls(rows, state)}${filtered ? `<div class="results-bar"><p role="status">${esc(l('records', { count: number(results.length) }))}</p></div>` : ''}<div class="score-list">${results.length ? repertoireTable(results.slice(0, limit)) : noResults(false, hasFilters(state))}</div>${pagination(results.length, limit)}${pageNotes([esc(l('yearNote'))])}`;
   }
-  return `${pageHeading('scores', 'scoresBody')}${tabs('repertoire', state, catalog)}${controls(rows, state)}<div class="results-bar"><p role="status">${esc(l('records', { count: number(results.length) }))}</p></div><div class="score-list">${results.length ? repertoireTable(results.slice(0, limit)) : noResults(false, hasFilters(state))}</div>${pagination(results.length, limit)}<details class="score-guide"><summary>${esc(l('guide'))}</summary><p>${esc(l('indexNote'))}</p><p>${esc(l('yearNote'))}</p></details>`;
 }
 export function scoreSourcesView(catalog, state = {}, limit = 24) {
   const rows = catalog.scoreSources || [];
@@ -287,13 +285,12 @@ export function scoreSourcesView(catalog, state = {}, limit = 24) {
   const visible = results.slice(0,limit);
   const content = kinds.map(kind=>{
     const group = visible.filter(row=>collectionKind(row)===kind);
-    return group.length ? `<div class="collection-group-heading"><h2>${esc(l(kind))} <span>${number(results.filter(row=>collectionKind(row)===kind).length)}</span></h2><p>${esc(l(kind+'Help'))}</p></div>${group.map(row => collectionRow(row, isRedesign() && group.some(hasCover))).join('')}` : '';
+    return group.length ? `<div class="collection-group-heading"><h2>${esc(l(kind))} <span>${number(results.filter(row=>collectionKind(row)===kind).length)}</span></h2><p>${esc(l(kind+'Help'))}</p></div>${group.map(row => collectionRow(row, (group.some(hasCover)))).join('')}` : '';
   }).join('');
-  if (isRedesign()) {
+  {
     // Each group heading carries its own count, so the total appears only
     // while a search or country narrows every group; the note moves to the foot.
     const filtered = state.q || state.country;
     return `${pageHeading('scoreSources', 'scoreSourcesBody')}${tabs('collections', state, catalog)}${collectionControls(rows,state)}${filtered ? `<div class="results-bar"><p role="status">${esc(l('collectionRecords', { count: number(results.length) }))}</p></div>` : ''}<div class="score-list score-source-list">${results.length ? content : noResults(true, hasFilters(state))}</div>${pagination(results.length, limit)}${pageNotes([esc(l('collectionsNote'))])}`;
   }
-  return `${pageHeading('scoreSources', 'scoreSourcesBody')}${tabs('collections', state, catalog)}${collectionControls(rows,state)}<div class="results-bar"><p role="status">${esc(l('collectionRecords', { count: number(results.length) }))}</p></div><div class="score-list score-source-list">${results.length ? content : noResults(true, hasFilters(state))}</div>${pagination(results.length, limit)}<p class="score-index-note">${icon('info')}<span>${esc(l('collectionsNote'))}</span></p>`;
 }
