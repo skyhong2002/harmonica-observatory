@@ -173,8 +173,10 @@ export function dateBlock(event) {
   const showYear = pastEvent(event) || year !== new Intl.DateTimeFormat('en', { timeZone, year: 'numeric' }).format(new Date());
   return `<div class="event-date-block" aria-hidden="true">${showYear ? `<span class="event-date-year">${esc(year)}</span>` : ''}<span class="event-date-month">${esc(part({ month: 'short' }))}</span><strong>${esc(part({ day: 'numeric' }).replace(/\D+$/, ''))}</strong><span class="event-date-weekday">${esc(part({ weekday: 'short' }))}</span></div>`;
 }
-export function richEventCard(event, catalog, following = new Set()) {
-  return isRedesign() ? redesignedRichEventCard(event, catalog, following) : legacyRichEventCard(event, catalog, following);
+// seenPosts (new interface, optional): ids of posts whose excerpt an earlier
+// card in the same list already showed; eventsView passes one per render.
+export function richEventCard(event, catalog, following = new Set(), seenPosts) {
+  return isRedesign() ? redesignedRichEventCard(event, catalog, following, seenPosts) : legacyRichEventCard(event, catalog, following);
 }
 // Original version, shown while the "new interface" switch is off.
 function legacyRichEventCard(event, catalog, following = new Set()) {
@@ -196,8 +198,12 @@ function legacyRichEventCard(event, catalog, following = new Set()) {
 }
 // "New interface" version. Each card names the original source, follow and
 // the ⋯ menu once; the timezone appears only when it differs from the
-// visitor's; the structured description only shows when no post is linked.
-function redesignedRichEventCard(event, catalog, following = new Set()) {
+// visitor's; the structured description only shows when no post excerpt is.
+// One excerpt per card (the first post with text not already shown on an
+// earlier card of the same list); other posts show their author line only.
+// A card without a poster keeps a quiet placeholder in the thumbnail slot so
+// cards in a two-column row line up.
+function redesignedRichEventCard(event, catalog, following = new Set(), seenPosts = new Set()) {
   const posts = relatedEventPosts(event, catalog.posts);
   const postImages = posts.flatMap(post => [post.image, ...(Array.isArray(post.images) ? post.images : [])]).map(safeUrl).filter(Boolean);
   const eventImages = [event.image, ...(Array.isArray(event.images) ? event.images : [])].map(safeUrl).filter(Boolean);
@@ -221,17 +227,23 @@ function redesignedRichEventCard(event, catalog, following = new Set()) {
   const sourceOf = post => catalog.sources?.find(source => source.id === post.sourceId);
   const followed = new Set();
   const titles = [...new Set([eventText(event), event.title].filter(Boolean))];
+  let excerptShown = false;
   const references = posts.map(post => {
     const id = post.sourceId || '';
     const first = !followed.has(id); followed.add(id);
-    return originalPost(post, catalog, following, true, !single, first, withoutTitleRepeat(post.text || '', titles));
+    const key = post.id || referenceKey(post.url);
+    const text = excerptShown || seenPosts.has(key) ? '' : withoutTitleRepeat(post.text || '', titles);
+    if (text) { excerptShown = true; seenPosts.add(key); }
+    return originalPost(post, catalog, following, true, !single, first, text);
   }).join('');
-  // A long description is clamped like the post excerpts, with "read more".
-  const description = event.description && !posts.length ? `<div class="event-description-block feed-content"><div class="event-description-text feed-text">${eventDescriptionMarkup(event)}</div>${fitsThreeLines(String(event.description)) ? '' : `<button type="button" class="feed-expand" data-expand-post aria-expanded="false">${t('readMore')}</button>`}</div>` : '';
+  // The structured description fills the text area when no post excerpt
+  // does (no post, or its excerpt is already on an earlier card); a long one
+  // is clamped like the post excerpts, with "read more".
+  const description = event.description && !excerptShown ? `<div class="event-description-block feed-content"><div class="event-description-text feed-text">${eventDescriptionMarkup(event)}</div>${fitsThreeLines(String(event.description)) ? '' : `<button type="button" class="feed-expand" data-expand-post aria-expanded="false">${t('readMore')}</button>`}</div>` : '';
   const original = single ? link(eventUrl || posts[0].url, t('original'), 'text-link event-original-link') : eventIsPost ? '' : link(eventUrl, t('original'), 'text-link event-original-link');
   const zone = differingZone(event);
   const time = `${eventTimeLabel(event) === eventDateLabel(event) ? esc(eventDateLabel(event)) : `<span class="sr-only">${esc(eventDateLabel(event))}</span><span aria-hidden="true">${esc(eventTimeLabel(event))}</span>`}${event.allDay ? ` · ${t('allDay')}` : event.endEstimated ? ` · ${l('endUnknown')}` : ''}${zone ? ` <span class="rich-event-zone" title="${esc(t('localTime'))}">${esc(zone)}</span>` : ''}`;
-  return `<article class="rich-event-card ${pastEvent(event) ? 'is-past' : ''}" data-event-id="${esc(event.id)}"><header class="rich-event-header">${dateBlock(event)}<div class="rich-event-heading"><div class="eyebrow">${esc(countryName(event.countryCode, event.country))}${pastEvent(event) ? `<span class="past-badge">${t('past')}</span>` : ''}</div><h2>${esc(eventText(event))}</h2>${eventOriginalMarkup(event)}<div class="rich-event-facts"><p class="rich-event-time">${icon('calendar')}<span>${time}</span></p><p class="rich-event-location">${icon('pin')}<span>${esc(eventText(event, 'location') || t('locationUnknown'))}</span></p></div></div></header>${mainImage && !video ? `<figure class="event-media" data-event-media>${link(eventUrl, image(mainImage, 'event-poster', `${l('poster')}: ${eventText(event)}`), 'event-media-link')}${candidates.length > 1 ? `<span hidden data-event-image-fallback="${esc(JSON.stringify(candidates.slice(1)))}"></span>` : ''}</figure>` : ''}${gallery.length ? `<details class="event-gallery"><summary>${l('moreImages')} (${number(gallery.length)})</summary><div class="event-gallery-strip" tabindex="0" aria-label="${esc(l('moreImages'))}">${gallery.map(url => link(url, image(url, 'event-gallery-image', l('poster')), 'event-gallery-link')).join('')}</div></details>` : ''}${video ? `<video class="event-video" controls preload="metadata" playsinline data-original-video="${esc(safeUrl(eventUrl || posts[0]?.url))}" ${mainImage ? `poster="${esc(mainImage)}"` : ''} aria-label="${esc(l('video') + ': ' + eventText(event))}" src="${esc(video)}"></video>` : ''}<div class="rich-event-copy">${references}${description}<footer class="rich-event-actions">${single && sourceOf(posts[0]) ? followButton(sourceOf(posts[0]), following) : ''}${original}<details class="more-actions"><summary aria-label="${esc(l('moreActions'))}" title="${esc(l('moreActions'))}"><span aria-hidden="true">⋯</span></summary><div class="more-actions-menu"><button type="button" class="feed-action" data-share="${esc(eventUrl || '')}" data-share-title="${esc(eventText(event))}">${icon('arrow')}<span>${l('share')}</span></button>${reportLink(event)}</div></details></footer></div></article>`;
+  return `<article class="rich-event-card ${pastEvent(event) ? 'is-past' : ''}" data-event-id="${esc(event.id)}"><header class="rich-event-header">${dateBlock(event)}<div class="rich-event-heading"><div class="eyebrow">${esc(countryName(event.countryCode, event.country))}${pastEvent(event) ? `<span class="past-badge">${t('past')}</span>` : ''}</div><h2>${esc(eventText(event))}</h2>${eventOriginalMarkup(event)}<div class="rich-event-facts"><p class="rich-event-time">${icon('calendar')}<span>${time}</span></p><p class="rich-event-location">${icon('pin')}<span>${esc(eventText(event, 'location') || t('locationUnknown'))}</span></p></div></div></header>${mainImage && !video ? `<figure class="event-media" data-event-media>${link(eventUrl, image(mainImage, 'event-poster', `${l('poster')}: ${eventText(event)}`), 'event-media-link')}${candidates.length > 1 ? `<span hidden data-event-image-fallback="${esc(JSON.stringify(candidates.slice(1)))}"></span>` : ''}</figure>` : video ? '' : `<div class="event-thumb-placeholder" aria-hidden="true">${icon('music')}</div>`}${gallery.length ? `<details class="event-gallery"><summary>${l('moreImages')} (${number(gallery.length)})</summary><div class="event-gallery-strip" tabindex="0" aria-label="${esc(l('moreImages'))}">${gallery.map(url => link(url, image(url, 'event-gallery-image', l('poster')), 'event-gallery-link')).join('')}</div></details>` : ''}${video ? `<video class="event-video" controls preload="metadata" playsinline data-original-video="${esc(safeUrl(eventUrl || posts[0]?.url))}" ${mainImage ? `poster="${esc(mainImage)}"` : ''} aria-label="${esc(l('video') + ': ' + eventText(event))}" src="${esc(video)}"></video>` : ''}<div class="rich-event-copy">${references}${description}<footer class="rich-event-actions">${single && sourceOf(posts[0]) ? followButton(sourceOf(posts[0]), following) : ''}${original}<details class="more-actions"><summary aria-label="${esc(l('moreActions'))}" title="${esc(l('moreActions'))}"><span aria-hidden="true">⋯</span></summary><div class="more-actions-menu"><button type="button" class="feed-action" data-share="${esc(eventUrl || '')}" data-share-title="${esc(eventText(event))}">${icon('arrow')}<span>${l('share')}</span></button>${reportLink(event)}</div></details></footer></div></article>`;
 }
 function emptyEvents(catalog, state) {
   if (hasFilters(state)) return empty();
@@ -247,9 +259,11 @@ function eventNotes(catalog) {
 }
 export function eventsView(catalog, state = {}, following = new Set(), limit = 24) {
   const rows = eventRows(catalog, state);
+  // New interface: a post's excerpt appears on the first card that links it.
+  const seenPosts = new Set();
   // New interface: a count only when a search or filter narrows the list.
   const count = !isRedesign() || hasFilters(state) ? `<div class="results-bar"><p role="status">${t('results', { count: number(rows.length) })}</p></div>` : '';
-  return `${pageHeading('events', 'eventsBody')}${filterBar(state, catalog, 'events', following)}${count}<div class="rich-events-grid">${rows.length ? rows.slice(0, limit).map(event => richEventCard(event, catalog, following)).join('') : emptyEvents(catalog, state)}</div>${rows.length > limit ? `<div class="pagination"><p>${t('showing', { shown: number(limit), total: number(rows.length) })}</p><button type="button" class="button button-outline" data-action="more">${t('loadMore')}${icon('plus')}</button></div>` : ''}${isRedesign() ? eventNotes(catalog) : ''}`;
+  return `${pageHeading('events', 'eventsBody')}${filterBar(state, catalog, 'events', following)}${count}<div class="rich-events-grid">${rows.length ? rows.slice(0, limit).map(event => richEventCard(event, catalog, following, seenPosts)).join('') : emptyEvents(catalog, state)}</div>${rows.length > limit ? `<div class="pagination"><p>${t('showing', { shown: number(limit), total: number(rows.length) })}</p><button type="button" class="button button-outline" data-action="more">${t('loadMore')}${icon('plus')}</button></div>` : ''}${isRedesign() ? eventNotes(catalog) : ''}`;
 }
 export function bindEvents(root) {
   const grid = root.querySelector('.rich-events-grid');
@@ -314,7 +328,10 @@ export function bindEvents(root) {
     } else if (media) {
       media.classList.add('event-media-unavailable');
       img.remove();
-      media.querySelector('.event-media-link')?.append(document.createTextNode(l('unavailable')));
+      const mediaLink = media.querySelector('.event-media-link');
+      // New interface: the same quiet tile as a card without a poster.
+      if (isRedesign()) mediaLink?.insertAdjacentHTML('beforeend', icon('music'));
+      mediaLink?.append(document.createTextNode(l('unavailable')));
     }
   }
   root.addEventListener('error', failed, true);

@@ -28,10 +28,10 @@ import {
   textMatch,
 } from "./utils.js";
 const viewLabels = {
-  en: { moreLinks: "{count} more links on the source page", share: "Share", collapse: "Show less", name: "Name", updated: "Updated", links: "Links", endUnknown: "End time not announced", snapshot: "Website snapshot", observed: "Observed", website: "Website", sort: "Sort", followSource: "Follow source", more: "More actions", ascending: "Ascending", descending: "Descending" },
-  "zh-Hant": { moreLinks: "來源頁還有 {count} 個連結", share: "分享", collapse: "收合", name: "名稱", updated: "更新", links: "來源連結", endUnknown: "結束時間未公告", snapshot: "網站頁面快照", observed: "觀測時間", website: "網站", sort: "排序", followSource: "追蹤來源", more: "更多動作", ascending: "遞增", descending: "遞減" },
-  ja: { moreLinks: "情報源ページにほか {count} 件のリンク", share: "共有", collapse: "閉じる", name: "名前", updated: "更新", links: "リンク", endUnknown: "終了時刻は未発表", snapshot: "ウェブページの保存記録", observed: "確認日時", website: "ウェブサイト", sort: "並べ替え", followSource: "情報源をフォロー", more: "その他の操作", ascending: "昇順", descending: "降順" },
-  ko: { moreLinks: "출처 페이지에 링크 {count}개 더", share: "공유", collapse: "접기", name: "이름", updated: "업데이트", links: "링크", endUnknown: "종료 시각 미발표", snapshot: "웹페이지 스냅샷", observed: "확인 시각", website: "웹사이트", sort: "정렬", followSource: "출처 팔로우", more: "더 보기 작업", ascending: "오름차순", descending: "내림차순" },
+  en: { moreLinks: "{count} more links on the source page", moreLinksShort: "+{count} links", moreLinksShortOne: "+1 link", share: "Share", collapse: "Show less", name: "Name", updated: "Updated", links: "Links", endUnknown: "End time not announced", snapshot: "Website snapshot", observed: "Observed", website: "Website", sort: "Sort", followSource: "Follow source", more: "More actions", ascending: "Ascending", descending: "Descending" },
+  "zh-Hant": { moreLinks: "來源頁還有 {count} 個連結", moreLinksShort: "+{count} 個連結", share: "分享", collapse: "收合", name: "名稱", updated: "更新", links: "來源連結", endUnknown: "結束時間未公告", snapshot: "網站頁面快照", observed: "觀測時間", website: "網站", sort: "排序", followSource: "追蹤來源", more: "更多動作", ascending: "遞增", descending: "遞減" },
+  ja: { moreLinks: "情報源ページにほか {count} 件のリンク", moreLinksShort: "+{count} 件のリンク", share: "共有", collapse: "閉じる", name: "名前", updated: "更新", links: "リンク", endUnknown: "終了時刻は未発表", snapshot: "ウェブページの保存記録", observed: "確認日時", website: "ウェブサイト", sort: "並べ替え", followSource: "情報源をフォロー", more: "その他の操作", ascending: "昇順", descending: "降順" },
+  ko: { moreLinks: "출처 페이지에 링크 {count}개 더", moreLinksShort: "링크 +{count}개", share: "공유", collapse: "접기", name: "이름", updated: "업데이트", links: "링크", endUnknown: "종료 시각 미발표", snapshot: "웹페이지 스냅샷", observed: "확인 시각", website: "웹사이트", sort: "정렬", followSource: "출처 팔로우", more: "더 보기 작업", ascending: "오름차순", descending: "내림차순" },
 };
 const vl = (key) => (viewLabels[getLocale()] || viewLabels.en)[key];
 const sourceLinkLabel = (label) => /^(網站|website|web site)$/i.test(String(label || "").trim()) ? vl("website") : label || t("original");
@@ -74,13 +74,16 @@ export function sortSources(rows, sort = "name", descending = false, catalog = {
     return (typeof av === "number" ? av - bv : collator.compare(av || "", bv || "")) * (descending ? -1 : 1) || collator.compare(a.name || "", b.name || "");
   });
 }
-// New interface, phones: the meta line shows four link icons at most; "+n"
-// opens the source page with the rest (redesign.css hides it on wider screens).
+// New interface, phones: the meta line shows up to four link icons; with more,
+// three icons and "+n links", which opens the source page with the rest
+// (redesign.css hides it on wider screens).
 function moreLinks(s) {
-  const extra = (s.links || []).length - 4;
-  if (extra < 1) return "";
+  const count = (s.links || []).length;
+  if (count <= 4) return "";
+  const extra = count - 3;
   const label = vl("moreLinks").replace("{count}", number(extra));
-  return link(sourceHref(s), `+${number(extra)}`, "src-links-more", `title="${esc(label)}" aria-label="${esc(label)}"`);
+  const short = (extra === 1 && viewLabels[getLocale()]?.moreLinksShortOne) || vl("moreLinksShort").replace("{count}", number(extra));
+  return link(sourceHref(s), esc(short), "src-links-more", `title="${esc(label)}" aria-label="${esc(label)}"`);
 }
 export function sourceCard(s, following = new Set(), catalog) {
   const followed = following.has(s.id), count = sourcePostCount(s, catalog);
@@ -250,9 +253,11 @@ export function feedsView(catalog) {
 function legacyFeedsView(catalog) {
   return `${pageHeading("feeds", "feedBody")}<div class="feed-grid">${catalog.feeds.map((f) => `<article class="feed-card"><span class="feed-icon">${icon(String(f.format).toLowerCase().includes("ics") ? "calendar" : "rss")}</span><span class="tag">${esc(f.format || "RSS")}</span><h2>${t("feed_" + (f.id || f.title))}</h2><div class="feed-actions">${link(f.url, t("openFeed"), "text-link")}<button class="copy-button" data-copy="${esc(f.url)}">${t("copy")}</button></div></article>`).join("")}</div>`;
 }
-// "New interface" version.
+// "New interface" version: the feed's title is the link that opens it, so a
+// separate "Open feed" link is not repeated; the format tag and one copy
+// button close the row (a single line on phones).
 function redesignedFeedsView(catalog) {
-  const card = (f) => `<article class="feed-card"><span class="feed-icon">${icon(String(f.format).toLowerCase().includes("ics") ? "calendar" : "rss")}</span><span class="tag">${esc(f.format || "RSS")}</span><h2>${t("feed_" + (f.id || f.title))}</h2><div class="feed-actions">${link(f.url, t("openFeed"), "text-link")}<button class="copy-button" data-copy="${esc(f.url)}">${t("copy")}</button></div></article>`;
+  const card = (f) => `<article class="feed-card"><span class="feed-icon">${icon(String(f.format).toLowerCase().includes("ics") ? "calendar" : "rss")}</span><span class="tag">${esc(f.format || "RSS")}</span><h2>${link(f.url, t("feed_" + (f.id || f.title)), "feed-title-link")}</h2><div class="feed-actions"><button class="copy-button" data-copy="${esc(f.url)}">${t("copy")}</button></div></article>`;
   const kind = (f) => { const format = String(f.format || "RSS").toUpperCase(); return format.includes("ICS") ? "Ics" : format.includes("JSON") ? "Data" : "Rss"; };
   const groups = ["Rss", "Ics", "Data"].map((key) => [key, catalog.feeds.filter((f) => kind(f) === key)]).filter(([, rows]) => rows.length);
   return `${pageHeading("feeds", "feedBody")}<div class="feed-groups">${groups.map(([key, rows]) => `<section class="feed-group"><header><h2>${t("feedGroup" + key)}</h2><p>${t("feedGroup" + key + "Body")}</p></header><div class="feed-grid">${rows.map(card).join("")}</div></section>`).join("")}</div>`;

@@ -186,3 +186,22 @@ test('event cards omit repeated declarations without hiding snapshot status, tim
  assert.equal(document.querySelectorAll('.rich-event-actions a[href="'+post.url+'"]').length,isRedesign() ? 1 : 0);
  window.close();
 });
+
+test('new interface: a post excerpt shows once per list and cards without a poster keep a placeholder thumbnail', () => {
+  const window = setup();
+  const second = { ...event, id: 'event2', start: '2099-09-30', end: '2099-10-01', description: 'Second session description' };
+  document.querySelector('main').innerHTML = eventsView({ ...catalog, events: [event, second] }, {});
+  const cards = [...document.querySelectorAll('.rich-event-card')];
+  assert.equal(cards.length, 2);
+  assert.ok(cards[0].querySelector('.feed-text').textContent.includes('原始發文'));
+  // Both cards keep the author line and the original link.
+  for (const card of cards) { assert.ok(card.querySelector('.event-author')); assert.ok(card.querySelector('a.event-original-link, .event-reference-actions a')); }
+  if (isRedesign()) {
+    assert.equal(cards[1].querySelector('.event-reference .feed-text'), null);
+    assert.match(cards[1].querySelector('.event-description-text').textContent, /Second session description/);
+    document.querySelector('main').innerHTML = richEventCard({ ...event, image: '' }, { ...catalog, posts: [] });
+    assert.equal(document.querySelector('.event-media'), null);
+    assert.ok(document.querySelector('.event-thumb-placeholder[aria-hidden="true"]'));
+  } else assert.equal(cards[1].querySelectorAll('.feed-text').length, 1);
+  window.close();
+});

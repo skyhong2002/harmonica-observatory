@@ -55,8 +55,8 @@
 
 
 /* Directory rows on phones, three lines: name and a labelled follow pill;
-   "country · type" ending in up to four link icons (then "+n", which opens
-   the source page); post count and update date. The row's ::before/::after
+   "country · type" ending in up to four link icons (with more: three icons
+   and "+n links", which opens the source page); post count and update date. The row's ::before/::after
    are zero-height flex items that end the first two lines. */
 .src-links-more { display: none; }
 @media (max-width: 699px) {
@@ -555,5 +555,55 @@
   .status-table small, .field-hint, .ownership-hint, .capacity-panel .small, .capacity-panel small, .capacity-figures span, .site-footer a { color: var(--color-text-muted); }
   .page-notes ul, .home-updated, .rich-event-zone, .ob-story-caption .ob-story-footer, .google-calendar-context, .home-upcoming-copy > span { font-size: max(.86rem, 14px); }
   .home-intro-copy > p { font-size: 1.1rem; }
+}
+
+/* Feed cards (timeline and source page): tall images are capped and shown
+   whole on the soft surface instead of stretching the card. */
+.observatory-timeline .home-feed-thumb { max-height: 420px; }
+.source-updates-grid .post-image.feed-img, .source-updates-grid .post-card:has(.story-tag) .post-image.feed-img { max-height: 420px; }
+@media (max-width: 640px) {
+  .observatory-timeline .home-feed-thumb { max-height: 360px; }
+  .source-updates-grid .post-image.feed-img, .source-updates-grid .post-card:has(.story-tag) .post-image.feed-img { max-height: 360px; }
+}
+
+/* Directory on desktop: link icons are 28px targets with room between them. */
+@media (min-width: 700px) {
+  .src-row .src-links { gap: 6px; }
+  .src-links .src-link-icon { flex-basis: 28px; width: 28px; height: 28px; }
+}
+@media (max-width: 699px) {
+  .src-links-more { white-space: nowrap; font-weight: 600; }
+  .src-row .src-links:has(.src-links-more) .src-link-icon:nth-child(n+4) { display: none; }
+}
+
+/* Forms: a small "Required" / "Optional" tag after each field label. */
+.field-tag { display: inline-block; margin-left: 8px; padding: 0 6px; color: var(--color-text-muted); font-size: max(.72rem, 12px); font-weight: 500; line-height: 1.6; vertical-align: 1px; border: 1px solid var(--color-border-subtle); border-radius: 4px; }
+.field-tag.is-required { color: var(--color-text-brand); border-color: color-mix(in srgb, var(--color-text-brand) 35%, transparent); }
+
+/* About and privacy on desktop: the intro runs wider and the privacy prose
+   column grows to about 48rem, with the contact card beside it on the right. */
+@media (min-width: 901px) {
+  .page-heading:has(+ .info-layout) p { max-width: 56rem; text-wrap: pretty; }
+  .info-layout:not(.about-layout) { grid-template-columns: minmax(0, 48rem) minmax(280px, 24rem); }
+}
+
+/* Wide screens: status-table notes and footer links read at about 15px in
+   the darker secondary colour. */
+@media (min-width: 1500px) {
+  .status-table small, .site-footer a { font-size: max(.88rem, 15px); color: var(--color-text-secondary); }
+}
+
+/* Feeds: the title links to the feed; the format tag and copy button close
+   the row, which stays one line on phones. */
+.feed-card h2 .feed-title-link { color: var(--color-text-brand); text-decoration: none; }
+.feed-card h2 .feed-title-link:hover { text-decoration: underline; }
+.feed-card > .tag { order: 2; }
+.feed-card > .feed-actions { order: 3; }
+@media (max-width: 640px) {
+  .feed-card { flex-wrap: nowrap; gap: 10px; padding: 12px 0; }
+  .feed-card .feed-icon { width: 24px; height: 24px; }
+  .feed-card h2 { flex: 1 1 auto; flex-basis: auto; min-width: 0; font-size: .95rem; }
+  .feed-card .feed-actions { margin-left: 0; flex-wrap: nowrap; }
+  .feed-card .copy-button { min-height: 40px; white-space: nowrap; }
 }
 }

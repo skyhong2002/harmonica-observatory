@@ -212,3 +212,32 @@ test('new interface post cards: original source link, share and report in "⋯",
   assert.match(document.querySelector('.src-sort-direction').textContent,/遞減/);
  } else assert.equal(document.querySelector('.src-sort-bar'),null);
 });
+test('new interface: directory overflow links are labelled, feed titles open the feed, and form fields say required or optional', async () => {
+ const { isRedesign } = await import('../assets/redesign.js');
+ const { feedsView } = await import('../assets/views.js');
+ const { submitView, contributeView } = await import('../assets/community.js');
+ const links = n => Array.from({ length: n }, (_, i) => ({ url: `https://example.org/${i}`, label: 'Website' }));
+ setLocale('en');
+ document.body.innerHTML = sourceCard({ ...sources[0], links: links(5) }, new Set(), catalog) + sourceCard({ ...sources[1], links: links(6) }, new Set(), catalog);
+ const more = [...document.querySelectorAll('.src-links-more')].map(node => node.textContent);
+ assert.deepEqual(more, isRedesign() ? ['+2 links', '+3 links'] : []);
+ setLocale('zh-Hant');
+ document.body.innerHTML = sourceCard({ ...sources[0], links: links(4) }, new Set(), catalog);
+ assert.equal(document.querySelector('.src-links-more'), null);
+ const feeds = { feeds: [{ id: 'updates', title: 'updates', url: '/feeds/updates.xml', format: 'RSS' }] };
+ document.body.innerHTML = feedsView(feeds);
+ const card = document.querySelector('.feed-card');
+ assert.equal(card.querySelectorAll('.copy-button').length, 1);
+ if (isRedesign()) {
+  assert.equal(card.querySelector('h2 a').getAttribute('href'), '/feeds/updates.xml');
+  assert.equal(card.querySelector('.feed-actions .text-link'), null);
+ } else assert.equal(card.querySelector('.feed-actions .text-link').getAttribute('href'), '/feeds/updates.xml');
+ document.body.innerHTML = submitView({ countries: [] }) + contributeView();
+ for (const label of document.querySelectorAll('form label[for]')) {
+  const field = document.getElementById(label.htmlFor), tag = label.querySelector('.field-tag');
+  if (!isRedesign()) { assert.equal(tag, null); continue; }
+  assert.equal(tag.textContent, t(field.required ? 'fieldRequired' : 'fieldOptional'), label.htmlFor);
+  assert.equal(tag.getAttribute('aria-hidden'), 'true');
+ }
+ assert.equal(document.querySelector('#submission-url').placeholder, isRedesign() ? 'https://www.instagram.com/…' : 'https://');
+});

@@ -24,6 +24,8 @@
 .rich-event-card > .event-media.event-media-unavailable { display: none; }
 .rich-event-card > .event-video { grid-area: video; width: calc(100% - 40px); max-height: 300px; margin: 0 20px 4px; border-radius: 10px; background: #141814; }
 .rich-event-card:has(> .event-media:not(.event-media-unavailable)) > .rich-event-header { padding-right: 16px; }
+/* The no-poster placeholder only matters where cards sit side by side. */
+.rich-event-card > .event-thumb-placeholder { display: none; }
 
 /* Cards in a row share one height: the post text takes the spare space and
    the action row sits at the bottom. Post excerpts and descriptions show
@@ -36,6 +38,25 @@
 .event-description-text:not(.is-expanded) .source-summary { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .event-description-text .source-summary { margin: 0; }
 .event-description-block .feed-expand { margin-top: 5px; }
+
+/* Two columns: every card has the same thumbnail slot (a quiet tile when
+   there is no poster, or the poster failed) and a three-line text area, so
+   the cards in a row come out about the same height with little filler. */
+@media (min-width: 1100px) {
+  .rich-event-card > .event-thumb-placeholder {
+    grid-area: media; display: flex; align-items: center; justify-content: center; align-self: start;
+    width: 136px; aspect-ratio: 4 / 5; margin: 20px 20px 0 0;
+    color: var(--color-text-muted); background: var(--color-surface-soft); border-radius: 10px;
+  }
+  .rich-event-card > .event-thumb-placeholder svg { width: 30px; height: 30px; opacity: .45; }
+  .rich-event-card:has(> .event-thumb-placeholder) > .rich-event-header,
+  .rich-event-card:has(> .event-media) > .rich-event-header { padding-right: 16px; }
+  .rich-event-card > .event-media.event-media-unavailable { display: flex; color: var(--color-text-muted); }
+  .rich-event-card > .event-media.event-media-unavailable .event-media-link { min-height: 0; font-size: 0; }
+  .rich-event-card > .event-media.event-media-unavailable .event-media-link::before { content: none; }
+  .rich-event-card > .event-media.event-media-unavailable svg { width: 30px; height: 30px; opacity: .45; }
+  .event-reference .feed-text, .event-description-text .source-summary { min-height: 3lh; }
+}
 
 /* Phones: the title uses the full card width; the small poster sits beside
    the time and place under it. */
@@ -81,10 +102,13 @@
 .home-calendar .google-calendar-filters label { min-height: 40px; padding: 6px 8px 6px 0; font-size: .86rem; }
 .home-calendar .google-calendar-filters label + label { padding-left: 8px; }
 .google-calendar-frame iframe { height: 560px; }
-/* Phones: three "Coming up" events and a short calendar, so the latest
-   posts are not pushed far down. */
+/* Phones: three "Coming up" events and no calendar embed (it would repeat
+   them and push the latest posts far down); the page notes keep Google
+   Calendar and the ICS feeds, "Coming up" links to the event list. The
+   embed's timezone / "not loading" note goes with it. */
 @media (max-width: 640px) {
-  .google-calendar-frame iframe { height: 360px; min-height: 0; }
+  .home-calendar { display: none; }
+  .home-notes .page-notes li:has(> .google-calendar-context) { display: none; }
   .home-now-events .home-upcoming > li:nth-child(n+4) { display: none; }
 }
 
