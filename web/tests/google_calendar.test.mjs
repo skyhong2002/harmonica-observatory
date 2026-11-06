@@ -2,12 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
 import { setLocale } from '../assets/i18n.js';
-import { isRedesign } from '../assets/redesign.js';
+
 import { pageNotes } from '../assets/page-notes.js';
 import { publicCalendars, googleCalendarUrl, googleCalendarView, googleCalendarNotes, bindGoogleCalendar } from '../assets/google-calendar.js';
 // The new interface keeps only the calendar choices and the embed in place;
 // timezone, Google Calendar and ICS links move to the page notes.
-const calendarPage=catalog=>isRedesign()?googleCalendarView(catalog)+pageNotes(googleCalendarNotes(catalog)):googleCalendarView(catalog);
+const calendarPage=catalog=>(googleCalendarView(catalog)+pageNotes(googleCalendarNotes(catalog)));
 const calendars=[{id:'taiwan-public@group.calendar.google.com',key:'taiwan'},{id:'world-public@group.calendar.google.com',key:'overseas'},{id:'online-public@group.calendar.google.com',key:'online'}];
 function setup() {
   const {window}=new JSDOM('<main></main>',{url:'https://harmonica.observe.tw/'});
@@ -53,7 +53,7 @@ test('calendar selections update only the real iframe and persist across UI loca
   assert.equal(new URL(root.querySelector('iframe').src).searchParams.get('hl'),'ja');
   assert.equal(root.querySelectorAll('a[href$=".ics"]').length,3);
   assert.equal(root.querySelector('a[href^="https://calendar.google.com/"]').target,'_blank');
-  if(isRedesign()){
+  {
     assert.equal(root.querySelectorAll('[data-google-calendar] a[href$=".ics"]').length,0);
     assert.equal(root.querySelector('[data-google-calendar] .google-calendar-context'),null);
     assert.equal(root.querySelectorAll('.page-notes a[href$=".ics"]').length,3);
@@ -68,7 +68,7 @@ test('missing public calendar configuration shows an honest fallback and keeps s
   assert.equal(document.querySelectorAll('a[href$=".ics"]').length,3);
   assert.ok(!document.body.textContent.includes('undefined'));
   // New interface: the same centred empty card as other empty states, with a way on.
-  if(isRedesign()){
+  {
     const card=document.querySelector('.google-calendar-empty');
     assert.ok(card.classList.contains('empty-state'));
     assert.ok(card.querySelector('h3')&&card.querySelector('p'));

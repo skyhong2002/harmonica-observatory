@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
-import { isRedesign } from '../assets/redesign.js';
+
 const dom = new JSDOM('<html><body></body></html>', {url:'http://localhost/'});
 globalThis.document=dom.window.document;
 globalThis.localStorage=dom.window.localStorage;
@@ -71,7 +71,7 @@ test('a heading without descriptive copy does not render an empty paragraph',()=
  assert.equal(document.querySelector('h1').textContent,'Updates');assert.equal(document.querySelector('p'),null);
  document.body.innerHTML=pageHeading('sources','directoryBody');
  // The new interface keeps only the title on list pages; explanatory pages keep their copy.
- if(isRedesign()){assert.equal(document.querySelector('p'),null);document.body.innerHTML=pageHeading('contribute','contributeBody');}
+ {assert.equal(document.querySelector('p'),null);document.body.innerHTML=pageHeading('contribute','contributeBody');}
  assert.ok(document.querySelector('p').textContent);
 });
 

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
-import { isRedesign } from '../assets/redesign.js';
+
 const dom = new JSDOM('<html><body></body></html>', { url: 'http://localhost/' });
 globalThis.document = dom.window.document;
 globalThis.localStorage = dom.window.localStorage;
@@ -170,8 +170,8 @@ test('reviewed covers open their actual source and unverified announcements beco
   // layout with a placeholder tile; groups without any cover stay text-only.
   document.body.innerHTML=scoreSourcesView({scoreSources:[book,{...book,title:'Bare book',images:[]},notice]});
   const bare=[...document.querySelectorAll('.collection-row')].find(row=>row.textContent.includes('Bare book'));
-  assert.equal(bare.classList.contains('collection-illustrated'),isRedesign());
-  assert.equal(!!bare.querySelector('.collection-cover-placeholder'),isRedesign());
+  assert.equal(bare.classList.contains('collection-illustrated'),true);
+  assert.equal(!!bare.querySelector('.collection-cover-placeholder'),true);
   assert.equal(document.querySelector('[data-collection-kind="contacts"] .collection-cover'),null);
   assert.doesNotMatch(document.body.textContent,/undefined/);
  }
@@ -188,7 +188,7 @@ test('score facets show only the interface language while source filter values a
   document.body.innerHTML=scoresView(catalog,{});
   const option=document.querySelector('[data-filter="division"] option[value="國中"]');
   assert.ok(option); assert.ok(!option.textContent.includes('國中'));
-  if(isRedesign()){
+  {
    // The new interface moves the index and year rules to the page notes, not a fold or the count line.
    assert.equal(document.querySelector('.score-guide'),null);
    assert.ok(document.querySelector('.page-notes').textContent.includes(scoreLabels[locale].yearNote));
@@ -196,9 +196,6 @@ test('score facets show only the interface language while source filter values a
    // What the list is (an index, not downloads) is said once, under the title.
    assert.equal(document.querySelector('.page-heading p').textContent,scoreLabels[locale].indexLine);
    assert.equal(document.querySelector('.page-notes').textContent.includes(scoreLabels[locale].indexNote),false);
-  } else {
-   assert.equal(document.querySelector('.score-guide').open,false);
-   assert.equal(document.querySelector('.results-bar').textContent.includes(scoreLabels[locale].yearNote),false);
   }
   document.body.innerHTML=scoreSourcesView({scoreSources:[{...catalog.scoreSources[0],instrumentation:'半音階口琴',purchaseMethod:'Facebook 粉專洽詢'}]});
   assert.match(document.querySelector('.collection-facts').textContent,new RegExp(instrument));

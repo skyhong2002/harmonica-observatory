@@ -1,4 +1,4 @@
-import { isRedesign } from '../assets/redesign.js';
+
 /** Actual DOM/event integration; no browser, network, credentials or runtime writes. */
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -240,6 +240,16 @@ test("application DOM journey across languages, routing, filters and community f
     "directory must render after catalog load",
   );
 
+  await t.test("the redesigned UI ignores stale off preferences and URLs", () => {
+    window.localStorage.setItem("observatory-redesign", "off");
+    window.history.replaceState({}, "", "/?redesign=off");
+    window.dispatchEvent(new window.PopStateEvent("popstate"));
+    assert.ok(window.document.querySelector(".home-intro"));
+    window.history.replaceState({}, "", "/source/");
+    window.dispatchEvent(new window.PopStateEvent("popstate"));
+    assert.ok(window.document.querySelector(".src-sort-bar"));
+  });
+
   await t.test(
     "four language switches retain independent country filtering",
     () => {
@@ -264,7 +274,7 @@ test("application DOM journey across languages, routing, filters and community f
     },
   );
   await t.test("new interface: the phone directory Sort menu and direction toggle drive the same sort state", () => {
-    if (!isRedesign()) return;
+
     change("#language-select", "en");
     assert.equal($("[data-source-sort-select]").value, "name");
     change("[data-source-sort-select]", "updated");
@@ -327,7 +337,7 @@ test("application DOM journey across languages, routing, filters and community f
       assert.equal(window.document.querySelectorAll(".source-card").length, 1);
       click("[data-action=reset]");
       // New interface: an empty filtered list offers "Clear filters" once, in its empty card.
-      if (isRedesign()) {
+      {
         const search = $("#catalog-search");
         search.value = "zzqxv";
         search.dispatchEvent(new window.InputEvent("input", { bubbles: true, isComposing: false }));
@@ -346,13 +356,11 @@ test("application DOM journey across languages, routing, filters and community f
     );
     assert.equal($("[data-follow=tokyo]").getAttribute("aria-pressed"), "true");
     // The new interface replaces the checkbox with All / Following tabs.
-    if (isRedesign()) click('.follow-tab[href*="followed=1"]');
-    else change("[data-filter=followed]", true);
+    click('.follow-tab[href*="followed=1"]');
     assert.equal(window.document.querySelectorAll(".source-card").length, 1);
     click("[data-follow=tokyo]");
     assert.equal(window.document.querySelectorAll(".source-card").length, 0);
-    if (isRedesign()) click('.follow-tab:not([href*="followed=1"])');
-    else click("[data-action=reset]");
+    click('.follow-tab:not([href*="followed=1"])');
   });
   await t.test(
     "contribution capacity includes operator pool and API errors clear token",
@@ -391,8 +399,7 @@ test("application DOM journey across languages, routing, filters and community f
         $(".owned-contribution").textContent.includes("Fixture capacity"),
       );
       // New interface: one line beside "Withdraw" says what withdrawing does.
-      if (isRedesign()) assert.equal($(".owned-contribution .withdraw-row .withdraw-effect")?.textContent, translate("withdrawEffect"));
-      else assert.equal($(".withdraw-effect"), null);
+      assert.equal($(".owned-contribution .withdraw-row .withdraw-effect")?.textContent, translate("withdrawEffect"));
       assert.ok($(".impact-panel"));
       assert.ok(
         !window.document.body.innerHTML.includes(
@@ -536,7 +543,7 @@ test("application DOM journey across languages, routing, filters and community f
   });
   await t.test("home composes stories, Google calendar and a unified timeline while posts opens the same full timeline", async () => {
     click('.brand');
-    assert.deepEqual([...$(".observatory-home").children].filter(node => node.tagName === "SECTION").map(node => node.classList[0]), [...(isRedesign() ? ["home-intro"] : []), "home-stories", "home-calendar", "home-posts"]);
+    assert.deepEqual([...$(".observatory-home").children].filter(node => node.tagName === "SECTION").map(node => node.classList[0]), [...((["home-intro"])), "home-stories", "home-calendar", "home-posts"]);
     assert.equal(window.document.querySelectorAll(".ob-stories").length, 1);
     assert.ok($("[data-google-calendar-embed]"));
     assert.equal($(".calendar-grid"), null);

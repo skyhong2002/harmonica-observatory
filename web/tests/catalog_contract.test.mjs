@@ -12,6 +12,7 @@ Object.defineProperty(globalThis, "localStorage", {
 });
 const i18n = await import("../assets/i18n.js");
 const views = await import("../assets/views.js");
+const { observatoryHome } = await import("../assets/home.js");
 const utils = await import("../assets/utils.js");
 const community = await import("../assets/community.js");
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -109,7 +110,7 @@ test("real catalog renders all public view families in each locale", () => {
   for (const locale of i18n.locales) {
     i18n.setLocale(locale);
     const html = [
-      views.homeView(catalog, state, new Set(), catalog),
+      observatoryHome(catalog, state, new Set()),
       views.feedsView(catalog),
       views.statusView(catalog, null),
       community.contributeView(),

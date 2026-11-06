@@ -1,4 +1,3 @@
-import { isRedesign } from './redesign.js';
 import { t, getLocale, locales } from './i18n.js';
 import { esc, safeUrl, image, link, initials, timestamp, icon } from './utils.js';
 
@@ -20,28 +19,10 @@ export function activeStories(catalog, now = Date.now()) {
     Number.isFinite(Date.parse(story.expiresAt)) && Date.parse(story.expiresAt) > now);
 }
 
-function storyCard(story, sources) {
-  return isRedesign() ? redesignedStoryCard(story, sources) : legacyStoryCard(story, sources);
-}
-// Historical implementation retained in source history only; the redesigned interface is always used.
-function legacyStoryCard(story, sources) {
-  const source = sources.find(item => item.id === story.sourceId);
-  const name = story.sourceName || source?.name || t('source');
-  const label = `${name} · ${word('preview')}`;
-  const video = safeUrl(story.videoUrl), poster = safeUrl(story.image);
-  const picture = image(poster, 'ob-story-image', label);
-  const media = video
-    ? `<video class="ob-story-image" controls playsinline preload="none" ${poster ? `poster="${esc(poster)}"` : ''} aria-label="${esc(label)}"><source src="${esc(video)}"></video>`
-    : link(story.url, picture, 'ob-story-media-link', `aria-label="${esc(name + ' · ' + t('original'))}"`);
-  const published = Number.isFinite(Date.parse(story.publishedAt))
-    ? timestamp(story.publishedAt) : '';
-  // Prefer the catalog's cached avatar to an expiring social-CDN address.
-  const avatar = image(source?.avatar || story.avatar, '', '');
-  return `<article class="ob-story-card" data-story-id="${esc(story.id || story.url || '')}" data-story-expires="${esc(story.expiresAt)}"><div class="ob-story-thumb">${media}<span class="ob-story-fallback" role="status" ${poster || video ? 'hidden' : ''}>${esc(word('missing'))}</span><span class="ob-story-rule" aria-hidden="true"></span><div class="ob-story-header"><span class="ob-story-avatar"><span aria-hidden="true">${esc(initials(name))}</span>${avatar}</span><div class="ob-story-identity"><strong title="${esc(name)}">${esc(name)}</strong>${published}</div></div><div class="ob-story-footer"><span>${esc(word('expires'))} ${timestamp(story.expiresAt)}</span>${link(story.url, esc(t('original')), 'ob-story-original')}</div></div></article>`;
-}
+
 // "New interface" version: avatar and name, then one line with the display
 // deadline and the original source (no separate publish time).
-function redesignedStoryCard(story, sources) {
+function storyCard(story, sources) {
   const source = sources.find(item => item.id === story.sourceId);
   const name = story.sourceName || source?.name || t('source');
   const label = `${name} · ${word('preview')}`;
@@ -72,13 +53,7 @@ export function storyEmptyMarkup(catalog) {
   // New interface: the plain message and the status link; retrieval details
   // (budget, schedule) belong on the status page.
   // It uses the same centred empty card as the other empty states.
-  if (isRedesign()) return `<div class="ob-story-empty story-empty empty-state" role="status">${icon('layers')}<h3>${esc(word('empty'))}</h3><p>${esc(word('emptyBody'))}</p><div class="empty-actions"><a class="ob-story-status-link button button-outline" href="/status/?lang=${encodeURIComponent(getLocale())}">${esc(t('status'))}</a></div></div>`;
-  const status = catalog.status?.stories || {};
-  const reason = ['credit_budget', 'daily_result_limit', 'user_daily_exhausted', 'free_capacity_exhausted', 'pool_budget_pacing', 'public_unavailable_credit_reserve'].includes(status.reasonCode)
-    ? 'budgetDeferred' : status.reasonCode === 'no_sources_due' ? 'collectionScheduled' : '';
-  const detail = status.status === 'paused' || status.status === 'deferred' ? 'storyCollectionPaused'
-    : status.status === 'degraded' || status.status === 'error' ? 'storyCollectionAttention' : '';
-  return `<p class="ob-story-empty story-empty" role="status">${esc(word('empty'))}${detail ? `<br>${esc(t(detail))}${reason ? `<br>${esc(t(reason))}` : ''}` : ''} <a ${isRedesign() ? 'class="ob-story-status-link" ' : ''}href="/status/?lang=${encodeURIComponent(getLocale())}">${esc(t('status'))}</a></p>`;
+  return `<div class="ob-story-empty story-empty empty-state" role="status">${icon('layers')}<h3>${esc(word('empty'))}</h3><p>${esc(word('emptyBody'))}</p><div class="empty-actions"><a class="ob-story-status-link button button-outline" href="/status/?lang=${encodeURIComponent(getLocale())}">${esc(t('status'))}</a></div></div>`;
 }
 export function storiesView(catalog) {
   const stories = activeStories(catalog);
@@ -137,7 +112,7 @@ export function bindStories(root, { catalog, refreshCatalog, onRefresh, refreshO
           if (kept.dataset.storyExpires !== story.expiresAt) {
             kept.dataset.storyExpires = story.expiresAt;
             const expiry = kept.querySelector('.ob-story-footer > span');
-            if (expiry) expiry.innerHTML = isRedesign() ? expiryContent(story.expiresAt) : `${esc(word('expires'))} ${timestamp(story.expiresAt)}`;
+            if (expiry) expiry.innerHTML = (expiryContent(story.expiresAt));
           }
           continue;
         }
