@@ -1,6 +1,6 @@
-/* "New interface" home and event styles (only with <html data-redesign>). */
+/* Observatory home and event styles. */
 
-:root[data-redesign] {
+:root {
 
 /* Event cards: the date block, title, time and place always start at the
    same left edge; a poster, when there is one, is a thumbnail at the right of

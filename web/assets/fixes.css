@@ -1,4 +1,4 @@
-/* Small fixes for everyone (the "new interface" switch does not gate these):
+/* Shared small fixes:
    typography, stacking and contrast bugs, the 404 page, status on phones. */
 
 /* Type: CJK fonts draw ‘ ’ as full-width glyphs ("RJ&BME’ s"). Borrow only

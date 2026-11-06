@@ -28,7 +28,7 @@ The same baseline/reference ratings vary across rounds, indicating judge drift; 
 
 Final check: JSON uses the existing layers icon; RSS and ICS keep their own icons. Two Chromium captures at 1440 px and 390 px were inspected. The saved before images use Traditional Chinese and the final images English, so they demonstrate layout and icon changes rather than a controlled language-matched comparison.
 
-Known delivery limitation: the review hook still defaults the interface to the original version. Use `?redesign=on` to view this candidate. Legacy implementation remains in the branch.
+The redesign is now the only supported product interface and is enabled by default. The historical original interface remains available only through Git history and the deployment rollback tag.
 
 Prior branch changes include localized 404 HTML presentation in `scripts/serve.py` and `scripts/render_shell.py`; this final verification made no backend changes. No production service was deployed or restarted.
 

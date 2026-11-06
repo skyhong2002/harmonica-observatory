@@ -3,9 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "npm run test:original && npm run test:redesign",
-    "test:original": "OBSERVATORY_REDESIGN=off node --test tests/*.test.mjs",
-    "test:redesign": "OBSERVATORY_REDESIGN=on node --test tests/*.test.mjs"
+    "test": "npm run test:redesign",
+    "test:redesign": "node --test tests/*.test.mjs"
   },
   "devDependencies": {
     "jsdom": "26.1.0"

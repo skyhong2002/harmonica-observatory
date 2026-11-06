@@ -269,7 +269,7 @@ export function sourceDetail(source, catalog, following, limit = 24) {
 export function feedsView(catalog) {
   return isRedesign() ? redesignedFeedsView(catalog) : legacyFeedsView(catalog);
 }
-// Original version, shown while the "new interface" switch is off.
+// Historical implementation retained in source history only; the redesigned interface is always used.
 function legacyFeedsView(catalog) {
   return `${pageHeading("feeds", "feedBody")}<div class="feed-grid">${catalog.feeds.map((f) => `<article class="feed-card"><span class="feed-icon">${icon(String(f.format).toLowerCase().includes("ics") ? "calendar" : "rss")}</span><span class="tag">${esc(f.format || "RSS")}</span><h2>${t("feed_" + (f.id || f.title))}</h2><div class="feed-actions">${link(f.url, t("openFeed"), "text-link")}<button class="copy-button" data-copy="${esc(f.url)}">${t("copy")}</button></div></article>`).join("")}</div>`;
 }

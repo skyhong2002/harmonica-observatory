@@ -1,9 +1,8 @@
-/* "New interface" (beta) styles. Everything here only applies when the
-   visitor turns the switch on, which sets <html data-redesign>. */
+/* Observatory interface styles. */
 
 @keyframes skeleton-shine { to { background-position: -200% 0; } }
 
-:root[data-redesign] {
+:root {
 
 /* Layout: one page grid for every section, wider on large desktop screens. */
 @media (min-width: 1500px) { & { --page-width: min(1320px, calc(100% - 96px)); } }

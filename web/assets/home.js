@@ -27,7 +27,7 @@ function upcomingList(catalog, w) {
 export function observatoryHome(catalog, state, following, limit = 24) {
   return isRedesign() ? redesignedObservatoryHome(catalog, state, following, limit) : legacyObservatoryHome(catalog, state, following, limit);
 }
-// Original version, shown while the "new interface" switch is off.
+// Historical implementation retained in source history only; the redesigned interface is always used.
 function legacyObservatoryHome(catalog, state, following, limit = 24) {
   const w = labels[getLocale()] || labels.en;
   const params = new URLSearchParams({lang:getLocale()});

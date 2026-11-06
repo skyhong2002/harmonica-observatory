@@ -23,7 +23,7 @@ export function activeStories(catalog, now = Date.now()) {
 function storyCard(story, sources) {
   return isRedesign() ? redesignedStoryCard(story, sources) : legacyStoryCard(story, sources);
 }
-// Original version, shown while the "new interface" switch is off.
+// Historical implementation retained in source history only; the redesigned interface is always used.
 function legacyStoryCard(story, sources) {
   const source = sources.find(item => item.id === story.sourceId);
   const name = story.sourceName || source?.name || t('source');

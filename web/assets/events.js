@@ -178,7 +178,7 @@ export function dateBlock(event) {
 export function richEventCard(event, catalog, following = new Set(), seenPosts) {
   return isRedesign() ? redesignedRichEventCard(event, catalog, following, seenPosts) : legacyRichEventCard(event, catalog, following);
 }
-// Original version, shown while the "new interface" switch is off.
+// Historical implementation retained in source history only; the redesigned interface is always used.
 function legacyRichEventCard(event, catalog, following = new Set()) {
   const posts = relatedEventPosts(event, catalog.posts);
   const postImages = posts.flatMap(post => [post.image, ...(Array.isArray(post.images) ? post.images : [])]).map(safeUrl).filter(Boolean);
