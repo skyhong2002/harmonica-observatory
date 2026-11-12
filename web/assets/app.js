@@ -54,7 +54,12 @@ import {
   handleGoogleAuth,
 } from "./community.js";
 const app = document.querySelector("#app");
+// New stories arrive with the collector runs (twice an hour) and expired ones
+// leave the strip on their own, so the home page reuses a catalog younger
+// than this instead of downloading the whole file again.
+const STORY_REFRESH_AGE = 5 * 60 * 1000;
 let catalog = null,
+  catalogLoadedAt = 0,
   loadFailed = false,
   limit = 24,
   renderVersion = 0,
@@ -300,9 +305,14 @@ function render({ focus = false } = {}) {
       catalog,
       refreshOnMount: refreshStoriesOnMount,
       refreshCatalog: async ({ signal }) => {
-        const response = await fetch("/api/v1/catalog", { signal, cache: "no-store", headers: { Accept: "application/json" } });
+        if (Date.now() - catalogLoadedAt < STORY_REFRESH_AGE) return null;
+        // "no-cache" revalidates every time; once the API sends an ETag this
+        // becomes a conditional request instead of a full download.
+        const response = await fetch("/api/v1/catalog", { signal, cache: "no-cache" });
         if (!response.ok) throw new Error("catalog");
-        return response.json();
+        const next = await response.json();
+        catalogLoadedAt = Date.now();
+        return next;
       },
       onRefresh: next => { catalog.stories = next.stories; },
     });
@@ -325,7 +335,7 @@ function dropDuplicateReset(root) {
 // Phones: fold the filter controls under one "Filter (n)" toggle so results
 // start on the first screen (every list page has at least two). Open while
 // any filter is applied. "Clear filters" stays outside the fold, beside the
-// toggle (redesign.css), so it is reachable while the fold is closed.
+// toggle (interface.css), so it is reachable while the fold is closed.
 function collapseFilters(root) {
   if ((!window.matchMedia?.("(max-width: 640px)").matches)) return;
   for (const bar of root.querySelectorAll(".filter-bar")) {
@@ -421,11 +431,12 @@ async function load() {
   loadFailed = false;
   render();
   try {
-    const response = await fetch("/api/v1/catalog", {
-      headers: { Accept: "application/json" },
-    });
+    // Same request as the <link rel="preload"> in index.html, so the browser
+    // reuses the download it started before the scripts finished loading.
+    const response = await fetch("/api/v1/catalog");
     if (!response.ok) throw new Error("catalog");
     catalog = await response.json();
+    catalogLoadedAt = Date.now();
     for (const key of [
       "sources",
       "posts",
@@ -459,7 +470,7 @@ if (path() === '/') {
   const authError = new URLSearchParams(location.search).get('auth_error');
   if (authError) toast(t(authError === 'cancelled' ? 'loginCancelled' : 'loginFailed'));
 }
-// The profile summary clamp starts and stops at the phone width (redesign.css).
+// The profile summary clamp starts and stops at the phone width (interface.css).
 window.matchMedia?.("(max-width: 699px)").addEventListener?.("change", () => { revealClampedSummary(app); });
 app.addEventListener("click", (event) => {
   const googleAuth = event.target.closest('[data-google-auth]');

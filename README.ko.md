@@ -147,7 +147,7 @@ npm --prefix web test
 
 ## 관리자 문서
 
-- [인터페이스 및 상호작용 명세](web/CHUMEI_UI_HANDOFF.md): 현재 레이아웃 요구 사항과 과거 설계 기록.
+- [프런트엔드](web/README.md): 현재 인터페이스 구조, 스타일시트, catalog 로딩과 검증 방법.
 - [레이아웃 검증](deploy/original-layout-acceptance-2026-09-23.md), [사용성 평가](deploy/heuristic-evaluation-2026-09-23.md), [다국어 출처 목록과 정보 밀도](deploy/density-multilingual-acceptance-2026-09-23.md): 각 변경 사항의 검증 기록입니다. 테스트 수치는 당시 검증한 버전에 해당합니다.
 
 ## 라이선스 및 감사의 말

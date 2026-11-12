@@ -21,6 +21,9 @@ Scores below are the arithmetic mean of the 12 saved category scores, not a new 
 | v2r7 | fable | 5.50 | 8.04 | 6.83 | +2.54 |
 | v2r7 | gpt | 6.04 | 8.08 | 7.33 | +2.04 |
 | v2r7 | opus (partial) | 5.08 | 7.33 | — | +2.25 |
+| v2c1 | opus 5.5 (high) | 7.13 | 7.25 | 7.71 | +0.12 |
+
+v2c1 (2026-11-12): regression check after the stylesheet consolidation, catalog loading and small-text changes. Unlike the v2r rounds, the baseline here is the shipped redesign (`main` at `b6f6797`), not the original interface, so the gap is expected to be small; the new set is equal or higher in every category. Raw output: [v2c1-opus-5-5.md](v2c1-opus-5-5.md). The raw v2r1–v2r8 reviewer outputs were not saved; only the scores above remain.
 
 v2r8: targeted final verification only; no new independent score was obtained. The saved v2r7 judgments did not meet the ≥9 stopping target.
 

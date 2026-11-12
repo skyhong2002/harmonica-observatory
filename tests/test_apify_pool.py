@@ -263,8 +263,11 @@ class ApifyPoolTests(unittest.TestCase):
             if method == "POST":
                 self.assertEqual(pool._read()["runs"][0]["reservedUsd"], kwargs["query"]["maxTotalChargeUsd"])
                 return {"data": {"id": "test-run", "status": "SUCCEEDED", "defaultDatasetId": "test-dataset", "usageTotalUsd": .001}}
+            # The collector drops posts older than --local-max-post-age-days
+            # using the real clock, not the pool's mocked one, so the fixture
+            # post is dated now rather than at the fixed pool time.
             return [{"postId": "12345", "url": "https://www.facebook.com/test/posts/12345", "text": "Verified fixture concert",
-                     "time": dt.datetime.fromtimestamp(self.now, dt.timezone.utc).isoformat()}]
+                     "time": dt.datetime.now(dt.timezone.utc).isoformat()}]
         with mock.patch.object(sys, "argv", args), mock.patch("run_pipeline.load_dotenv"), \
              mock.patch.object(pool.time, "time", return_value=self.now), \
              mock.patch.object(pool, "refresh_quota", side_effect=lambda **kw: pool.pool_status(now=self.now)), \

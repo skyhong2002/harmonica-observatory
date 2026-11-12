@@ -1,0 +1,1088 @@
+/* Harmonica Observatory styles, 2 of 2: the interface layer. Every rule is
+   scoped under :root so it overrides base.css at the same selector. */
+
+/* ==== Interface ==== */
+
+@keyframes skeleton-shine { to { background-position: -200% 0; } }
+
+/* Layout: one page grid for every section, wider on large desktop screens. */
+
+@media (min-width: 1500px) { :root { --page-width: min(1320px, calc(100% - 96px)); } }
+
+@media (min-width: 1900px) {
+  :root { font-size: 17px; --page-width: min(1400px, calc(100% - 128px)); }
+}
+
+:root .main-container:not(.home-main),:root .site-footer,:root body.feed-locked .site-footer,:root .home-section-inner,:root .home-stories .home-section-inner { width: var(--page-width); }
+
+:root .site-header.legacy-site-header { padding-inline: max(24px, calc((100% - var(--page-width)) / 2)); }
+
+@media (max-width: 640px) {
+  :root { --page-width: calc(100% - 32px); }
+  :root .site-header.legacy-site-header { padding-inline: 16px; }
+}
+
+/* Readable post text on wide screens. */
+
+:root .observatory-timeline .feed-latest-excerpt { font-size: .92rem; line-height: 1.65; }
+
+:root .observatory-timeline .feed-text-toggle { font-size: .88rem; }
+
+/* Empty, error and 404 states: centred card with an icon, a reason and next steps. */
+
+:root .empty-state {
+  display: grid; justify-items: center; gap: 6px; max-width: 34rem; margin: 24px auto; padding: 40px 24px;
+  background: var(--color-surface); border: 1px dashed var(--color-border-strong); border-radius: var(--radius-lg);
+}
+
+:root .empty-state > svg { width: 40px; height: 40px; margin: 0 0 6px; padding: 9px; color: var(--color-text-brand); background: var(--color-surface-soft); border-radius: 50%; }
+
+:root .empty-state h2 { margin: 0; color: var(--color-text-primary); font-size: 1.15rem; line-height: 1.45; }
+
+:root .empty-state p { max-width: 28rem; margin: 0; color: var(--color-text-secondary); font-size: .92rem; line-height: 1.7; text-wrap: pretty; }
+
+/* Source page: the profile shares the page grid with the posts below it. */
+
+:root .org-page > .back-link,:root .org-page > .source-profile { max-width: none; }
+
+:root .source-profile { grid-template-columns: 96px minmax(0, 1fr) auto; gap: 24px; padding-bottom: 28px; }
+
+:root .source-profile .profile-avatar .avatar { width: 96px; height: 96px; }
+
+:root .source-profile > div:not(.profile-avatar) { max-width: 52rem; }
+
+:root .source-profile > .button { grid-column: 3; grid-row: 1; justify-self: end; align-self: start; }
+
+/* Phones: only the avatar sits beside the country and name; the summary,
+   tags, links and follow button use the full width below. */
+
+@media (max-width: 699px) {
+  :root .source-profile .profile-avatar { grid-column: 1; grid-row: 1 / span 2; align-self: center; }
+  :root .source-profile > div:not(.profile-avatar) { display: contents; }
+  :root .source-profile > div:not(.profile-avatar) > * { grid-column: 1 / -1; min-width: 0; }
+  :root .source-profile > div:not(.profile-avatar) > .eyebrow { grid-column: 2; align-self: end; margin: 0 0 2px; }
+}
+
+/* Directory rows on phones, three lines: name and a labelled follow pill;
+   "country · type" ending in up to four link icons (with more: three icons
+   and "+n links", which opens the source page); post count and update date. The row's ::before/::after
+   are zero-height flex items that end the first two lines. */
+
+:root .src-links-more { display: none; }
+
+@media (max-width: 699px) {
+  :root .source-card.src-row { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; }
+  :root .source-card.src-row::before,:root .source-card.src-row::after { content: ""; flex: 0 0 100%; height: 0; }
+  :root .source-card.src-row::before { order: 3; }
+  :root .source-card.src-row::after { order: 6; }
+  :root .src-row > .src-c-name { order: 1; flex: 1 1 0; }
+  :root .src-row > .src-c-follow { order: 2; }
+  :root .src-row > .src-country { display: none; }
+  :root .src-row > .src-c-chips { order: 4; flex: 1 1 0; min-width: 0; }
+  :root .src-row > .src-links { order: 5; flex: none; flex-wrap: nowrap; gap: 0; padding-left: 0; overflow: visible; }
+  :root .src-row > .src-count { order: 7; padding-left: 50px; }
+  :root .src-row > .src-upd { order: 8; }
+  :root .src-row .src-links .src-link-icon { flex-basis: 32px; width: 32px; height: 32px; }
+  :root .src-row .src-links .src-link-icon svg { width: 18px; height: 18px; }
+  :root .src-row .src-links .src-link-icon:nth-child(n + 5) { display: none; }
+  :root .src-links-more { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; padding: 0 4px; color: var(--color-text-secondary); font-size: .8rem; text-decoration: none; border-radius: 6px; }
+  :root .follow-button.src-c-follow { flex: none; width: auto; min-width: 0; height: 44px; padding: 0 14px; gap: 6px; font-size: .86rem; font-weight: 700; }
+  :root .src-c-follow > span { display: inline; }
+}
+
+/* Directory sort: column-header buttons on desktop; on phones one labelled
+   "Sort" menu with a direction toggle. */
+
+:root .src-sort-bar { display: none; }
+
+@media (max-width: 699px) {
+  :root .src-head { display: none; }
+  :root .src-sort-bar { display: flex; align-items: center; gap: 8px; margin: 2px 0 4px; }
+  :root .src-sort-bar label { display: flex; flex: 1 1 auto; align-items: center; gap: 10px; min-width: 0; color: var(--color-text-secondary); font-size: .88rem; font-weight: 600; white-space: nowrap; }
+  :root .src-sort-bar select { flex: 1 1 auto; width: auto; min-width: 0; min-height: 44px; font-size: .92rem; }
+  :root .src-sort-direction { display: inline-flex; flex: none; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; color: var(--color-text-primary); font: inherit; font-size: .9rem; font-weight: 600; cursor: pointer; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-sm); }
+  :root .src-sort-direction span { color: var(--color-text-brand); }
+}
+
+/* Home: a short statement of what the site is, key numbers and main entries. */
+
+:root .home-intro { padding: 44px 0 8px; }
+
+:root .home-intro-grid { display: grid; gap: 28px 56px; align-items: end; }
+
+:root .home-intro-copy h1 { margin: 0 0 10px; color: var(--color-text-primary); font-size: clamp(1.7rem, 2.4vw, 2.5rem); font-weight: 800; line-height: 1.3; letter-spacing: 0; text-wrap: balance; }
+
+:root .home-intro-copy > p { max-width: 40rem; margin: 0; color: var(--color-text-secondary); font-size: 1.02rem; line-height: 1.75; text-wrap: pretty; }
+
+:root .home-stats { display: flex; flex-wrap: wrap; gap: 10px 32px; margin: 22px 0 0; }
+
+:root .home-stats > div { display: flex; flex-direction: column-reverse; }
+
+:root .home-stats dd { margin: 0; color: var(--color-text-brand); font-size: 1.65rem; font-weight: 800; line-height: 1.2; font-variant-numeric: tabular-nums; }
+
+:root .home-stats dt { color: var(--color-text-muted); font-size: .84rem; }
+
+:root .home-intro + .home-stories { padding-top: 36px; }
+
+@media (max-width: 640px) {
+  :root .home-intro { padding: 26px 0 0; }
+  :root .home-intro-copy > p { font-size: .95rem; }
+  :root .home-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  :root .home-intro + .home-stories { padding-top: 28px; }
+}
+
+/* Stories: identity and expiry sit under the image, never over poster text. */
+
+:root .ob-story-card { display: flex; }
+
+:root .ob-story-caption { display: grid; min-width: 0; }
+
+:root .ob-story-caption .ob-story-header { position: static; display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 8px; padding: 0; color: var(--color-text-primary); text-shadow: none; background: none; pointer-events: auto; }
+
+:root .ob-story-caption .ob-story-avatar { width: 32px; color: var(--color-text-brand); background: var(--color-surface-soft); border-color: var(--color-border-subtle); box-shadow: none; font-size: .78rem; }
+
+:root .ob-story-caption .ob-story-identity strong { color: var(--color-text-primary); font-size: .92rem; font-weight: 700; line-height: 1.4; }
+
+:root .ob-story-caption .ob-story-identity time { color: var(--color-text-muted); font-size: .8rem; line-height: 1.4; }
+
+:root .ob-story-caption .ob-story-footer { display: flex; color: var(--color-text-muted); background: none; }
+
+:root .ob-story-caption .ob-story-footer time { text-shadow: none; white-space: nowrap; }
+
+:root .ob-story-caption .ob-story-expiry { max-width: 100%; white-space: nowrap; }
+
+/* Narrow cards (phones): if the line cannot fit, the date and time move down together. */
+
+@container (max-width: 200px) { :root .ob-story-caption .ob-story-expiry { white-space: normal; } }
+
+:root .ob-story-caption .ob-story-original { display: inline-flex; align-items: center; }
+
+:root .ob-story-caption .ob-story-original { color: var(--color-text-brand); font-weight: 700; }
+
+:root .ob-story-caption .ob-story-original:hover { color: var(--color-text-primary); }
+
+:root .ob-story-card { container-type:inline-size; flex-direction: column; gap: 10px; flex-basis: clamp(150px, 42vw, 260px); }
+
+:root .ob-story-thumb { border-radius: 12px; background: #141814; }
+
+:root .ob-story-empty .ob-story-status-link { display: block; width: fit-content; margin-top: 8px; padding-top: 8px; color: var(--color-text-brand); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+
+:root .ob-story-empty .ob-story-status-link:hover { color: var(--color-text-primary); }
+
+:root .ob-story-empty,:root .google-calendar-empty { max-width: 40rem; padding: 18px 20px; color: var(--color-text-secondary); line-height: 1.7; background: var(--color-surface); border: 1px dashed var(--color-border-strong); border-radius: var(--radius-md); }
+
+/* Events: lead with a calendar date block, then title, time and place. */
+
+:root .rich-event-header { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 16px; align-items: start; padding: 20px 20px 14px; }
+
+:root .event-date-block { display: grid; justify-items: center; gap: 0; padding: 8px 4px 9px; color: var(--color-text-brand); text-align: center; background: var(--color-surface-soft); border-radius: 12px; }
+
+:root .event-date-block strong { font-size: 1.75rem; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+
+:root .event-date-month,:root .event-date-weekday { font-weight: 700; line-height: 1.4; }
+
+:root .event-date-weekday { color: var(--color-text-muted); font-weight: 600; }
+
+:root .rich-event-card.is-past .event-date-block { color: var(--color-text-muted); background: var(--color-canvas); }
+
+:root .rich-event-heading { min-width: 0; }
+
+:root .rich-event-header h2 { font-size: 1.2rem; margin: 0 0 8px; }
+
+:root .rich-event-time,:root .rich-event-location { font-size: .9rem; }
+
+:root .rich-event-time { color: var(--color-text-primary); font-weight: 600; }
+
+:root .event-poster { background: transparent; }
+
+:root .rich-event-copy .event-author { margin: 4px 0 10px; }
+
+:root .rich-event-copy .event-author .avatar { width: 36px; height: 36px; flex-basis: 36px; font-size: .8rem; }
+
+:root .rich-event-copy .event-author-identity { gap: 1px; }
+
+:root .rich-event-copy .event-author-identity strong { font-size: .88rem; }
+
+:root .rich-event-actions { gap: 4px 18px; }
+
+@media (max-width: 760px) {
+  :root .rich-event-header { padding: 16px 15px 12px; }
+  :root .event-date-block strong { font-size: 1.45rem; }
+}
+
+/* Loading: the outline of the home page instead of a lone spinner — title,
+   key numbers, then tall story posters beside a short list of events. */
+
+:root .skeleton { display: grid; gap: 14px; padding: 44px 0 24px; }
+
+:root .skeleton-label { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--color-text-secondary); font-size: 1rem; font-weight: 600; }
+
+:root .skeleton-label svg { width: 20px; height: 20px; color: var(--color-text-brand); }
+
+:root .skeleton-body { display: grid; gap: 14px; }
+
+:root .skeleton-bar,:root .skeleton-media { border-radius: 8px; background: linear-gradient(90deg, var(--color-surface-soft) 25%, color-mix(in srgb, var(--color-surface-soft) 55%, var(--color-surface)) 50%, var(--color-surface-soft) 75%); background-size: 200% 100%; animation: skeleton-shine 1.4s ease-in-out infinite; }
+
+:root .skeleton-bar { height: 14px; }
+
+:root .skeleton-title { width: min(30rem, 80%); height: clamp(1.7rem, 2.4vw, 2.5rem); }
+
+:root .skeleton-text { width: min(40rem, 90%); }
+
+:root .skeleton-short { width: 60%; }
+
+:root .skeleton-stats { display: flex; gap: 32px; margin-top: 8px; }
+
+:root .skeleton-stat { display: grid; gap: 8px; }
+
+:root .skeleton-stat-value { width: 4.5rem; height: 26px; }
+
+:root .skeleton-stat-label { width: 5.5rem; height: 12px; }
+
+:root .skeleton-now { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 26rem); gap: 32px 48px; align-items: start; margin-top: 28px; }
+
+:root .skeleton-heading { width: 9rem; height: 22px; margin-bottom: 14px; }
+
+:root .skeleton-strip { display: flex; gap: 12px; overflow: hidden; }
+
+:root .skeleton-story { display: grid; flex: 0 0 clamp(150px, 42vw, 260px); gap: 8px; }
+
+:root .skeleton-story .skeleton-media { aspect-ratio: 9 / 16; border-radius: 12px; }
+
+:root .skeleton-events { display: grid; gap: 10px; }
+
+:root .skeleton-events .skeleton-heading { margin-bottom: 4px; }
+
+:root .skeleton-row { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 12px; align-items: center; padding: 14px; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); }
+
+:root .skeleton-date { height: 56px; border-radius: 12px; }
+
+:root .skeleton-row-copy { display: grid; gap: 8px; }
+
+@media (prefers-reduced-motion: reduce) { :root .skeleton-bar,:root .skeleton-media { animation: none; } }
+
+@media (max-width: 1100px) { :root .skeleton-now { grid-template-columns: 1fr; } }
+
+@media (max-width: 640px) {
+  :root .skeleton { padding-top: 26px; }
+  :root .skeleton-title { height: 1.6rem; }
+  :root .skeleton-stats { gap: 14px; margin-top: 2px; }
+  :root .skeleton-stat-value { width: 3rem; height: 20px; }
+  :root .skeleton-stat-label { width: 3.5rem; }
+  :root .skeleton-now { gap: 24px; margin-top: 14px; }
+  :root .skeleton-story { flex: 1 1 0; }
+  :root .skeleton-story:nth-child(n + 3) { display: none; }
+  :root .skeleton-row:nth-child(n + 5),:root .skeleton-text { display: none; }
+}
+
+:root .load-error { padding: 32px 0; }
+
+/* Density: larger text in the directory, scores and subscription lists. */
+
+:root .source-card.src-row h3 { font-size: .98rem; }
+
+:root .src-country,:root .src-link { font-size: .86rem; }
+
+:root .src-head { font-size: .82rem; }
+
+:root .src-sort { min-height: 40px; }
+
+:root .score-row-meta,:root .score-table .score-row-meta { font-size: .86rem; }
+
+:root .collection-facts > div,:root .collection-record dl > div,:root .collection-provider { font-size: .88rem; }
+
+:root .score-source-list .collection-title { font-size: 1.06rem; }
+
+/* A book without a cover keeps the illustrated layout with a quiet tile. */
+
+:root .collection-cover-placeholder { display: grid; place-items: center; aspect-ratio: 1; color: var(--color-text-muted); background: var(--color-surface-soft); border-radius: 4px; }
+
+:root .collection-cover-placeholder svg { width: 32%; height: auto; max-width: 40px; opacity: .7; }
+
+:root .feed-grid { max-width: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 40px; }
+
+:root .feed-card h2 { font-size: 1rem; }
+
+@media (max-width: 760px) { :root .feed-grid { grid-template-columns: 1fr; } }
+
+@media (max-width: 699px) {
+  :root .src-upd,:root .src-count { white-space: nowrap; }
+  :root .src-count[data-label]::before,:root .src-upd[data-label]::before { content: attr(data-label) " "; color: var(--color-text-muted); font-weight: 500; }
+}
+
+/* Directory on phones: let the stats row size to its labels instead of
+   fixed 36px/55px columns that pushed the date off-screen. */
+
+@media (max-width: 699px) {
+  :root .src-links { min-width: 0; }
+}
+
+/* Loading and error states on the full-bleed home route keep the page grid. */
+
+:root .home-main > .skeleton,:root .home-main > .load-error { width: var(--page-width); margin-inline: auto; }
+
+/* Home calendar: the next events as native rows, then the official embed. */
+
+:root .home-upcoming { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 0 0 28px; padding: 0; list-style: none; }
+
+:root .home-upcoming-link { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 12px; height: 100%; padding: 14px; color: var(--color-text-primary); text-decoration: none; background: var(--color-canvas); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); }
+
+:root .home-upcoming-link:hover { border-color: var(--color-border-strong); }
+
+:root .home-upcoming-link > .external { display: none; }
+
+:root .home-upcoming .event-date-block strong { font-size: 1.4rem; }
+
+:root .home-upcoming-copy { display: grid; gap: 3px; min-width: 0; }
+
+:root .home-upcoming-copy strong { display: -webkit-box; overflow: hidden; font-size: .95rem; line-height: 1.45; }
+
+:root .home-upcoming-copy > span { display: flex; gap: 4px; align-items: flex-start; color: var(--color-text-secondary); line-height: 1.45; }
+
+:root .home-upcoming-copy > span svg { flex: 0 0 14px; width: 14px; height: 14px; margin-top: 2px; }
+
+:root .home-upcoming-copy > span:last-child { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+:root .google-calendar-frame iframe { min-height: 0; }
+
+@media (max-width: 1100px) { :root .home-upcoming { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+@media (max-width: 640px) {
+  :root .home-upcoming { grid-template-columns: 1fr; gap: 8px; }
+  :root .home-upcoming-link { padding: 12px; }
+  :root .google-calendar-frame iframe { min-height: 0; }
+}
+
+/* Event cards on phones: the date becomes a compact chip above the title. */
+
+@media (max-width: 760px) {
+  :root .rich-event-header { grid-template-columns: 1fr; gap: 10px; }
+  :root .rich-event-header .event-date-block { display: inline-flex; justify-self: start; align-items: baseline; gap: 6px; padding: 4px 12px; border-radius: 999px; }
+  :root .rich-event-header .event-date-block strong { font-size: 1.05rem; }
+}
+
+/* Subscriptions grouped by kind, each with one line on what it is for. */
+
+:root .feed-groups { display: grid; gap: 28px; }
+
+:root .feed-group > header h2 { margin: 0 0 4px; font-size: 1.15rem; }
+
+:root .feed-group > header p { margin: 0 0 6px; color: var(--color-text-secondary); font-size: .9rem; }
+
+/* Directory: one line of description fills the name column on desktop; the
+   report flag sits apart from the source links. */
+
+@media (min-width: 900px) {
+  :root .src-c-name { flex-direction: column; align-items: stretch; justify-content: center; }
+  :root .src-summary { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; margin: 2px 0 0 54px; color: var(--color-text-muted); font-size: .84rem; line-height: 1.5; }
+}
+
+:root .src-links .context-report-link { margin-left: 6px; padding-left: 10px; color: var(--color-text-muted); border-left: 1px solid var(--color-border-subtle); }
+
+/* Phones: three lines per source — name, "country · type", links and stats. */
+
+@media (max-width: 699px) {
+  :root .src-country-mobile { display: none; }
+  :root .src-c-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; font-size: .84rem; }
+  :root .src-country-inline { display: inline; color: var(--color-text-secondary); font-weight: 600; }
+  :root .src-country-inline::after { content: "·"; margin-left: 6px; color: var(--color-text-muted); }
+  :root .src-c-chips .source-types { display: inline-flex; }
+  :root .src-links .context-report-link { display: none; }
+  :root .source-card.src-row { row-gap: 2px; padding-block: 10px; }
+}
+
+/* Home "now" band: stories beside the next events on desktop. */
+
+:root .home-now-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 26rem); gap: 32px 48px; align-items: start; }
+
+:root .home-now-stories { min-width: 0; }
+
+:root .home-now-events .home-upcoming { grid-template-columns: 1fr; gap: 10px; margin: 0; }
+
+:root .home-now-events .home-section-heading h2 { font-size: 1.5rem; }
+
+@media (max-width: 1100px) { :root .home-now-grid { grid-template-columns: 1fr; } :root .home-now-events .home-upcoming { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+@media (max-width: 640px) {
+  :root .home-now-events .home-upcoming { grid-template-columns: 1fr; }
+  :root .home-now-events .home-section-heading h2 { font-size: 1.3rem; }
+  /* First screen on phones: one line of numbers, entries as a swipe row. */
+  :root .home-intro-copy > p { display: none; }
+  :root .home-stats { display: flex; flex-wrap: nowrap; gap: 14px; margin-top: 10px; overflow-x: auto; scrollbar-width: none; }
+  :root .home-stats > div { flex: 0 0 auto; }
+  :root .home-stats dd { font-size: 1.15rem; }
+  :root .home-stats dt { font-size: .8rem; white-space: nowrap; }
+  :root .home-intro-grid { gap: 14px; }
+  :root .home-intro-copy h1 { font-size: 1.35rem; margin-bottom: 0; }
+}
+
+/* Event cards: compact poster, year on past dates, secondary actions in "⋯". */
+
+:root .event-poster { width: auto; max-width: 100%; max-height: 260px; margin: 0; }
+
+:root .event-date-year { color: var(--color-text-muted); font-size: .7rem; font-weight: 700; line-height: 1.3; }
+
+:root .more-actions { position: relative; margin-left: auto; }
+
+:root .more-actions > summary { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 36px; color: var(--color-text-secondary); font-size: 1.2rem; list-style: none; cursor: pointer; border-radius: 8px; }
+
+:root .more-actions > summary::-webkit-details-marker { display: none; }
+
+:root .more-actions > summary:hover,:root .more-actions[open] > summary { background: var(--color-surface-soft); }
+
+:root .more-actions-menu { position: absolute; right: 0; bottom: calc(100% + 6px); z-index: 5; display: grid; gap: 2px; min-width: 10rem; padding: 6px; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: 10px; box-shadow: var(--shadow-raised); }
+
+:root .more-actions-menu > * { justify-content: flex-start; min-height: 40px; padding: 6px 10px !important; }
+
+@media (max-width: 760px) { :root .event-poster { max-height: 220px; } }
+
+/* Filters on phones fold under one toggle. */
+
+:root .filter-more { flex: 1 1 100%; }
+
+:root .filter-more > summary { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 14px; color: var(--color-text-primary); font-size: .9rem; font-weight: 700; list-style: none; cursor: pointer; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: 999px; }
+
+:root .filter-more > summary::-webkit-details-marker { display: none; }
+
+:root .filter-more > summary svg { width: 18px; height: 18px; color: var(--color-text-brand); }
+
+:root .filter-more-body { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 10px; margin-top: 8px; }
+
+:root .filter-more-body > *,:root .filter-more-body label,:root .filter-more-body select { width: 100%; max-width: none; min-width: 0; flex: none; }
+
+:root .filter-more-body label { gap: 3px; }
+
+:root .filter-more-body select { min-height: 44px; }
+
+/* "Clear filters" is a small text button on the toggle's row. */
+
+:root .filter-bar:has( > .filter-more) { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: start; }
+
+:root .filter-bar:has( > .filter-more) > .search-label { grid-column: 1 / -1; }
+
+:root .filter-bar > .filter-more { grid-column: 1 / -1; grid-row: 2; }
+
+:root .filter-bar > .filter-more ~ .clear-filter { position: relative; z-index: 1; grid-column: 2; grid-row: 2; align-self: start; justify-self: end; min-height: 44px; padding: 0 4px; font-size: .86rem; }
+
+/* Contribute: what Apify is, live contributions first, new form folded. */
+
+:root .contribution-main { display: flex; flex-direction: column; gap: 20px; }
+
+:root .contribution-main.has-contributions .ownership-section { order: -1; }
+
+:root .contribution-main .apify-intro { order: -2; display: flex; gap: 10px; align-items: flex-start; margin: 0; padding: 14px 16px; color: var(--color-text-secondary); font-size: .92rem; line-height: 1.7; background: var(--color-info-surface); border-radius: var(--radius-md); }
+
+:root .apify-intro svg { flex: 0 0 20px; width: 20px; height: 20px; margin-top: 3px; color: var(--color-text-brand); }
+
+:root .apify-intro p { margin: 0; }
+
+:root .new-contribution > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; list-style: none; cursor: pointer; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); }
+
+:root .new-contribution > summary::-webkit-details-marker { display: none; }
+
+:root .new-contribution > summary h2 { margin: 0; font-size: 1.1rem; }
+
+:root .new-contribution > summary svg { width: 20px; height: 20px; color: var(--color-text-brand); }
+
+:root .new-contribution[open] > summary { border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom: 0; }
+
+:root .new-contribution > .form-panel { margin: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
+
+/* Wide screens: the calendar embed shows a month grid. */
+
+/* Post cards: one action row — follow source, open source, then "⋯". */
+
+:root .observatory-timeline .home-feed-footer { flex-wrap: wrap; row-gap: 6px; }
+
+:root .observatory-timeline .timeline-actions { display: flex; flex: 1 1 auto; flex-wrap: nowrap; align-items: center; justify-content: flex-end; gap: 4px 14px; }
+
+:root .observatory-timeline .timeline-actions .feed-open-link { color: var(--color-text-brand); font-weight: 700; white-space: nowrap; }
+
+:root .observatory-timeline .timeline-actions .more-actions { margin-left: 0; }
+
+:root .observatory-timeline .more-actions-menu.feed-card-links { display: grid; width: auto; flex: none; justify-content: stretch; }
+
+:root .observatory-timeline .more-actions-menu .context-report-link { font-size: .86rem; }
+
+/* Events: past cards read as finished; a missing poster is a quiet placeholder. */
+
+:root .past-badge { display: inline-block; margin-left: 8px; padding: 1px 8px; color: var(--color-text-secondary); font-size: .72rem; font-weight: 700; letter-spacing: .02em; background: var(--color-surface-soft); border-radius: 999px; }
+
+:root .rich-event-card.is-past .event-poster { filter: grayscale(.55); opacity: .85; }
+
+:root .rich-event-card.is-past h2 { color: var(--color-text-secondary); }
+
+:root .event-media { display: flex; justify-content: center; margin: 0 20px; padding: 14px; background: var(--color-canvas); border-radius: 10px; }
+
+:root .event-media-unavailable .event-media-link { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 64px; color: var(--color-text-muted); font-size: .84rem; }
+
+:root .event-media-unavailable .event-media-link::before { content: ""; width: 18px; height: 18px; border: 1.6px solid currentColor; border-radius: 4px; }
+
+@media (max-width: 760px) { :root .event-media { margin: 0 15px; padding: 10px; } }
+
+/* All / Following tabs. */
+
+:root .follow-tabs { display: inline-flex; gap: 4px; margin: 4px 0 6px; padding: 4px; background: var(--color-surface-soft); border-radius: 999px; }
+
+:root .follow-tab { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 6px 16px; color: var(--color-text-secondary); font-size: .9rem; font-weight: 700; text-decoration: none; border-radius: 999px; }
+
+:root .follow-tab svg { width: 16px; height: 16px; }
+
+:root .follow-tab[aria-current="page"] { color: var(--color-text-brand); background: var(--color-surface); box-shadow: 0 1px 3px rgb(0 0 0 / 10%); }
+
+:root .follow-count { min-width: 1.4em; padding: 0 6px; color: var(--color-text-muted); text-align: center; background: var(--color-canvas); border-radius: 999px; }
+
+/* Directory: the report flag appears on row hover or focus; dates stay on one line. */
+
+@media (min-width: 900px) {
+  :root .src-row .src-links .context-report-link { opacity: 0; transition: opacity var(--motion-fast); }
+  :root .src-row:hover .src-links .context-report-link,:root .src-row:focus-within .src-links .context-report-link { opacity: 1; }
+}
+
+:root .src-upd { white-space: nowrap; }
+
+/* About and privacy: reading column plus a contact card. */
+
+:root .info-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 24rem); gap: 32px 56px; align-items: start; }
+
+:root .info-layout .prose,:root .info-layout .faq-section,:root .about-layout.info-layout { max-width: none; }
+
+:root .contact-card { position: sticky; top: 96px; padding: 20px 22px; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-lg); }
+
+:root .contact-card h2 { margin: 0 0 6px; font-size: 1.1rem; }
+
+:root .contact-card p { margin: 0 0 12px; color: var(--color-text-secondary); font-size: .9rem; line-height: 1.7; }
+
+:root .contact-card ul { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+
+:root .contact-link { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 12px; color: var(--color-text-primary); font-weight: 600; text-decoration: none; background: var(--color-canvas); border-radius: 10px; }
+
+:root .contact-link svg { width: 18px; height: 18px; color: var(--color-text-brand); }
+
+:root .contact-link:hover { background: var(--color-surface-soft); }
+
+/* About: the short FAQ lines take the free width beside the contact card.
+   Privacy: the prose keeps a reading measure and the card sits right beside
+   it, so the empty space is the page margin, not a hole mid-page. */
+
+:root .info-layout:not(.about-layout) { grid-template-columns: minmax(0, 42rem) minmax(280px, 24rem); justify-content: start; column-gap: 64px; }
+
+@media (max-width: 900px) { :root .info-layout,:root .info-layout:not(.about-layout) { grid-template-columns: 1fr; } :root .contact-card { position: static; } }
+
+/* Phones: one row of six icon tabs instead of two rows of wide cells. */
+
+@media (max-width: 640px) {
+  :root .legacy-site-header.nav-refresh .site-nav { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2px; }
+  :root .legacy-site-header.nav-refresh .site-nav > .nav-item,:root .legacy-site-header.nav-refresh .nav-more > summary.nav-item { flex-direction: column; gap: 2px; min-height: 54px; padding: 6px 2px; font-size: clamp(.75rem, 3.35vw, .8125rem); line-height: 1.25; border-radius: 10px; }
+  :root .legacy-site-header.nav-refresh .site-nav > .nav-item > svg,:root .legacy-site-header.nav-refresh .nav-more > summary > svg { display: block; flex: 0 0 22px; width: 22px; height: 22px; }
+  :root .legacy-site-header.nav-refresh .nav-more > summary.nav-item::after { display: none; }
+  :root .legacy-site-header.nav-refresh .nav-label { overflow-wrap: normal; word-break: keep-all; text-align: center; }
+  :root .site-header.legacy-site-header { padding-block: 10px 6px; row-gap: 6px; }
+}
+
+/* Source page: posts are from this source, so drop the repeated author and
+   follow controls; cap tall story images; card frames like the feed. */
+
+:root .source-updates-grid .post-card { display: block; margin: 0 0 16px; padding: 16px 18px; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); }
+
+:root .source-updates-grid .feed-avatar-wrap,:root .source-updates-grid .feed-name,:root .source-updates-grid [data-follow] { display: none; }
+
+:root .source-updates-grid .post-card:has(.story-tag) .feed-img { max-height: 380px; width: 100%; object-fit: cover; object-position: top; }
+
+:root .source-updates-grid .feed-img { border-radius: 8px; }
+
+/* Events: one dated list; poster beside the details on wide screens. */
+
+:root .rich-events-grid { gap: 16px; }
+
+@media (min-width: 900px) {
+  :root .event-poster { max-height: 320px; }
+}
+
+:root .event-media-unavailable { display: none; }
+
+/* Contribute: the fold uses a chevron that turns, not a close-looking cross. */
+
+:root .new-contribution[open] > summary svg { transform: rotate(90deg); }
+
+@media (max-width: 640px) { :root .google-calendar-toolbar { justify-content: flex-start; } }
+
+/* Round 7: source-page images stay inside their cards (the feed layout
+   pulled them left under the hidden avatar column). */
+
+/* Events: two lines of the original post, still visible; cards use the full width. */
+
+:root .event-reference .feed-text { -webkit-line-clamp: 2; }
+
+/* Phones: the same page names as on desktop, each on one line. */
+
+@media (max-width: 640px) {
+  :root .legacy-site-header.nav-refresh .site-nav .nav-label { display: block; max-width: 100%; font-size: clamp(.75rem, 3.35vw, .8125rem); white-space: nowrap; overflow-wrap: normal; letter-spacing: -.01em; }
+}
+
+/* Very wide screens: a wider page and larger secondary text. */
+
+@media (min-width: 2200px) { :root { --page-width: min(1560px, calc(100% - 160px)); } }
+
+:root .home-updated,:root .rich-event-zone,:root .ob-story-caption .ob-story-footer,:root .google-calendar-context,:root .home-upcoming-copy > span { font-size: .86rem; }
+
+:root .event-author-meta,:root .feed-latest-meta { font-size: .82rem; }
+
+/* Directory header: quiet column dividers until hovered. */
+
+@media (min-width: 900px) {
+  :root .src-column-resize::after { background: transparent; }
+  :root .src-head:hover .src-column-resize::after { background: var(--color-border-subtle); }
+}
+
+/* Secondary text: darker muted colour (about 6:1 on the cream canvas) and at
+   least ~13px for meta lines, labels, dates and table notes. */
+
+:root { --color-text-muted: #556055; }
+
+:root .feed-meta,:root .feed-time,:root .eyebrow,:root .filter-bar label,:root .follow-count,:root .event-date-month,:root .event-date-weekday,:root .status-table small,:root .status-table td p,:root .score-row-meta .score-country,:root .score-notes > summary,:root .score-tab span { font-size: max(.8rem, 13px); }
+
+:root .feed-meta { line-height: 1.5; }
+
+/* Keyboard focus: a clear ring on every link and control. */
+
+:root :is(a,button,summary,input,select,textarea,[tabindex]):focus-visible { outline: 3px solid var(--color-focus-ring); outline-offset: 2px; }
+
+:root .ob-story-caption .ob-story-original:focus-visible { outline: 3px solid var(--color-focus-ring); }
+
+/* Headings: balanced lines, no orphaned last character; Japanese breaks at phrases. */
+
+:root :is(h1,h2,h3) { text-wrap: balance; }
+
+:root :is(h1,h2,h3):lang(ja) { word-break: auto-phrase; }
+
+/* Page notes: subscriptions, timezones and counting rules gathered at the
+   foot of a page (page-notes.js). */
+
+:root .page-notes { margin: 48px 0 8px; padding: 20px 0 0; color: var(--color-text-secondary); border-top: 1px solid var(--color-border-subtle); }
+
+:root .page-notes h2 { margin: 0 0 10px; color: var(--color-text-primary); font-size: .95rem; font-weight: 700; }
+
+:root .page-notes ul { display: grid; gap: 6px; margin: 0; padding: 0 0 0 1.1em; font-size: .86rem; line-height: 1.7; }
+
+:root .page-notes a { color: var(--color-text-brand); }
+
+:root .page-notes .page-notes-links { display: inline-flex; flex-wrap: wrap; gap: 4px 14px; }
+
+/* De-noise round: small labels, actions and badges in post cards, directory
+   rows, scores and source profiles read at 13px or more. */
+
+:root .observatory-timeline .timeline-action,:root .observatory-timeline .timeline-actions .feed-open-link,:root .feed-latest-meta,:root .source-name-value,:root .source-language-label,:root .source-alternatives > summary,:root .source-alternatives-content h4,:root .source-translation-note,:root .profile-tags .tag,:root .feed-plat,:root .feed-action,:root .feed-meta .tag,:root .story-expired,:root .src-row .follow-button span,:root .src-count,:root .src-upd,:root .src-upd time,:root .score-tab,:root .score-tab > span,:root .score-table th,:root .score-table .score-credits span,:root .score-table .score-notes,:root .score-table .score-notes p,:root .score-table .score-publisher,:root .score-mobile-label,:root .score-evidence-link,:root .score-row-links .context-report-link,:root .collection-group-heading h2 span,:root .collection-facts dt,:root .collection-primary,:root .collection-record > summary,:root .collection-original,:root .status-pill,:root .status-metrics span,:root .page-heading .button { font-size: max(.82rem, 13px); }
+
+:root .source-language-label { color: var(--color-text-muted); }
+
+/* Source page: every post is from this source, so its country is not repeated
+   on each card; tall story images and posters are capped and shown whole. */
+
+:root .source-updates-grid .feed-meta .feed-topic,:root .source-updates-grid .feed-meta .feed-topic + [aria-hidden] { display: none; }
+
+:root .source-updates-grid .post-image.feed-img { margin: 12px 0 0; max-width: 100%; max-height: 360px; width: 100%; object-fit: contain; object-position: center; background: var(--color-surface-soft); }
+
+/* Story images fill the card width, cropped from the top, without grey side bars. */
+
+:root .source-updates-grid .post-card:has(.story-tag) .post-image.feed-img { max-height: 360px; width: 100%; object-fit: cover; object-position: top; background: none; }
+
+/* Post cards outside the feed (source page): one action row — original
+   source, then share and report in "⋯", like the feed cards. */
+
+:root .feed-content > .feed-actions { flex-wrap: nowrap; gap: 4px; }
+
+:root .feed-content > .feed-actions .feed-original { color: var(--color-text-brand); font-weight: 700; white-space: nowrap; }
+
+:root .feed-content > .feed-actions .more-actions { margin-left: auto; }
+
+:root .feed-content > .feed-actions .more-actions-menu .context-report-link { display: inline-flex; align-items: center; }
+
+/* Scores on phones: one card per record, without a rule between each field. */
+
+@media (max-width: 699px) {
+  :root .score-list { border-top: 0; }
+  :root .score-table tbody { display: grid; gap: 10px; }
+  :root .score-table .score-row { grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 14px 16px; background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); }
+  :root .score-table .score-row td { border: 0; }
+  :root .score-table tbody tr:hover { background: var(--color-surface); }
+  :root .score-table .score-row-meta { flex-direction: row; flex-wrap: wrap; gap: 0 8px; }
+  :root .score-table .score-row-meta > span:empty { display: none; }
+  :root .score-table .score-row-meta > span { white-space: nowrap; }
+  :root .score-table .score-row-meta > span:not(:empty):has( ~ span:not(:empty))::after { content: "·"; margin-left: 8px; color: var(--color-text-muted); }
+  :root .score-table .score-publisher { display: flex; flex-wrap: wrap; gap: 0 6px; }
+  :root .score-mobile-label { display: inline; margin: 0; }
+  :root .score-table .score-notes { margin: 0; }
+}
+
+/* Prose pages: a reading column of about 40 CJK characters on desktop. */
+
+:root .info-layout .prose,:root .info-layout .faq-section,:root .page-heading p { max-width: 40rem; }
+
+:root .about-layout.info-layout .faq-section,:root .info-layout:not(.about-layout) .prose { max-width: none; }
+
+/* Wide screens (1500px+): helper and meta text — dates, labels, counts,
+   card actions, tags, the footer — reads at about 14px instead of 12–13px.
+   Every selector here is smaller than this below 1500px, so nothing shrinks. */
+
+@media (min-width: 1500px) {
+  :root .feed-meta,:root .feed-time,:root .eyebrow,:root .filter-bar label,:root .search-label > span,:root .follow-count,:root .event-date-month,:root .event-date-weekday,:root .status-table small,:root .status-table td p,:root .score-row-meta .score-country,:root .score-notes > summary,:root .score-tab span,:root .observatory-timeline .timeline-action,:root .observatory-timeline .timeline-actions .feed-open-link,:root .feed-latest-meta,:root .event-author-meta,:root .source-name-value,:root .source-language-label,:root .source-alternatives > summary,:root .source-alternatives-content h4,:root .source-translation-note,:root .profile-tags .tag,:root .feed-plat,:root .feed-action,:root .feed-meta .tag,:root .story-expired,:root .feed-expand,:root .src-head,:root .src-row .follow-button span,:root .src-count,:root .src-upd,:root .src-upd time,:root .score-tab,:root .score-tab > span,:root .score-table th,:root .score-table .score-credits span,:root .score-table .score-notes,:root .score-table .score-notes p,:root .score-table .score-publisher,:root .score-mobile-label,:root .score-evidence-link,:root .score-row-links .context-report-link,:root .collection-group-heading h2 span,:root .collection-facts dt,:root .collection-primary,:root .collection-record > summary,:root .collection-original,:root .status-pill,:root .status-metrics span,:root .page-heading .button,:root .pagination p,:root .feed-card .tag,:root .feed-card .copy-button,:root .site-footer,:root .collection-group-heading p,:root .community-banner p:not(.eyebrow),:root .profile-links .button,:root .site-footer a,:root .field-hint,:root .consent-label span,:root .ownership-hint,:root .capacity-panel .small,:root .capacity-panel small,:root .capacity-figures span,:root .submission-row .small,:root .sidebar-note p,:root .account-panel .small { font-size: max(.84rem, 14px); }
+  :root .status-table small,:root .field-hint,:root .ownership-hint,:root .capacity-panel .small,:root .capacity-panel small,:root .capacity-figures span,:root .site-footer a { color: var(--color-text-muted); }
+  :root .page-notes ul,:root .home-updated,:root .rich-event-zone,:root .ob-story-caption .ob-story-footer,:root .google-calendar-context,:root .home-upcoming-copy > span { font-size: max(.86rem, 14px); }
+  :root .home-intro-copy > p { font-size: 1.1rem; }
+}
+
+/* Feed cards (timeline and source page): tall images are capped and shown
+   whole on the soft surface instead of stretching the card. */
+
+:root .observatory-timeline .home-feed-thumb { max-height: 420px; }
+
+:root .source-updates-grid .post-image.feed-img,:root .source-updates-grid .post-card:has(.story-tag) .post-image.feed-img { max-height: 420px; }
+
+@media (max-width: 640px) {
+  :root .observatory-timeline .home-feed-thumb { max-height: 360px; }
+  :root .source-updates-grid .post-image.feed-img,:root .source-updates-grid .post-card:has(.story-tag) .post-image.feed-img { max-height: 360px; }
+}
+
+/* Directory on desktop: link icons are 28px targets with room between them. */
+
+@media (min-width: 700px) {
+  :root .src-row .src-links { gap: 6px; }
+  :root .src-links .src-link-icon { flex-basis: 28px; width: 28px; height: 28px; }
+}
+
+@media (max-width: 699px) {
+  :root .src-links-more { white-space: nowrap; font-weight: 600; }
+  :root .src-row .src-links:has(.src-links-more) .src-link-icon:nth-child(n + 4) { display: none; }
+}
+
+/* Forms: a small "Required" / "Optional" tag after each field label. */
+
+:root .field-tag { display: inline-block; margin-left: 8px; padding: 0 6px; color: var(--color-text-muted); font-size: .8125rem; font-weight: 500; line-height: 1.6; vertical-align: 1px; border: 1px solid var(--color-border-subtle); border-radius: 4px; }
+
+:root .field-tag.is-required { color: var(--color-text-brand); border-color: color-mix(in srgb, var(--color-text-brand) 35%, transparent); }
+
+/* About and privacy on desktop: the intro runs wider and the privacy prose
+   column grows to about 48rem, with the contact card beside it on the right. */
+
+@media (min-width: 901px) {
+  :root .page-heading:has( + .info-layout) p { max-width: 56rem; text-wrap: pretty; }
+  :root .info-layout:not(.about-layout) { grid-template-columns: minmax(0, 48rem) minmax(280px, 24rem); }
+}
+
+/* Wide screens: status-table notes and footer links read at about 15px in
+   the darker secondary colour. */
+
+@media (min-width: 1500px) {
+  :root .status-table small,:root .site-footer a { font-size: max(.88rem, 15px); color: var(--color-text-secondary); }
+}
+
+/* Feeds: the title links to the feed; the format tag and copy button close
+   the row, which stays one line on phones. */
+
+:root .feed-card h2 .feed-title-link { color: var(--color-text-brand); text-decoration: none; }
+
+:root .feed-card h2 .feed-title-link:hover { text-decoration: underline; }
+
+:root .feed-card > .tag { order: 2; }
+
+:root .feed-card > .feed-actions { order: 3; }
+
+@media (max-width: 640px) {
+  :root .feed-card { flex-wrap: nowrap; gap: 10px; padding: 12px 0; }
+  :root .feed-card .feed-icon { width: 24px; height: 24px; }
+  :root .feed-card h2 { flex: 1 1 auto; flex-basis: auto; min-width: 0; font-size: .95rem; }
+  :root .feed-card .feed-actions { margin-left: 0; flex-wrap: nowrap; }
+  :root .feed-card .copy-button { min-height: 40px; white-space: nowrap; }
+}
+
+/* Post text: web addresses read as short link labels (utils.js). */
+
+:root .post-text-link { color: var(--color-text-brand); font-weight: 600; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; overflow-wrap: anywhere; }
+
+:root .post-text-link:hover { color: var(--color-text-primary); }
+
+/* Post cards: a tighter action row — less space above and below the divider. */
+
+:root .observatory-timeline .home-feed-card { box-sizing:border-box; padding-bottom: 8px; }
+
+:root .observatory-timeline .home-feed-footer { margin-top: -4px; padding-top: 4px; }
+
+:root .observatory-timeline .timeline-action { min-height: 32px; }
+
+:root .observatory-timeline .home-feed-footer .more-actions > summary { height: 32px; }
+
+:root .source-updates-grid .post-card { break-inside: avoid; padding-bottom: 8px; }
+
+:root .feed-content > .feed-actions { align-items: center; margin-top: 6px; }
+
+:root .feed-content > .feed-actions .more-actions > summary { height: 32px; }
+
+/* Source page on phones: the follow button shares the name's row; the
+   summary keeps to three lines with "read more"; at most three tags. */
+
+@media (max-width: 699px) {
+  :root .org-page > .back-link { margin-bottom: 10px; }
+  :root .source-profile { grid-template-columns: 56px minmax(0, 1fr) auto; gap: 0 12px; padding-bottom: 18px; }
+  :root .source-profile .profile-avatar .avatar { width: 56px; height: 56px; }
+  :root .source-profile > .button { grid-column: 3; grid-row: 1 / span 2; align-self: center; justify-self: end; width: auto; min-height: 40px; margin: 0; padding: 0 14px; }
+  :root .source-profile > div:not(.profile-avatar) > h1 { grid-column: 2; align-self: start; margin: 0; font-size: 1.45rem; line-height: 1.3; }
+  :root .source-profile > div:not(.profile-avatar) > h1 + * { margin-top: 8px; }
+  :root .source-profile .profile-types,:root .source-profile > div > .source-alternatives { margin-block: 2px 0; }
+  :root .source-profile .source-biography { margin: 6px 0 0; }
+  :root .source-profile .source-summary { margin: 0; }
+  :root .source-profile .source-biography:not(.is-expanded) .source-summary { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  :root .source-profile .source-summary-toggle { justify-self: start; margin: 2px 0 0; }
+  :root .source-profile .profile-tags { margin-top: 8px; }
+  :root .source-profile .profile-tags .tag:nth-child(n + 4) { display: none; }
+  :root .source-profile .profile-links { margin: 8px 0 0; }
+}
+
+@media (min-width: 700px) { :root .source-summary-toggle { display: none; } }
+
+/* Contribute: what withdrawing does, beside the button. */
+
+:root .withdraw-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
+
+:root .withdraw-row > .button { flex: none; }
+
+:root .withdraw-effect { flex: 1 1 16rem; margin: 0; color: var(--color-text-secondary); font-size: max(.84rem, 13px); line-height: 1.6; }
+
+/* Dark theme: secondary and muted text a step lighter on the dark surfaces
+   (muted about 8:1 on the card surface, 7:1 on the soft surface). */
+
+[data-theme="dark"]:root { --color-text-secondary: #d3dccf; --color-text-muted: #b6c0b1; }
+
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --color-text-secondary: #d3dccf; --color-text-muted: #b6c0b1; } }
+
+/* Wide screens: navigation labels about 15–16px; card meta (country, time)
+   at 14px or more in the darker secondary colour. */
+
+@media (min-width: 1500px) {
+  :root .legacy-site-header .site-nav > .nav-item,:root .legacy-site-header .nav-more > summary.nav-item,:root .legacy-site-header .site-nav .nav-label { font-size: max(.94rem, 15px); }
+  :root .feed-latest-meta,:root .feed-latest-meta time,:root .feed-meta,:root .feed-time,:root .feed-time time,:root .post-card .eyebrow,:root .event-author-meta,:root .rich-event-zone,:root .home-upcoming-copy > span,:root .ob-story-caption .ob-story-identity time { font-size: max(.86rem, 14px); color: var(--color-text-secondary); }
+}
+
+/* ==== Home and event cards ==== */
+
+/* Event cards: the date block, title, time and place always start at the
+   same left edge; a poster, when there is one, is a thumbnail at the right of
+   that header. Post text, actions and a video use the full card width. A
+   card without a poster has no tile in its place. */
+
+:root .rich-event-header h2 { text-wrap: balance; }
+
+:root .rich-event-card {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: none; align-items: start;
+  grid-template-areas: "header media" "video video" "gallery gallery" "copy copy";
+}
+
+:root .rich-event-card > .rich-event-header { grid-area: header; }
+
+:root .rich-event-card > .rich-event-copy { grid-area: copy; padding-top: 4px; }
+
+:root .rich-event-card > .event-gallery { grid-area: gallery; margin: 0 20px 4px; }
+
+:root .rich-event-card > .event-media {
+  grid-area: media; align-self: start; display: flex; align-items: center; justify-content: center;
+  width: 136px; min-height: 0; aspect-ratio: 4 / 5; margin: 20px 20px 0 0; padding: 6px;
+  background: var(--color-surface-soft); border-radius: 10px;
+}
+
+:root .rich-event-card > .event-media .event-media-link { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+
+:root .rich-event-card > .event-media .event-poster { width: 100%; max-width: 100%; height: 100%; max-height: none; object-fit: contain; border-radius: 6px; }
+
+/* A poster that failed to load simply goes (no tile, no icon). */
+
+:root .rich-event-card > .event-media.event-media-unavailable { display: none; }
+
+:root .rich-event-card > .event-video { grid-area: video; width: calc(100% - 40px); max-height: 300px; margin: 0 20px 4px; border-radius: 10px; background: #141814; }
+
+:root .rich-event-card:has( > .event-media:not(.event-media-unavailable)) > .rich-event-header { padding-right: 16px; }
+
+/* Post excerpts and descriptions show three lines ("read more" opens the
+   rest); the action row follows the text. */
+
+:root .rich-event-copy > :nth-last-child(2) { margin-bottom: 12px; }
+
+:root .event-reference .feed-text:not(.is-expanded) { -webkit-line-clamp: 3; }
+
+:root .event-description-text:not(.is-expanded) .source-summary { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+:root .event-description-text .source-summary { margin: 0; }
+
+:root .event-description-block .feed-expand { margin-top: 5px; }
+
+/* "Read more" looks the same as on post cards (.feed-text-toggle). */
+
+:root .rich-event-card .feed-expand {
+  display: inline-block; min-height: 28px; padding: 0; color: var(--color-text-brand); font-size: .88rem; font-weight: 700;
+  text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px;
+}
+
+/* Desktop: one event per row across the page width, sized to its content:
+   date and details, then the excerpt (or description) with the actions
+   under it, then the poster when there is one. The details column has a
+   fixed share so every excerpt starts at the same edge; without a poster
+   the text runs to the right edge. */
+
+@media (min-width: 1100px) {
+  :root .rich-event-card {
+    grid-template-columns: minmax(0, 42%) minmax(0, 1fr) auto; grid-template-rows: auto 1fr;
+    grid-template-areas: "header copy media" "gallery copy media";
+  }
+  :root .rich-event-card > .rich-event-header { padding: 22px 28px 18px 22px; }
+  :root .rich-event-card:has( > .event-media:not(.event-media-unavailable)) > .rich-event-header { padding-right: 28px; }
+  :root .rich-event-card > .event-gallery { margin: 0 28px 18px 102px; }
+  :root .rich-event-card > .rich-event-copy { padding: 20px 24px 14px 0; }
+  :root .rich-event-card:not(:has( > .event-media:not(.event-media-unavailable), > .event-video)) > .rich-event-copy { grid-column: 2 / -1; padding-right: 28px; }
+  :root .rich-event-copy .event-author { margin-top: 0; }
+  :root .rich-event-copy > .rich-event-actions { margin-top: 8px; padding-top: 0; border-top: 0; }
+  :root .rich-event-card > .event-media { width: 120px; margin: 20px 22px 20px 0; }
+  :root .rich-event-card > .event-video { grid-area: media; width: 260px; max-height: 200px; margin: 20px 22px 20px 0; }
+}
+
+/* Phones: the title uses the full card width; the small poster sits beside
+   the time and place under it. */
+
+@media (max-width: 760px) {
+  :root .rich-event-header h2 { font-size: 1.08rem; line-height: 1.45; overflow-wrap: break-word; }
+  :root .rich-event-card {
+    grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: none;
+    grid-template-areas: "date date" "eyebrow eyebrow" "title title" "original original" "facts media" "video video" "gallery gallery" "copy copy";
+  }
+  :root .rich-event-card > .rich-event-header,:root .rich-event-header > .rich-event-heading { display: contents; }
+  :root .rich-event-header > .event-date-block { grid-area: date; margin: 16px 15px 10px; }
+  :root .rich-event-heading > .eyebrow { grid-area: eyebrow; margin: 0 15px 5px; }
+  :root .rich-event-heading > h2 { grid-area: title; margin: 0 15px 8px; }
+  :root .rich-event-heading > .event-original { grid-area: original; margin: 0 15px 8px; }
+  :root .rich-event-heading > .rich-event-facts { grid-area: facts; align-self: center; min-width: 0; margin: 0 12px 10px 15px; }
+  :root .rich-event-card > .event-media { width: 72px; margin: 0 15px 10px 0; padding: 4px; border-radius: 8px; }
+  :root .rich-event-card > .event-media .event-poster { border-radius: 4px; }
+  :root .rich-event-card > .event-video { width: calc(100% - 30px); max-height: 240px; margin: 0 15px 4px; }
+  :root .rich-event-card > .event-gallery { margin: 0 15px 4px; }
+}
+
+/* Home "Coming up": time leads, titles get three balanced lines so sessions
+   on the same day (morning / afternoon) can be told apart. */
+
+:root .home-upcoming-copy strong { -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; text-wrap: balance; }
+
+:root .home-upcoming-copy > .home-upcoming-time { display: block; color: var(--color-text-brand); font-size: .92rem; font-weight: 800; line-height: 1.35; font-variant-numeric: tabular-nums; }
+
+:root .home-now-events .home-upcoming-link,:root .home-upcoming-link { align-items: start; }
+
+:root .home-upcoming-copy > .home-upcoming-place svg { margin: 0 4px 0 0; vertical-align: -2px; }
+
+/* Events list: one event per row at every width, in date order. The
+   timezone appears beside the time only when it differs from the visitor's. */
+
+:root .rich-events-grid { max-width: none; grid-template-columns: minmax(0, 1fr); align-items: start; }
+
+@media (min-width: 1100px) { :root .rich-events-grid { gap: 14px; } }
+
+/* The period is a row of tabs above the list (the same look as the
+   "All / Following" tabs), so the filter bar's period select goes. */
+
+:root .event-period-tabs { flex-wrap: wrap; max-width: 100%; }
+
+:root .filter-bar label:has( > select[data-filter="period"]) { display: none; }
+
+:root .rich-event-time .rich-event-zone { display: inline-block; margin: 0 0 0 6px; color: var(--color-text-muted); font-size: .8rem; font-weight: 600; white-space: nowrap; }
+
+/* Home intro: tagline, one line and the numbers (the top navigation covers
+   the main pages). */
+
+:root .home-intro-grid { grid-template-columns: minmax(0, 1fr); }
+
+/* Home calendar: one compact row of calendar choices, then a short agenda. */
+
+:root .home-calendar .google-calendar-toolbar { margin-bottom: 8px; }
+
+:root .home-calendar .google-calendar-filters { gap: 2px 4px; }
+
+:root .home-calendar .google-calendar-filters label { min-height: 40px; padding: 6px 8px 6px 0; font-size: .86rem; }
+
+:root .home-calendar .google-calendar-filters label + label { padding-left: 8px; }
+
+:root .google-calendar-frame iframe { color-scheme:light; height: 560px; }
+
+/* Phones: three "Coming up" events and no calendar embed (it would repeat
+   them and push the latest posts far down); the page notes keep Google
+   Calendar and the ICS feeds, "Coming up" links to the event list. The
+   embed's timezone / "not loading" note goes with it. */
+
+@media (max-width: 640px) {
+  :root .home-calendar { display: none; }
+  :root .home-notes .page-notes li:has( > .google-calendar-context) { display: none; }
+  :root .home-now-events .home-upcoming > li:nth-child(n + 4) { display: none; }
+}
+
+/* Home calendar with nothing to embed: the same centred empty card as the
+   other empty states. */
+
+:root .google-calendar-frame > .google-calendar-empty.empty-state {
+  width: fit-content; max-width: 34rem; margin: 24px auto; padding: 40px 24px; color: inherit; font-size: 1rem; line-height: 1.6;
+  text-align: center; border-radius: var(--radius-lg);
+}
+
+:root .google-calendar-empty.empty-state h3 { margin: 0; color: var(--color-text-primary); font-size: 1.15rem; line-height: 1.45; }
+
+/* Home page notes: snapshot time, timezone and calendar subscriptions. */
+
+:root .home-notes { padding: 0 0 48px; }
+
+:root .home-notes .page-notes { margin-top: 0; }
+
+:root .page-notes .home-updated { color: inherit; font-size: inherit; }
+
+:root .page-notes li:has( > [data-story-observed]:empty) { display: none; }
+
+:root .page-notes .google-calendar-context { margin: 0; color: inherit; font-size: inherit; }
+
+/* No stories: the same centred empty card as the other empty states (the
+   band uses the full width when there is no "Coming up" column). */
+
+:root .home-now-grid:not(:has( > .home-now-events)) { grid-template-columns: minmax(0, 1fr); }
+
+:root .ob-story-empty.empty-state {
+  flex: 0 1 auto; width: fit-content; max-width: 34rem; margin: 24px auto; padding: 40px 24px; color: inherit; font-size: 1rem;
+  line-height: inherit; text-align: center; border-radius: var(--radius-lg);
+}
+
+:root .ob-story-empty.empty-state h3 { margin: 0; color: var(--color-text-primary); font-size: 1.15rem; line-height: 1.45; }
+
+:root .ob-story-empty.empty-state .ob-story-status-link { display: inline-flex; width: auto; margin: 0; padding: 8px 14px; color: var(--color-text-primary); font-weight: 600; text-decoration: none; }
+
+:root .ob-story-empty.empty-state .ob-story-status-link:hover { color: var(--color-text-primary); }
+
+/* Story captions: avatar and name, then the display deadline and the
+   original source on one line. */
+
+:root .ob-story-caption { gap: 4px; }
+
+:root .ob-story-caption .ob-story-header { align-items: center; }
+
+:root .ob-story-caption .ob-story-footer { position: static; text-shadow: none; pointer-events: auto; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 10px; padding: 0; border-top: 0; }
+
+:root .ob-story-caption .ob-story-original { min-height: 28px; }
+
+/* Expiry: "Shown until" and the date never split; when a narrow card cannot
+   fit the line, only the clock time moves down (the interface section above keeps the time
+   on one line elsewhere). */
+
+:root .ob-story-caption .ob-story-expiry-label { white-space: nowrap; }
+
+:root .ob-story-caption .ob-story-expiry time { white-space: inherit; }
+
+/* Home "now" band on desktop: story cards share the column (up to 300px
+   each, then the strip scrolls); the "Coming up" column takes what the
+   stories leave, so there is no empty gap between them. */
+
+@media (min-width: 1101px) {
+  :root .home-now-grid:has( > .home-now-events) { grid-template-columns: minmax(0, max-content) minmax(26rem, 1fr); }
+  :root .home-now-stories .ob-story-card { flex: 0 1 auto; width: 300px; min-width: 200px; }
+  /* Desktop cards are wide enough for "Shown until <date> · <time>" on one line. */
+  :root .home-now-stories .ob-story-caption .ob-story-expiry { white-space: nowrap; }
+}

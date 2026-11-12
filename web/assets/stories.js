@@ -138,6 +138,7 @@ export function bindStories(root, { catalog, refreshCatalog, onRefresh, refreshO
         }),
       ]);
       if (disposed || request.signal.aborted) return;
+      if (next === null) return; // The caller's catalog is still fresh.
       if (!next || !Array.isArray(next.stories)) throw new Error('invalid_stories');
       catalog.stories = next.stories;
       if (next.status) catalog.status = next.status;

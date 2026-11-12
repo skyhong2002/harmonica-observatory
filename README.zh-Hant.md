@@ -147,7 +147,7 @@ npm --prefix web test
 
 ## 維護文件
 
-- [介面與互動規範](web/CHUMEI_UI_HANDOFF.md)：目前版面要求與歷史設計紀錄。
+- [前端說明](web/README.md)：目前介面結構、樣式表、catalog 載入方式與驗證方法。
 - [版面驗收](deploy/original-layout-acceptance-2026-09-23.md)、[使用體驗評估](deploy/heuristic-evaluation-2026-09-23.md)、[多語名錄與資訊密度](deploy/density-multilingual-acceptance-2026-09-23.md)：各次變更的驗收紀錄，測試數字僅代表當時版本。
 
 ## 授權與致謝

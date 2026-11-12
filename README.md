@@ -147,7 +147,7 @@ Commit only source code, locale files, public source CSV files and deployment do
 
 ## Maintainer documentation
 
-- [Interface and interaction specifications](web/CHUMEI_UI_HANDOFF.md): current layout requirements and historical design notes.
+- [Frontend](web/README.md): current interface structure, stylesheets, catalog loading and how to verify changes.
 - [Layout acceptance](deploy/original-layout-acceptance-2026-09-23.md), [usability evaluation](deploy/heuristic-evaluation-2026-09-23.md) and [multilingual directory and information density](deploy/density-multilingual-acceptance-2026-09-23.md): validation records for individual changes. Test counts describe the versions tested at the time.
 
 ## License and acknowledgments

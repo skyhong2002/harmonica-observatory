@@ -164,6 +164,16 @@ test('automatic refresh patches only stories while preserving live media, focus,
   cleanup(); dom.window.close();
 });
 
+test('a null refresh result means the catalog is still fresh: no DOM writes and no data change', async () => {
+  setLocale('en'); const data = { ...catalog, stories: [story] }, { dom, root } = refreshingStoryDom(data);
+  const card = root.querySelector('.ob-story-card'); let calls = 0, writes = 0;
+  const cleanup = bindStories(root, { catalog: data, refreshCatalog: async () => { calls++; return null; }, onRefresh: () => { writes++; } });
+  const observer = new dom.window.MutationObserver(records => { writes += records.length; }); observer.observe(root, { subtree: true, childList: true, characterData: true, attributes: true });
+  root.ownerDocument.dispatchEvent(new dom.window.Event('visibilitychange')); await settle();
+  assert.equal(calls, 1); assert.equal(writes, 0); assert.equal(root.querySelector('.ob-story-card'), card); assert.equal(data.stories.length, 1);
+  observer.disconnect(); cleanup(); dom.window.close();
+});
+
 test('automatic refresh failures and invalid responses keep existing stories in four locales', async () => {
   for (const locale of ['en', 'zh-Hant', 'ja', 'ko']) {
     setLocale(locale); const data = { ...catalog, stories: [story] }, { dom, root } = refreshingStoryDom(data);

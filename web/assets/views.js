@@ -77,7 +77,7 @@ export function sortSources(rows, sort = "name", descending = false, catalog = {
 }
 // New interface, phones: the meta line shows up to four link icons; with more,
 // three icons and "+n links", which opens the source page with the rest
-// (redesign.css hides it on wider screens).
+// (interface.css hides it on wider screens).
 function moreLinks(s) {
   const count = (s.links || []).length;
   if (count <= 4) return "";
@@ -98,7 +98,7 @@ export function togglePostExpansion(button) {
 }
 // New interface: the same footer as feed cards — follow source, the original
 // link, then share and report in "⋯". On a source page the page has its own
-// follow button, so redesign.css hides the card's (.source-updates-grid).
+// follow button, so interface.css hides the card's (.source-updates-grid).
 function postActions(p, s, label, followed) {
   const follow = s ? `<button type="button" class="feed-action ${followed ? "is-following" : ""}" data-follow="${esc(s.id)}" aria-pressed="${!!followed}" aria-label="${esc(t(followed ? "unfollow" : "follow") + " " + label)}">${icon(followed ? "check" : "heart")}<span>${esc(followed ? t("following") : vl("followSource"))}</span></button>` : "";
   const report = reportLink({ ...p, name: p.title || label, countryCode: p.countryCode || s?.countryCode });

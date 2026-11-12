@@ -250,6 +250,36 @@ test("application DOM journey across languages, routing, filters and community f
     assert.ok(window.document.querySelector(".src-sort-bar"));
   });
 
+  await t.test("the home page reuses a fresh catalog for stories and revalidates a stale one", async () => {
+    const catalogReads = () => calls.filter((call) => call.path === "/api/v1/catalog");
+    assert.equal(catalogReads().length, 1, "first load reads the catalog once");
+    assert.equal(catalogReads()[0].options.cache, undefined, "first load matches the preload request");
+    const go = (path) => {
+      window.history.replaceState({}, "", path);
+      window.dispatchEvent(new window.PopStateEvent("popstate"));
+    };
+    go("/source/");
+    go("/");
+    window.document.dispatchEvent(new window.Event("visibilitychange"));
+    await sleep(20);
+    assert.equal(catalogReads().length, 1, "a catalog under five minutes old is reused");
+    const realNow = Date.now;
+    Date.now = () => realNow() + 6 * 60 * 1000;
+    try {
+      go("/source/");
+      go("/");
+      await until(() => catalogReads().length === 2, "a stale catalog is read again on return to home");
+      assert.equal(catalogReads()[1].options.cache, "no-cache");
+      await sleep(20);
+      window.document.dispatchEvent(new window.Event("visibilitychange"));
+      await sleep(20);
+      assert.equal(catalogReads().length, 2, "the refreshed catalog is fresh again");
+    } finally {
+      Date.now = realNow;
+      go("/source/");
+    }
+  });
+
   await t.test(
     "four language switches retain independent country filtering",
     () => {
