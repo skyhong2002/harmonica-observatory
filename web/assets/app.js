@@ -54,7 +54,12 @@ import {
   handleGoogleAuth,
 } from "./community.js";
 const app = document.querySelector("#app");
+// New stories arrive with the collector runs (twice an hour) and expired ones
+// leave the strip on their own, so the home page reuses a catalog younger
+// than this instead of downloading the whole file again.
+const STORY_REFRESH_AGE = 5 * 60 * 1000;
 let catalog = null,
+  catalogLoadedAt = 0,
   loadFailed = false,
   limit = 24,
   renderVersion = 0,
@@ -300,9 +305,14 @@ function render({ focus = false } = {}) {
       catalog,
       refreshOnMount: refreshStoriesOnMount,
       refreshCatalog: async ({ signal }) => {
-        const response = await fetch("/api/v1/catalog", { signal, cache: "no-store", headers: { Accept: "application/json" } });
+        if (Date.now() - catalogLoadedAt < STORY_REFRESH_AGE) return null;
+        // "no-cache" revalidates every time; once the API sends an ETag this
+        // becomes a conditional request instead of a full download.
+        const response = await fetch("/api/v1/catalog", { signal, cache: "no-cache" });
         if (!response.ok) throw new Error("catalog");
-        return response.json();
+        const next = await response.json();
+        catalogLoadedAt = Date.now();
+        return next;
       },
       onRefresh: next => { catalog.stories = next.stories; },
     });
@@ -421,11 +431,12 @@ async function load() {
   loadFailed = false;
   render();
   try {
-    const response = await fetch("/api/v1/catalog", {
-      headers: { Accept: "application/json" },
-    });
+    // Same request as the <link rel="preload"> in index.html, so the browser
+    // reuses the download it started before the scripts finished loading.
+    const response = await fetch("/api/v1/catalog");
     if (!response.ok) throw new Error("catalog");
     catalog = await response.json();
+    catalogLoadedAt = Date.now();
     for (const key of [
       "sources",
       "posts",
