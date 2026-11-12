@@ -17,7 +17,7 @@
 - 正式目標：`https://harmonica.observe.tw/`。
 - 本機目標：`http://localhost:8330/`，服務實際綁定 `127.0.0.1:8330`。
 - 竹梅實際參考：`https://chumei.observe.tw/`，不是其他猜測的域名。
-- 先讀：`web/CHUMEI_UI_HANDOFF.md`（精確元件與程式位置、已檢視截圖、移植順序）、`deploy/acceptance-2026-09-23.md`、`deploy/local-hosting.md`、`deploy/apify-pool.md`、`README.md`、`.agents/AGENTS.md`。
+- 先讀：`web/CHUMEI_UI_HANDOFF.md`（已退役，見 https://github.com/skyhong2002/harmonica-observatory/blob/b6f6797/web/CHUMEI_UI_HANDOFF.md）（精確元件與程式位置、已檢視截圖、移植順序）、`deploy/acceptance-2026-09-23.md`、`deploy/local-hosting.md`、`deploy/apify-pool.md`、`README.md`、`.agents/AGENTS.md`。
 - 先檢查 Git dirty state、最新 commit、正在運行的服務。`deploy/instagram-monitoring.md` 是前一輪開始前就存在的使用者未追蹤檔案；不要刪除、覆蓋或順手提交。
 
 ## UI 要忠實對齊哪些部分
