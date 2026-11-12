@@ -193,7 +193,7 @@ test('post cards: original source link, share and report in "⋯", one quiet arc
    assert.ok(actions.querySelector('.more-actions > .more-actions-menu [data-share]'));
    assert.ok(actions.querySelector('.more-actions > .more-actions-menu a[href^="/submit/"]'));
    assert.equal(actions.querySelector('[data-follow]').textContent.trim(),follow);
-   // Source page: the page's own follow button is the only visible one (redesign.css hides the card's).
+   // Source page: the page's own follow button is the only visible one (interface.css hides the card's).
    document.body.innerHTML=sourceDetail(sources[0],{sources,posts:[story],events:[]},new Set());
    assert.equal(document.querySelectorAll('.source-updates-grid .more-actions').length,1);
   }

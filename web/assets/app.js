@@ -325,7 +325,7 @@ function dropDuplicateReset(root) {
 // Phones: fold the filter controls under one "Filter (n)" toggle so results
 // start on the first screen (every list page has at least two). Open while
 // any filter is applied. "Clear filters" stays outside the fold, beside the
-// toggle (redesign.css), so it is reachable while the fold is closed.
+// toggle (interface.css), so it is reachable while the fold is closed.
 function collapseFilters(root) {
   if ((!window.matchMedia?.("(max-width: 640px)").matches)) return;
   for (const bar of root.querySelectorAll(".filter-bar")) {
@@ -459,7 +459,7 @@ if (path() === '/') {
   const authError = new URLSearchParams(location.search).get('auth_error');
   if (authError) toast(t(authError === 'cancelled' ? 'loginCancelled' : 'loginFailed'));
 }
-// The profile summary clamp starts and stops at the phone width (redesign.css).
+// The profile summary clamp starts and stops at the phone width (interface.css).
 window.matchMedia?.("(max-width: 699px)").addEventListener?.("change", () => { revealClampedSummary(app); });
 app.addEventListener("click", (event) => {
   const googleAuth = event.target.closest('[data-google-auth]');

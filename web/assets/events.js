@@ -312,7 +312,7 @@ export function bindEvents(root) {
     } else if (media) {
       media.classList.add('event-media-unavailable');
       img.remove();
-      // The new interface hides the whole tile (redesign-home-events.css).
+      // The new interface hides the whole tile (interface.css).
       media.querySelector('.event-media-link')?.append(document.createTextNode(l('unavailable')));
     }
   }
