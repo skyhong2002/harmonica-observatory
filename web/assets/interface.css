@@ -411,7 +411,7 @@
   :root .home-stats { display: flex; flex-wrap: nowrap; gap: 14px; margin-top: 10px; overflow-x: auto; scrollbar-width: none; }
   :root .home-stats > div { flex: 0 0 auto; }
   :root .home-stats dd { font-size: 1.15rem; }
-  :root .home-stats dt { font-size: .74rem; white-space: nowrap; }
+  :root .home-stats dt { font-size: .8rem; white-space: nowrap; }
   :root .home-intro-grid { gap: 14px; }
   :root .home-intro-copy h1 { font-size: 1.35rem; margin-bottom: 0; }
 }
@@ -573,7 +573,7 @@
 
 @media (max-width: 640px) {
   :root .legacy-site-header.nav-refresh .site-nav { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2px; }
-  :root .legacy-site-header.nav-refresh .site-nav > .nav-item,:root .legacy-site-header.nav-refresh .nav-more > summary.nav-item { flex-direction: column; gap: 2px; min-height: 54px; padding: 6px 2px; font-size: .72rem; line-height: 1.25; border-radius: 10px; }
+  :root .legacy-site-header.nav-refresh .site-nav > .nav-item,:root .legacy-site-header.nav-refresh .nav-more > summary.nav-item { flex-direction: column; gap: 2px; min-height: 54px; padding: 6px 2px; font-size: clamp(.75rem, 3.35vw, .8125rem); line-height: 1.25; border-radius: 10px; }
   :root .legacy-site-header.nav-refresh .site-nav > .nav-item > svg,:root .legacy-site-header.nav-refresh .nav-more > summary > svg { display: block; flex: 0 0 22px; width: 22px; height: 22px; }
   :root .legacy-site-header.nav-refresh .nav-more > summary.nav-item::after { display: none; }
   :root .legacy-site-header.nav-refresh .nav-label { overflow-wrap: normal; word-break: keep-all; text-align: center; }
@@ -617,7 +617,7 @@
 /* Phones: the same page names as on desktop, each on one line. */
 
 @media (max-width: 640px) {
-  :root .legacy-site-header.nav-refresh .site-nav .nav-label { display: block; max-width: 100%; font-size: .72rem; white-space: nowrap; overflow-wrap: normal; letter-spacing: -.01em; }
+  :root .legacy-site-header.nav-refresh .site-nav .nav-label { display: block; max-width: 100%; font-size: clamp(.75rem, 3.35vw, .8125rem); white-space: nowrap; overflow-wrap: normal; letter-spacing: -.01em; }
 }
 
 /* Very wide screens: a wider page and larger secondary text. */
@@ -758,7 +758,7 @@
 
 /* Forms: a small "Required" / "Optional" tag after each field label. */
 
-:root .field-tag { display: inline-block; margin-left: 8px; padding: 0 6px; color: var(--color-text-muted); font-size: max(.72rem, 12px); font-weight: 500; line-height: 1.6; vertical-align: 1px; border: 1px solid var(--color-border-subtle); border-radius: 4px; }
+:root .field-tag { display: inline-block; margin-left: 8px; padding: 0 6px; color: var(--color-text-muted); font-size: .8125rem; font-weight: 500; line-height: 1.6; vertical-align: 1px; border: 1px solid var(--color-border-subtle); border-radius: 4px; }
 
 :root .field-tag.is-required { color: var(--color-text-brand); border-color: color-mix(in srgb, var(--color-text-brand) 35%, transparent); }
 
