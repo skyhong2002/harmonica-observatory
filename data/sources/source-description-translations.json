@@ -15278,29 +15278,39 @@
     "watchlist-369": {
       "sourceName": "Vignesh Chandrasekaran",
       "sourceNameEn": "Vignesh Chandrasekaran",
-      "sourceSummary": "Public Instagram account of Vignesh Chandrasekaran (@vig_gy).",
+      "sourceSummary": "Singapore-based chromatic harmonica performer and teacher whose repertoire spans classical music, film themes and songs from across Asia. He performs in the Harmonica Aficionados Society’s Qin Yuan concert series and offers lessons and workshops. He placed third in the Open Chromatic Solo category at the 2022 Asia Pacific Harmonica Festival.",
       "summaryLanguage": "en",
       "summaries": {
-        "zh-Hant": "Vignesh Chandrasekaran 的公開 Instagram 帳號 @vig_gy。",
-        "en": "Public Instagram account of Vignesh Chandrasekaran (@vig_gy).",
-        "ja": "Vignesh Chandrasekaran の公開 Instagram アカウント（@vig_gy）。",
-        "ko": "Vignesh Chandrasekaran의 공개 Instagram 계정(@vig_gy)."
+        "en": "Singapore-based chromatic harmonica performer and teacher whose repertoire spans classical music, film themes and songs from across Asia. He performs in the Harmonica Aficionados Society’s Qin Yuan concert series and offers lessons and workshops. He placed third in the Open Chromatic Solo category at the 2022 Asia Pacific Harmonica Festival.",
+        "zh-Hant": "以新加坡為據點的半音階口琴演奏者與教師，曲目涵蓋古典音樂、電影配樂與亞洲歌曲。參與新加坡口琴愛好者協會的「琴緣」音樂會系列，並提供口琴課程與工作坊。獲得 2022 年亞太口琴節半音階獨奏公開組季軍。",
+        "ja": "シンガポールを拠点とするクロマチックハーモニカ奏者・講師。クラシック、映画音楽、アジア各地の楽曲を演奏する。Harmonica Aficionados Societyの「Qin Yuan」コンサートシリーズに出演し、レッスンやワークショップも行う。2022年アジア太平洋ハーモニカフェスティバルのクロマチック独奏オープン部門で第3位。",
+        "ko": "싱가포르를 기반으로 활동하는 크로매틱 하모니카 연주자이자 강사로, 클래식과 영화 음악, 아시아 각지의 노래를 연주한다. Harmonica Aficionados Society의 Qin Yuan 음악회 시리즈에 출연하며 레슨과 워크숍을 진행한다. 2022년 아시아 태평양 하모니카 페스티벌 크로매틱 독주 오픈 부문에서 3위를 차지했다."
       },
       "sourceTags": [
-        "其他來源"
+        "演奏者",
+        "半音階",
+        "教學"
       ],
       "tags": {
         "zh-Hant": [
-          "其他來源"
+          "演奏者",
+          "半音階",
+          "教學"
         ],
         "en": [
-          "Other sources"
+          "Performers",
+          "Chromatic harmonica",
+          "Teaching"
         ],
         "ja": [
-          "その他の情報源"
+          "演奏家",
+          "クロマチックハーモニカ",
+          "指導"
         ],
         "ko": [
-          "기타 정보원"
+          "연주자",
+          "크로매틱 하모니카",
+          "교육"
         ]
       }
     }
